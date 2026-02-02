@@ -29,6 +29,6 @@ ReDrobe is an all-in-one digital wardrobe management platform that allows users 
 - Nada Khan – Lead UI/UX Designer & Frontend Developer
 - Narawit Sawatdecha – Project Manager & Backend Developer
 - Trinity Ma – QA & Analytics Developer
-- Rohit Sivakumar – Data & AI / Algorithm Developer
+- Seulgi Lee – Data & AI / Algorithm Developer
 - Ke An Lo – Technical Lead & System Architect
 
