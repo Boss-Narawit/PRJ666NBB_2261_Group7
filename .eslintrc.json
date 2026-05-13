@@ -1,0 +1,12 @@
+{
+  "root": true,
+  "extends": ["eslint:recommended", "prettier"],
+  "env": {
+    "es2022": true,
+    "node": true
+  },
+  "parserOptions": {
+    "ecmaVersion": "latest",
+    "sourceType": "module"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "redrobe",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:reset": "docker compose down -v && docker compose up -d",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm start"
+  },
+  "devDependencies": {
+    "prettier": "^3.2.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0"
+  }
+}
