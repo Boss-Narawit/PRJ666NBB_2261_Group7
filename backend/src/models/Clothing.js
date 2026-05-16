@@ -1,0 +1,36 @@
+const mongoose = require('mongoose');
+
+const clothingSchema = new mongoose.Schema(
+  {
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    name: { type: String, required: true, trim: true },
+    brand: { type: String, required: true, trim: true },
+    category: {
+      type: String,
+      required: true,
+      enum: ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'accessories', 'other'],
+    },
+    colors: { type: [String], required: true },
+    size: { type: String, required: true },
+    imageUrl: { type: String, required: true },
+    condition: { type: String, required: true, enum: ['Excellent', 'Good', 'Fair', 'Damaged'] },
+    status: { type: String, enum: ['Available', 'Archived'], default: 'Available' },
+    purchasePrice: { type: Number },
+    purchaseDate: { type: Date },
+    tags: { type: [String], default: [] },
+    aiEmbedding: { type: [Number], default: [] }, // fashion-clip vector set by AI service
+    notes: { type: String },
+    analytics: {
+      wearCount: { type: Number, default: 0 },
+      lastWornAt: { type: Date },
+      lastNotifiedAt: { type: Date }, // throttle forgotten-item re-notify (BR13)
+    },
+  },
+  { timestamps: true }
+);
+
+clothingSchema.index({ userId: 1 });
+clothingSchema.index({ userId: 1, category: 1 });
+clothingSchema.index({ userId: 1, status: 1 });
+
+module.exports = mongoose.model('Clothing', clothingSchema);
