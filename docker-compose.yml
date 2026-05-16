@@ -1,27 +1,2 @@
 services:
-  mongodb:
-    image: mongo:7
-    container_name: redrobe-mongo
-    restart: unless-stopped
-    ports:
-      - "27017:27017"
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: redrobe
-      MONGO_INITDB_ROOT_PASSWORD: redrobe_dev
-      MONGO_INITDB_DATABASE: redrobe
-    volumes:
-      - mongo_data:/data/db
-      - ./backend/seed:/docker-entrypoint-initdb.d
-
-  mongo-express:
-    image: mongo-express:latest
-    container_name: redrobe-mongo-ui
-    restart: unless-stopped
-    ports:
-      - "8081:8081"
-    environment:
-      ME_CONFIG_MONGODB_URL: ${MONGODB_URI}
-      ME_CONFIG_BASICAUTH: false
-
-volumes:
-  mongo_data:
+  # backend and ai-service containers will be added here
