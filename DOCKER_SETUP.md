@@ -65,14 +65,17 @@ docker compose version
 ReDrobe connects to **MongoDB Atlas** — not a local database. To set up your environment:
 
 1. Copy the backend env file:
+
    ```bash
    cp backend/.env.example backend/.env
    ```
 
 2. Set your Atlas connection string in `backend/.env`:
+
    ```
    MONGODB_URI=mongodb+srv://<user>:<password>@<cluster>.mongodb.net/?appName=<app>
    ```
+
    Ask a teammate for the credentials.
 
 3. Install **MongoDB Compass** to browse the database:
@@ -85,12 +88,12 @@ ReDrobe connects to **MongoDB Atlas** — not a local database. To set up your e
 
 ## Useful Commands
 
-| Command | Description |
-|---|---|
-| `docker compose up -d` | Start all service containers |
-| `docker compose down` | Stop and remove containers |
+| Command                  | Description                     |
+| ------------------------ | ------------------------------- |
+| `docker compose up -d`   | Start all service containers    |
+| `docker compose down`    | Stop and remove containers      |
 | `docker compose logs -f` | Stream logs from all containers |
-| `docker compose ps` | Check container status |
+| `docker compose ps`      | Check container status          |
 
 ---
 

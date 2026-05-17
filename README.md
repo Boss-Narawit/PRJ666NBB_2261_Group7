@@ -1,4 +1,5 @@
 # ReDrobe
+
 A smart digital wardrobe platform that helps users reduce fashion waste, reduce impulse spending, and maximize their existing wardrobe.
 
 ## Brief summary
@@ -14,10 +15,13 @@ help users find new outfit ideas and give unused clothing a second life through 
 or upcycling.
 
 ## Problem
+
 Most people own far more clothes than they actually wear, leading to wasted money, impulsive purchases, and unnecessary environmental harm. Existing wardrobe apps focus on organization, but fail to discourage overconsumption or provide insights on clothing usage.
 
 ## Solution
+
 ReDrobe is an all-in-one digital wardrobe management platform that allows users to:
+
 - Digitally catalog their clothing
 - Track wear frequency
 - Create and save outfits
@@ -26,9 +30,9 @@ ReDrobe is an all-in-one digital wardrobe management platform that allows users 
 - Gain insights through analytics and an annual “Style Recap”
 
 ## Our Team Members
+
 - Nada Khan – Lead UI/UX Designer & Frontend Developer
 - Narawit Sawatdecha – Project Manager & Backend Developer
 - Trinity Ma – QA & Analytics Developer
 - Seulgi Lee – Data & AI / Algorithm Developer
 - Beomgu Jeon – Technical Lead & System Architect
-
