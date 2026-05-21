@@ -1055,6 +1055,18 @@ async function seed() {
   ]);
   console.log('Wear logs: ~62 total (Jane 35, Alex 10, Maya 5, Zoe 4, Kai 8)');
 
+  // Sync analytics.wearCount + lastWornAt with actual WearLog documents (BR9)
+  await Clothing.updateMany({}, { $set: { 'analytics.wearCount': 0 } });
+  const wearAgg = await WearLog.aggregate([
+    { $unwind: '$clothingWorn' },
+    { $group: { _id: '$clothingWorn.itemId', count: { $sum: 1 }, lastWornAt: { $max: '$logDate' } } },
+  ]);
+  await Promise.all(
+    wearAgg.map(({ _id, count, lastWornAt }) =>
+      Clothing.updateOne({ _id }, { $set: { 'analytics.wearCount': count, 'analytics.lastWornAt': lastWornAt } })
+    )
+  );
+
   // ─────────────────────────────────────────────────────────────────────────────
   // THOUGHTFUL PURCHASES (11)
   // ─────────────────────────────────────────────────────────────────────────────
