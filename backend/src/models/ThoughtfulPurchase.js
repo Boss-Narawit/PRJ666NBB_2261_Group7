@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { PURCHASE_STATUSES } = require('../config/constants');
 
 const thoughtfulPurchaseSchema = new mongoose.Schema(
   {
@@ -9,7 +10,7 @@ const thoughtfulPurchaseSchema = new mongoose.Schema(
     estimatedPrice: { type: Number },
     sourceUrl: { type: String },
     cooldownEndsAt: { type: Date, required: true }, // BR14: must be ≥ 1440 min from createdAt
-    status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+    status: { type: String, enum: PURCHASE_STATUSES, default: 'pending' },
   },
   { timestamps: true }
 );

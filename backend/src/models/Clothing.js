@@ -1,20 +1,17 @@
 const mongoose = require('mongoose');
+const { CLOTHING_CATEGORIES, CLOTHING_CONDITIONS, CLOTHING_STATUSES } = require('../config/constants');
 
 const clothingSchema = new mongoose.Schema(
   {
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     name: { type: String, required: true, trim: true },
     brand: { type: String, required: true, trim: true },
-    category: {
-      type: String,
-      required: true,
-      enum: ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'accessories', 'other'],
-    },
+    category: { type: String, required: true, enum: CLOTHING_CATEGORIES },
     colors: { type: [String], required: true },
     size: { type: String, required: true },
     imageUrl: { type: String, required: true },
-    condition: { type: String, required: true, enum: ['Excellent', 'Good', 'Fair', 'Damaged'] },
-    status: { type: String, enum: ['Available', 'Archived'], default: 'Available' },
+    condition: { type: String, required: true, enum: CLOTHING_CONDITIONS },
+    status: { type: String, enum: CLOTHING_STATUSES, default: 'Available' },
     purchasePrice: { type: Number },
     purchaseDate: { type: Date },
     tags: { type: [String], default: [] },
