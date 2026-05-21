@@ -1,5 +1,9 @@
 const mongoose = require('mongoose');
-const { USER_ROLES, FORGOTTEN_ITEM_MIN_THRESHOLD_DAYS, FORGOTTEN_ITEM_DEFAULT_THRESHOLD_DAYS } = require('../config/constants');
+const {
+  USER_ROLES,
+  FORGOTTEN_ITEM_MIN_THRESHOLD_DAYS,
+  FORGOTTEN_ITEM_DEFAULT_THRESHOLD_DAYS,
+} = require('../config/constants');
 
 const userSchema = new mongoose.Schema(
   {
@@ -14,7 +18,11 @@ const userSchema = new mongoose.Schema(
     preferences: {
       favoriteColors: { type: [String], default: [] },
       favoriteCategories: { type: [String], default: [] },
-      forgottenItemThresholdDays: { type: Number, default: FORGOTTEN_ITEM_DEFAULT_THRESHOLD_DAYS, min: FORGOTTEN_ITEM_MIN_THRESHOLD_DAYS },
+      forgottenItemThresholdDays: {
+        type: Number,
+        default: FORGOTTEN_ITEM_DEFAULT_THRESHOLD_DAYS,
+        min: FORGOTTEN_ITEM_MIN_THRESHOLD_DAYS,
+      },
     },
   },
   { timestamps: true }

@@ -1,5 +1,9 @@
 const mongoose = require('mongoose');
-const { CLOTHING_CATEGORIES, CLOTHING_CONDITIONS, CLOTHING_STATUSES } = require('../config/constants');
+const {
+  CLOTHING_CATEGORIES,
+  CLOTHING_CONDITIONS,
+  CLOTHING_STATUSES,
+} = require('../config/constants');
 
 const clothingSchema = new mongoose.Schema(
   {

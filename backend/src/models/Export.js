@@ -17,7 +17,7 @@ const exportSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-exportSchema.index({ status: 1 });             // admin/active listings feed
+exportSchema.index({ status: 1 }); // admin/active listings feed
 exportSchema.index({ userId: 1, status: 1 }); // user's export history filtered by status
 
 module.exports = mongoose.model('Export', exportSchema);

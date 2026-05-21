@@ -201,11 +201,11 @@ The core of the wardrobe catalog. Each document represents one physical clothing
 
 #### Indexes
 
-| Index               | Type     | Purpose                                     |
-| ------------------- | -------- | ------------------------------------------- |
-| `userId`                          | Single   | Fetch all items for a user                                  |
-| `userId + category`               | Compound | Filter by category within a user's wardrobe                 |
-| `userId + status + lastWornAt`    | Compound | Forgotten items job — prefix covers `{userId,status}` too (BR11/BR13) |
+| Index                          | Type     | Purpose                                                               |
+| ------------------------------ | -------- | --------------------------------------------------------------------- |
+| `userId`                       | Single   | Fetch all items for a user                                            |
+| `userId + category`            | Compound | Filter by category within a user's wardrobe                           |
+| `userId + status + lastWornAt` | Compound | Forgotten items job — prefix covers `{userId,status}` too (BR11/BR13) |
 
 #### Example Document
 
@@ -612,23 +612,23 @@ Stores in-app notifications delivered to users. Notifications are created by the
 
 Complete index list across all collections.
 
-| Collection            | Fields                     | Type            | Reason                                    |
-| --------------------- | -------------------------- | --------------- | ----------------------------------------- |
-| `users`               | `email`                    | Unique          | Login lookup, prevent duplicate accounts  |
-| `clothings`           | `userId`                   | Single          | Fetch user's wardrobe                     |
-| `clothings`           | `userId, category`         | Compound        | Filter by category                        |
-| `clothings`           | `userId, status`           | Compound        | Exclude archived items (BR23)             |
-| `outfits`             | `userId`                   | Single          | Fetch user's outfits                      |
-| `outfits`             | `clothingItems`            | Multikey        | Reverse lookup: outfits containing item X |
-| `wearlogs`            | `userId, logDate`          | Unique compound | One log per user per day (BR8)            |
-| `wearlogs`            | `clothingWorn.itemId`      | Multikey        | Per-item wear frequency                   |
-| `thoughtfulpurchases` | `userId, status`           | Compound        | Fetch pending holds                       |
+| Collection            | Fields                     | Type            | Reason                                                                |
+| --------------------- | -------------------------- | --------------- | --------------------------------------------------------------------- |
+| `users`               | `email`                    | Unique          | Login lookup, prevent duplicate accounts                              |
+| `clothings`           | `userId`                   | Single          | Fetch user's wardrobe                                                 |
+| `clothings`           | `userId, category`         | Compound        | Filter by category                                                    |
+| `clothings`           | `userId, status`           | Compound        | Exclude archived items (BR23)                                         |
+| `outfits`             | `userId`                   | Single          | Fetch user's outfits                                                  |
+| `outfits`             | `clothingItems`            | Multikey        | Reverse lookup: outfits containing item X                             |
+| `wearlogs`            | `userId, logDate`          | Unique compound | One log per user per day (BR8)                                        |
+| `wearlogs`            | `clothingWorn.itemId`      | Multikey        | Per-item wear frequency                                               |
+| `thoughtfulpurchases` | `userId, status`           | Compound        | Fetch pending holds                                                   |
 | `similaritychecks`    | `purchaseId, clothingId`   | Unique compound | Prevent duplicate checks (BR18); prefix serves `{purchaseId}` queries |
-| `exports`             | `status`                   | Single          | Admin / active listings feed              |
-| `exports`             | `userId, status`           | Compound        | User's export history filtered by status  |
-| `notifications`       | `userId, isRead`           | Compound        | Unread count badge                        |
-| `notifications`       | `userId, createdAt` (desc) | Compound        | Notification feed                         |
-| `partners`            | `isActive`                 | Single          | Active partner filter (BR30)              |
+| `exports`             | `status`                   | Single          | Admin / active listings feed                                          |
+| `exports`             | `userId, status`           | Compound        | User's export history filtered by status                              |
+| `notifications`       | `userId, isRead`           | Compound        | Unread count badge                                                    |
+| `notifications`       | `userId, createdAt` (desc) | Compound        | Notification feed                                                     |
+| `partners`            | `isActive`                 | Single          | Active partner filter (BR30)                                          |
 
 ---
 
