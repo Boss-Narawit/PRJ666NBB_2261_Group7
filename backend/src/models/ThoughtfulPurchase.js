@@ -16,5 +16,6 @@ const thoughtfulPurchaseSchema = new mongoose.Schema(
 );
 
 thoughtfulPurchaseSchema.index({ userId: 1, status: 1 });
+thoughtfulPurchaseSchema.index({ status: 1, cooldownEndsAt: 1 }); // expireTimers job (BR15)
 
 module.exports = mongoose.model('ThoughtfulPurchase', thoughtfulPurchaseSchema);

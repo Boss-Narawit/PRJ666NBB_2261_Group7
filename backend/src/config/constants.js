@@ -16,6 +16,9 @@ const NOTIFICATION_TYPES = Object.freeze([
 const EXPORT_TYPES    = Object.freeze(['sale', 'donation', 'upcycle', 'resale']);
 const EXPORT_STATUSES = Object.freeze(['active', 'sold', 'donated', 'removed']);
 
+const OUTFIT_SEASONS  = Object.freeze(['spring', 'summer', 'fall', 'winter', 'all']);
+const PARTNER_TYPES   = Object.freeze(['resale', 'donation', 'tailor', 'upcycle']); // lowercase — matches EXPORT_TYPES convention
+
 // Business-rule thresholds — never hardcode these in services or validators
 const COOLDOWN_MIN_MINUTES           = 1440; // BR14
 const SIMILARITY_THRESHOLD           = 0.70; // BR16
@@ -37,6 +40,8 @@ module.exports = {
   NOTIFICATION_TYPES,
   EXPORT_TYPES,
   EXPORT_STATUSES,
+  OUTFIT_SEASONS,
+  PARTNER_TYPES,
   COOLDOWN_MIN_MINUTES,
   SIMILARITY_THRESHOLD,
   NOTIFICATION_MAX_SLOTS,

@@ -28,6 +28,6 @@ const clothingSchema = new mongoose.Schema(
 
 clothingSchema.index({ userId: 1 });
 clothingSchema.index({ userId: 1, category: 1 });
-clothingSchema.index({ userId: 1, status: 1 });
+clothingSchema.index({ userId: 1, status: 1, 'analytics.lastWornAt': 1 }); // forgotten items job: prefix covers {userId,status} queries (BR11/BR13)
 
 module.exports = mongoose.model('Clothing', clothingSchema);

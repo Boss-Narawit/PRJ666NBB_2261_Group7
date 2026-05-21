@@ -8,7 +8,7 @@ const exportSchema = new mongoose.Schema(
     partnerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Partner' },
     type: { type: String, required: true, enum: EXPORT_TYPES },
     price: { type: Number }, // applicable when type is 'sale' or 'resale'
-    description: { type: String },
+    description: { type: String, trim: true },
     status: { type: String, enum: EXPORT_STATUSES, default: 'active' },
     checklistCompleted: { type: Boolean, default: false }, // BR17/BR20
     consent: { type: Boolean, default: false }, // BR17: explicit user consent required
@@ -17,7 +17,7 @@ const exportSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-exportSchema.index({ status: 1 });
-exportSchema.index({ userId: 1 });
+exportSchema.index({ status: 1 });             // admin/active listings feed
+exportSchema.index({ userId: 1, status: 1 }); // user's export history filtered by status
 
 module.exports = mongoose.model('Export', exportSchema);

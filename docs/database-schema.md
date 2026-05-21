@@ -203,9 +203,9 @@ The core of the wardrobe catalog. Each document represents one physical clothing
 
 | Index               | Type     | Purpose                                     |
 | ------------------- | -------- | ------------------------------------------- |
-| `userId`            | Single   | Fetch all items for a user                  |
-| `userId + category` | Compound | Filter by category within a user's wardrobe |
-| `userId + status`   | Compound | Exclude archived items efficiently          |
+| `userId`                          | Single   | Fetch all items for a user                                  |
+| `userId + category`               | Compound | Filter by category within a user's wardrobe                 |
+| `userId + status + lastWornAt`    | Compound | Forgotten items job — prefix covers `{userId,status}` too (BR11/BR13) |
 
 #### Example Document
 
@@ -623,10 +623,9 @@ Complete index list across all collections.
 | `wearlogs`            | `userId, logDate`          | Unique compound | One log per user per day (BR8)            |
 | `wearlogs`            | `clothingWorn.itemId`      | Multikey        | Per-item wear frequency                   |
 | `thoughtfulpurchases` | `userId, status`           | Compound        | Fetch pending holds                       |
-| `similaritychecks`    | `purchaseId, clothingId`   | Unique compound | Prevent duplicate checks (BR18)           |
-| `similaritychecks`    | `purchaseId`               | Single          | Fetch all results for a purchase          |
-| `exports`             | `status`                   | Single          | Active listings feed                      |
-| `exports`             | `userId`                   | Single          | User's export history                     |
+| `similaritychecks`    | `purchaseId, clothingId`   | Unique compound | Prevent duplicate checks (BR18); prefix serves `{purchaseId}` queries |
+| `exports`             | `status`                   | Single          | Admin / active listings feed              |
+| `exports`             | `userId, status`           | Compound        | User's export history filtered by status  |
 | `notifications`       | `userId, isRead`           | Compound        | Unread count badge                        |
 | `notifications`       | `userId, createdAt` (desc) | Compound        | Notification feed                         |
 | `partners`            | `isActive`                 | Single          | Active partner filter (BR30)              |

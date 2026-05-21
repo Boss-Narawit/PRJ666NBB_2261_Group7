@@ -5,7 +5,7 @@ const userSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-    password: { type: String, required: true },
+    password: { type: String, required: true, select: false },
     role: { type: String, enum: USER_ROLES, default: 'user' },
     avatar: { type: String },
     notificationEnabled: { type: Boolean, default: true },
@@ -19,5 +19,7 @@ const userSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+userSchema.index({ scheduledDeletionAt: 1 }, { sparse: true }); // sparse: most users never set this
 
 module.exports = mongoose.model('User', userSchema);
