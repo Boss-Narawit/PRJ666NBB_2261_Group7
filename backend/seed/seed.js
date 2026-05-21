@@ -1059,11 +1059,16 @@ async function seed() {
   await Clothing.updateMany({}, { $set: { 'analytics.wearCount': 0 } });
   const wearAgg = await WearLog.aggregate([
     { $unwind: '$clothingWorn' },
-    { $group: { _id: '$clothingWorn.itemId', count: { $sum: 1 }, lastWornAt: { $max: '$logDate' } } },
+    {
+      $group: { _id: '$clothingWorn.itemId', count: { $sum: 1 }, lastWornAt: { $max: '$logDate' } },
+    },
   ]);
   await Promise.all(
     wearAgg.map(({ _id, count, lastWornAt }) =>
-      Clothing.updateOne({ _id }, { $set: { 'analytics.wearCount': count, 'analytics.lastWornAt': lastWornAt } })
+      Clothing.updateOne(
+        { _id },
+        { $set: { 'analytics.wearCount': count, 'analytics.lastWornAt': lastWornAt } }
+      )
     )
   );
 
