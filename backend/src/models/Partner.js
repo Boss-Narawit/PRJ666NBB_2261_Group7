@@ -1,9 +1,10 @@
 const mongoose = require('mongoose');
+const { PARTNER_TYPES } = require('../config/constants');
 
 const partnerSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, unique: true, trim: true },
-    type: { type: String, trim: true }, // e.g. 'Tailor', 'Resale', 'Donation'
+    type: { type: String, enum: PARTNER_TYPES, trim: true },
     website: { type: String },
     email: { type: String, trim: true, lowercase: true },
     description: { type: String },

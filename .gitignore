@@ -19,3 +19,4 @@ frontend/android/app/build/
 frontend/android/app/.cxx/
 frontend/android/build/
 frontend/android/.kotlin/
+.claude/

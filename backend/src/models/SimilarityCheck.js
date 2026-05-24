@@ -14,7 +14,6 @@ const similarityCheckSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-similarityCheckSchema.index({ purchaseId: 1, clothingId: 1 }, { unique: true }); // BR18: check once per pair
-similarityCheckSchema.index({ purchaseId: 1 });
+similarityCheckSchema.index({ purchaseId: 1, clothingId: 1 }, { unique: true }); // BR18: check once per pair; prefix serves {purchaseId} queries
 
 module.exports = mongoose.model('SimilarityCheck', similarityCheckSchema);

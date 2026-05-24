@@ -1,11 +1,16 @@
 const mongoose = require('mongoose');
+const {
+  USER_ROLES,
+  FORGOTTEN_ITEM_MIN_THRESHOLD_DAYS,
+  FORGOTTEN_ITEM_DEFAULT_THRESHOLD_DAYS,
+} = require('../config/constants');
 
 const userSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-    password: { type: String, required: true },
-    role: { type: String, enum: ['user', 'admin'], default: 'user' },
+    password: { type: String, required: true, select: false },
+    role: { type: String, enum: USER_ROLES, default: 'user' },
     avatar: { type: String },
     notificationEnabled: { type: Boolean, default: true },
     notificationSlots: { type: [String], default: [] }, // max 3 enforced in service layer
@@ -13,10 +18,16 @@ const userSchema = new mongoose.Schema(
     preferences: {
       favoriteColors: { type: [String], default: [] },
       favoriteCategories: { type: [String], default: [] },
-      forgottenItemThresholdDays: { type: Number, default: 30, min: 7 },
+      forgottenItemThresholdDays: {
+        type: Number,
+        default: FORGOTTEN_ITEM_DEFAULT_THRESHOLD_DAYS,
+        min: FORGOTTEN_ITEM_MIN_THRESHOLD_DAYS,
+      },
     },
   },
   { timestamps: true }
 );
+
+userSchema.index({ scheduledDeletionAt: 1 }, { sparse: true }); // sparse: most users never set this
 
 module.exports = mongoose.model('User', userSchema);
