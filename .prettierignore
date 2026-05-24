@@ -1,0 +1,9 @@
+README.md
+node_modules/
+dist/
+build/
+frontend/android/.gradle/
+frontend/android/app/build/
+frontend/android/app/.cxx/
+frontend/android/build/
+frontend/android/.kotlin/
