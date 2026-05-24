@@ -38,7 +38,9 @@ export default function SignUpScreen({ navigation }: Props) {
       return;
     }
     if (!PASSWORD_REGEX.test(password)) {
-      setError('Password must be at least 8 characters with 1 letter and 1 number.');
+      setError(
+        'Password must be at least 8 characters with 1 letter and 1 number.',
+      );
       return;
     }
     if (password !== confirmPassword) {
@@ -64,11 +66,12 @@ export default function SignUpScreen({ navigation }: Props) {
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
       <ScrollView
         contentContainerStyle={styles.container}
-        keyboardShouldPersistTaps="handled">
-
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.header}>
           <Text style={styles.logo}>ReDrobe</Text>
         </View>
@@ -118,7 +121,8 @@ export default function SignUpScreen({ navigation }: Props) {
         <TouchableOpacity
           style={styles.button}
           onPress={handleSubmit}
-          disabled={loading}>
+          disabled={loading}
+        >
           {loading ? (
             <ActivityIndicator color={colors.white} />
           ) : (
