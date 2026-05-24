@@ -10,8 +10,14 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../navigation/RootNavigator';
 
-export const LoginScreen = ({ navigation }: any) => {
+type Props = {
+  navigation: NativeStackNavigationProp<RootStackParamList, 'Login'>;
+};
+
+export const LoginScreen = ({ navigation }: Props) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
