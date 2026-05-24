@@ -14,3 +14,8 @@ venv/
 ios/Pods/
 android/.gradle/
 android/app/build/
+frontend/android/.gradle/
+frontend/android/app/build/
+frontend/android/app/.cxx/
+frontend/android/build/
+frontend/android/.kotlin/

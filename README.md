@@ -36,3 +36,29 @@ ReDrobe is an all-in-one digital wardrobe management platform that allows users 
 - Trinity Ma – QA & Analytics Developer
 - Seulgi Lee – Data & AI / Algorithm Developer
 - Beomgu Jeon – Technical Lead & System Architect
+## Frontend Run
+
+Run the React Native app from the `frontend` folder:
+
+```powershell
+cd frontend
+```
+
+Check the local React Native environment:
+
+```powershell
+npx react-native doctor
+```
+
+Start the Metro development server:
+
+```powershell
+npx react-native start
+```
+
+Open a new terminal, move to the same `frontend` folder, and run Android:
+
+```powershell
+cd frontend
+npx react-native run-android
+```
