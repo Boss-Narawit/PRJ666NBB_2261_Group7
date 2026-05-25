@@ -46,6 +46,12 @@ npm run install:all
 
 ## Frontend Run
 
+Before running any frontend commands, make sure you are in the `frontend` folder:
+
+```powershell
+cd frontend
+```
+
 Check the local React Native environment:
 
 ```powershell

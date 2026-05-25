@@ -41,11 +41,6 @@ export const LoginScreen = ({ navigation }: Props) => {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.content}>
-        {/* Logo / App Name */}
-        <View style={styles.header}>
-          <Text style={styles.logo}>ReDrobe</Text>
-        </View>
-
         {/* Sign In Title */}
         <Text style={styles.title}>Sign In</Text>
         <Text style={styles.subtitle}>Enter your email to sign in</Text>

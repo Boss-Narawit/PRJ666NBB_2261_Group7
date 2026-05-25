@@ -72,10 +72,6 @@ export default function SignUpScreen({ navigation }: Props) {
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.header}>
-          <Text style={styles.logo}>ReDrobe</Text>
-        </View>
-
         <Text style={styles.title}>Create Account</Text>
         <Text style={styles.subtitle}>Fill in your details to get started</Text>
 
