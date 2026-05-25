@@ -8,6 +8,7 @@
     "db:reset": "docker compose down -v && docker compose up -d",
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && npm start",
+    "install:all": "npm i && cd frontend && npm i && cd ../backend && npm i",
     "prepare": "husky"
   },
   "lint-staged": {
