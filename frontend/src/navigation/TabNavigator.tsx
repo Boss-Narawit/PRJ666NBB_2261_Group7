@@ -19,7 +19,10 @@ const ProfileStack = createNativeStackNavigator();
 function ProfileStackNavigator() {
   // TODO: Change initialRouteName based on auth state later
   return (
-    <ProfileStack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Login">
+    <ProfileStack.Navigator
+      screenOptions={{ headerShown: false }}
+      initialRouteName="Login"
+    >
       <ProfileStack.Screen name="Login" component={LoginScreen} />
       <ProfileStack.Screen name="Register" component={SignUpScreen} />
       <ProfileStack.Screen name="ProfileScreen" component={ProfileScreen} />
@@ -73,15 +76,20 @@ export default function TabNavigator() {
           color: '#000000',
         },
         headerTitle: 'ReDrobe',
-        headerLeft: () => (
+        headerLeft: () =>
           navigation.canGoBack() ? (
-            <TouchableOpacity onPress={() => navigation.goBack()} style={{ paddingLeft: 16 }}>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={{ paddingLeft: 16 }}
+            >
               <Icon name="chevron-back" size={24} color="#000000" />
             </TouchableOpacity>
-          ) : null
-        ),
+          ) : null,
         headerRight: () => (
-          <TouchableOpacity onPress={() => navigation.navigate('Settings' as any)} style={{ paddingRight: 16 }}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Settings' as any)}
+            style={{ paddingRight: 16 }}
+          >
             <Icon name="settings-outline" size={24} color="#000000" />
           </TouchableOpacity>
         ),

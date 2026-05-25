@@ -19,18 +19,29 @@ export default function RootNavigator() {
   return (
     <NavigationContainer>
       {/* Set initial route to Main to load the Tab Navigator */}
-      <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Main">
+      <Stack.Navigator
+        screenOptions={{ headerShown: false }}
+        initialRouteName="Main"
+      >
         <Stack.Screen name="Main" component={TabNavigator} />
-        <Stack.Screen 
-          name="Settings" 
-          component={SettingsScreen} 
-          options={{ 
-            headerShown: true, 
+        <Stack.Screen
+          name="Settings"
+          component={SettingsScreen}
+          options={{
+            headerShown: true,
             headerTitle: 'Settings',
-            headerStyle: { backgroundColor: '#FFE9FB', borderBottomWidth: 0.5, borderBottomColor: '#E6E6E6' },
-            headerTitleStyle: { fontWeight: '600', fontSize: 24, color: '#000000' },
+            headerStyle: {
+              backgroundColor: '#FFE9FB',
+              borderBottomWidth: 0.5,
+              borderBottomColor: '#E6E6E6',
+            },
+            headerTitleStyle: {
+              fontWeight: '600',
+              fontSize: 24,
+              color: '#000000',
+            },
             headerTitleAlign: 'center',
-          }} 
+          }}
         />
       </Stack.Navigator>
     </NavigationContainer>
