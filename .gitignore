@@ -11,7 +11,14 @@ __pycache__/
 venv/
 .idea/
 .vscode/
+# iOS
 ios/Pods/
+frontend/ios/Pods/
+frontend/ios/build/
+frontend/ios/.xcode.env.local
+frontend/ios/ReDrobeApp.xcworkspace/xcuserdata/
+
+# Android
 android/.gradle/
 android/app/build/
 frontend/android/.gradle/

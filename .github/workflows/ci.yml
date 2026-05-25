@@ -3,7 +3,6 @@ name: CI Workflow
 # This specifies WHEN the action runs
 on:
   push:
-    branches: ['main']
   pull_request:
     branches: ['main']
   workflow_dispatch: # This allows you to run it MANUALLY from the GitHub website
@@ -25,7 +24,7 @@ jobs:
         run: npm ci
 
       - name: Check code style (ESLint & Prettier)
-        run: npx eslint . --no-error-on-unmatched-pattern && npx prettier --check .
+        run: npx eslint . --no-error-on-unmatched-pattern --max-warnings 0 && npx prettier --check .
 
   # Job 2: Check backend
   backend-ci:
