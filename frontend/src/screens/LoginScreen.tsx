@@ -12,6 +12,8 @@ import {
 } from 'react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/RootNavigator';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { login } from '../services/api';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Login'>;
@@ -29,10 +31,20 @@ export const LoginScreen = ({ navigation }: Props) => {
     }
 
     setLoading(true);
-    // TODO: Connect to backend API
-    // const success = await authAPI.login({ email, password });
-    // if (success) navigation.replace('Main');
-    setLoading(false);
+    try {
+      // Call API
+      const data = await login({ email: email.trim().toLowerCase(), password });
+      
+      // Save token securely
+      await AsyncStorage.setItem('userToken', data.token);
+      
+      // Navigate to main app
+      navigation.replace('Main');
+    } catch (error: any) {
+      Alert.alert('Login Failed', error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
