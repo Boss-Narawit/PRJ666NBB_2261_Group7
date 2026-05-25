@@ -56,12 +56,12 @@ export default function SignUpScreen({ navigation }: Props) {
         email: email.trim().toLowerCase(),
         password,
       });
-      
+
       // Save the token returned from the registration endpoint
       if (data.token) {
         await AsyncStorage.setItem('userToken', data.token);
       }
-      
+
       navigation.replace('Main');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Registration failed');

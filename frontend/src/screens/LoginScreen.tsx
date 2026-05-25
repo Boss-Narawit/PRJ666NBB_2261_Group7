@@ -34,10 +34,10 @@ export const LoginScreen = ({ navigation }: Props) => {
     try {
       // Call API
       const data = await login({ email: email.trim().toLowerCase(), password });
-      
+
       // Save token securely
       await AsyncStorage.setItem('userToken', data.token);
-      
+
       // Navigate to main app
       navigation.replace('Main');
     } catch (error: any) {
