@@ -20,15 +20,30 @@ const categories = [
 
 // Mock data for forgotten items
 const forgottenItems = [
-  { id: '1', name: 'Blue Jeans', brand: 'Calvin Klein', lastWorn: '2026-01-29' },
+  {
+    id: '1',
+    name: 'Blue Jeans',
+    brand: 'Calvin Klein',
+    lastWorn: '2026-01-29',
+  },
   { id: '2', name: 'Flower Sweater', brand: 'Muji', lastWorn: '2026-01-29' },
-  { id: '3', name: 'Leopard Sneakers', brand: 'Sneaker Co', lastWorn: '2026-01-29' },
+  {
+    id: '3',
+    name: 'Leopard Sneakers',
+    brand: 'Sneaker Co',
+    lastWorn: '2026-01-29',
+  },
 ];
 
 export default function MainScreen({ navigation }: any) {
   const renderCategoryItem = ({ item }: any) => (
     <TouchableOpacity style={styles.categoryCard}>
-      <View style={[styles.categoryIcon, { backgroundColor: colors.primary + '20' }]}>
+      <View
+        style={[
+          styles.categoryIcon,
+          { backgroundColor: colors.primary + '20' },
+        ]}
+      >
         <Icon name={item.icon} size={28} color={colors.primary} />
       </View>
       <Text style={styles.categoryName}>{item.name}</Text>
@@ -45,20 +60,24 @@ export default function MainScreen({ navigation }: any) {
         <Text style={styles.forgottenBrand}>{item.brand}</Text>
         <Text style={styles.forgottenDate}>Last worn: {item.lastWorn}</Text>
       </View>
-      <TouchableOpacity style={[styles.wearButton, { backgroundColor: colors.primary }]}>
+      <TouchableOpacity
+        style={[styles.wearButton, { backgroundColor: colors.primary }]}
+      >
         <Text style={styles.wearButtonText}>Wear</Text>
       </TouchableOpacity>
     </TouchableOpacity>
   );
 
   return (
-    <ScrollView 
-      style={[styles.container, { backgroundColor: colors.background }]} 
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.background }]}
       showsVerticalScrollIndicator={false}
     >
       {/* Header */}
       <View style={styles.header}>
-        <Text style={[styles.logo, { color: colors.primary }]}>Hello, User</Text>
+        <Text style={[styles.logo, { color: colors.primary }]}>
+          Hello, User
+        </Text>
         <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
           <Icon name="person-circle-outline" size={32} color={colors.primary} />
         </TouchableOpacity>
@@ -68,30 +87,40 @@ export default function MainScreen({ navigation }: any) {
       <View style={styles.statsContainer}>
         <View style={[styles.statCard, { backgroundColor: colors.white }]}>
           <Text style={styles.statNumber}>24</Text>
-          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Total Items</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+            Total Items
+          </Text>
         </View>
         <View style={[styles.statCard, { backgroundColor: colors.white }]}>
           <Text style={styles.statNumber}>12</Text>
-          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Worn This Month</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+            Worn This Month
+          </Text>
         </View>
         <View style={[styles.statCard, { backgroundColor: colors.white }]}>
           <Text style={styles.statNumber}>8</Text>
-          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Forgotten</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+            Forgotten
+          </Text>
         </View>
       </View>
 
       {/* My Wardrobe Section */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>My Wardrobe</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
+            My Wardrobe
+          </Text>
           <TouchableOpacity onPress={() => navigation.navigate('Wardrobe')}>
-            <Text style={[styles.seeAllText, { color: colors.primary }]}>See All</Text>
+            <Text style={[styles.seeAllText, { color: colors.primary }]}>
+              See All
+            </Text>
           </TouchableOpacity>
         </View>
         <FlatList
           data={categories}
           renderItem={renderCategoryItem}
-          keyExtractor={(item) => item.id}
+          keyExtractor={item => item.id}
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.categoriesList}
@@ -101,18 +130,35 @@ export default function MainScreen({ navigation }: any) {
       {/* View History Section */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>View History</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
+            View History
+          </Text>
           <TouchableOpacity onPress={() => navigation.navigate('WearLog')}>
-            <Text style={[styles.seeAllText, { color: colors.primary }]}>See All</Text>
+            <Text style={[styles.seeAllText, { color: colors.primary }]}>
+              See All
+            </Text>
           </TouchableOpacity>
         </View>
-        <TouchableOpacity style={[styles.historyCard, { backgroundColor: colors.white }]}>
-          <View style={[styles.historyIcon, { backgroundColor: colors.primary + '20' }]}>
+        <TouchableOpacity
+          style={[styles.historyCard, { backgroundColor: colors.white }]}
+        >
+          <View
+            style={[
+              styles.historyIcon,
+              { backgroundColor: colors.primary + '20' },
+            ]}
+          >
             <Icon name="time-outline" size={24} color={colors.primary} />
           </View>
           <View style={styles.historyContent}>
-            <Text style={[styles.historyTitle, { color: colors.textPrimary }]}>Recent Outfits</Text>
-            <Text style={[styles.historySubtitle, { color: colors.textSecondary }]}>Last 7 days</Text>
+            <Text style={[styles.historyTitle, { color: colors.textPrimary }]}>
+              Recent Outfits
+            </Text>
+            <Text
+              style={[styles.historySubtitle, { color: colors.textSecondary }]}
+            >
+              Last 7 days
+            </Text>
           </View>
           <Icon name="chevron-forward" size={20} color={colors.textSecondary} />
         </TouchableOpacity>
@@ -121,15 +167,21 @@ export default function MainScreen({ navigation }: any) {
       {/* View Forgotten Items Section */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>View Forgotten Items</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('ForgottenItems')}>
-            <Text style={[styles.seeAllText, { color: colors.primary }]}>See All</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
+            View Forgotten Items
+          </Text>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('ForgottenItems')}
+          >
+            <Text style={[styles.seeAllText, { color: colors.primary }]}>
+              See All
+            </Text>
           </TouchableOpacity>
         </View>
         <FlatList
           data={forgottenItems}
           renderItem={renderForgottenItem}
-          keyExtractor={(item) => item.id}
+          keyExtractor={item => item.id}
           scrollEnabled={false}
         />
       </View>
