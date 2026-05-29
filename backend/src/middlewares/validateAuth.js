@@ -4,7 +4,7 @@ const validateAuthentication = (req, res, next) => {
       return res.status(400).json({ message: 'Request body is missing' });
     }
 
-  const { password } = req.body;
+  const { email, password } = req.body;
 
   // Check if email is valid
   if (!email) {
