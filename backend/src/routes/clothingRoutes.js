@@ -1,29 +1,26 @@
 const express = require('express');
 
+const {
+  uploadClothing,
+  bulkUploadClothing,
+  getAllClothing,
+  getClothingById,
+  updateClothing,
+  deleteClothing,
+} = require('../controllers/clothingController');
+
 const router = express.Router();
 
-router.post('/upload', (req, res) => {
-  res.json({ message: 'Upload clothing item' });
-});
+router.post('/upload', uploadClothing);
 
-router.post('/bulk-upload', (req, res) => {
-  res.json({ message: 'Bulk upload clothing items' });
-});
+router.post('/bulk-upload', bulkUploadClothing);
 
-router.get('/', (req, res) => {
-  res.json({ message: 'Get clothing items' });
-});
+router.get('/', getAllClothing);
 
-router.get('/:id', (req, res) => {
-  res.json({ message: 'Get clothing detail' });
-});
+router.get('/:id', getClothingById);
 
-router.patch('/:id', (req, res) => {
-  res.json({ message: 'Update clothing item' });
-});
+router.patch('/:id', updateClothing);
 
-router.delete('/:id', (req, res) => {
-  res.json({ message: 'Delete clothing item' });
-});
+router.delete('/:id', deleteClothing);
 
 module.exports = router;
