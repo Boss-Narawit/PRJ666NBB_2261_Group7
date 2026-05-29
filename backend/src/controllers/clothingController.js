@@ -27,7 +27,7 @@ const bulkUploadClothing = async (req, res) => {
 const getAllClothing = async (req, res) => {
   try {
     const clothingItems = await Clothing.find();
-    console.log(clothingItems.length);
+
     res.status(200).json(clothingItems);
   } catch (error) {
     res.status(500).json({
