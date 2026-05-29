@@ -41,8 +41,8 @@ const register = async (req, res) => {
 const login = async (req, res) => {
   // Check if body exists before proceeding
   if (!req.body || !req.body.email || !req.body.password) {
-      return res.status(400).json({ message: 'Email and password are required' });
-    }
+    return res.status(400).json({ message: 'Email and password are required' });
+  }
 
   try {
     const { email, password } = req.body;
@@ -91,5 +91,5 @@ module.exports = {
   login,
   logout,
   refresh,
-  deleteAccount
+  deleteAccount,
 };
