@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { register } from '../../services/api';
 import { colors } from '../../theme';
 
@@ -50,11 +51,17 @@ export default function SignUpScreen({ navigation }: Props) {
 
     setLoading(true);
     try {
-      await register({
+      const data = await register({
         name: name.trim(),
         email: email.trim().toLowerCase(),
         password,
       });
+
+      // Save the token returned from the registration endpoint
+      if (data.token) {
+        await AsyncStorage.setItem('userToken', data.token);
+      }
+
       navigation.replace('Main');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Registration failed');

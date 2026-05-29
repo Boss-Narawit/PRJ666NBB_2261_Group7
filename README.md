@@ -70,3 +70,26 @@ Open a new terminal, move to the same `frontend` folder, and run Android:
 cd frontend
 npx react-native run-android
 ```
+
+## Environment Variables & Database Setup
+
+Create your own local environment file by duplicating the `.env.example` within `backend` folder:
+```powershell
+cp .env.sample .env
+```
+
+Open your newly created `.env` file.
+You can choose to run the database locally or connect to the shared cloud cluster in MongoDB.
+Update the `MONGODB_URI` variable accordingly:
+#### - Local Development (Default)
+```powershell
+MONGODB_URI=mongodb://127.0.0.1:27017/redrobe_db
+```
+
+#### - CLoud Development
+Remove or comment out the local URI to use the cloud URI. Make sure to replace <> with real MongoDB credentials
+```powershell
+MONGODB_URI=mongodb+srv://<username>:<password>.xkfghee.mongodb.net/?appName=cluster-redrobe
+```
+
+Update the default placeholder of `JWT_SECRET` variable in your `.env` file with a secure, random string.

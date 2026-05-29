@@ -1,25 +1,16 @@
 const express = require('express');
-
 const router = express.Router();
 
-router.post('/register', (req, res) => {
-  res.json({ message: 'Register route' });
-});
+// Import the Middleware (The Bouncer)
+const { validateRegistration } = require('../middlewares/validateAuth');
 
-router.post('/login', (req, res) => {
-  res.json({ message: 'Login route' });
-});
+// Import the Controller (The Manager)
+const authController = require('../controllers/authController');
 
-router.post('/logout', (req, res) => {
-  res.json({ message: 'Logout route' });
-});
+// POST /api/auth/register
+router.post('/register', validateRegistration, authController.register);
 
-router.post('/refresh', (req, res) => {
-  res.json({ message: 'Refresh token route' });
-});
-
-router.delete('/delete-account', (req, res) => {
-  res.json({ message: 'Delete account route' });
-});
+// POST /api/auth/login
+router.post('/login', authController.login);
 
 module.exports = router;
