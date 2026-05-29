@@ -1,5 +1,15 @@
-const validateRegistration = (req, res, next) => {
+const validateAuthentication = (req, res, next) => {
+  // Check if body exist before proceeding
+  if (!req.body) {
+      return res.status(400).json({ message: 'Request body is missing' });
+    }
+
   const { password } = req.body;
+
+  // Check if email is valid
+  if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
 
   // Check for missing or short passwords
   if (!password || password.length < 8) {
@@ -20,5 +30,5 @@ const validateRegistration = (req, res, next) => {
 };
 
 module.exports = {
-  validateRegistration,
+  validateAuthentication,
 };

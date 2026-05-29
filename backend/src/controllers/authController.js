@@ -39,6 +39,11 @@ const register = async (req, res) => {
 // @desc    Authenticate a user
 // @route   POST /api/auth/login
 const login = async (req, res) => {
+  // Check if body exists before proceeding
+  if (!req.body || !req.body.email || !req.body.password) {
+      return res.status(400).json({ message: 'Email and password are required' });
+    }
+
   try {
     const { email, password } = req.body;
 
@@ -63,7 +68,28 @@ const login = async (req, res) => {
   }
 };
 
+// @desc    Logout a logged-in user
+// @route   POST /api/auth/logout
+const logout = (req, res) => {
+  res.status(200).json({ message: 'Logout successful' });
+};
+
+// @desc    Refresh page
+// @route   POST /api/auth/refresh
+const refresh = (req, res) => {
+  res.status(200).json({ message: 'Refresh successful' });
+};
+
+// @desc    Delete a user's account
+// @route   POST /api/auth/delete-account
+const deleteAccount = (req, res) => {
+  res.status(200).json({ message: 'Account deleted' });
+};
+
 module.exports = {
   register,
   login,
+  logout,
+  refresh,
+  deleteAccount
 };
