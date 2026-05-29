@@ -12,11 +12,15 @@
     "prepare": "husky"
   },
   "lint-staged": {
-    "**/*.{js,ts,tsx,css}": [
+    "backend/**/*.js": [
       "eslint --fix",
       "prettier --write"
     ],
-    "**/*.{json,yml,yaml}": [
+    "frontend/**/*.{ts,tsx,js,jsx}": [
+      "eslint --config frontend/.eslintrc.js --resolve-plugins-relative-to frontend --no-ignore --fix",
+      "prettier --write"
+    ],
+    "**/*.{json,yml,yaml,css,md}": [
       "prettier --write"
     ]
   },

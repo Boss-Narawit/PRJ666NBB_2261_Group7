@@ -8,7 +8,10 @@ on:
   workflow_dispatch: # This allows you to run it MANUALLY from the GitHub website
 
 jobs:
-  # Job 1: Check code formatting and rules
+  # Job 1: Check code formatting and backend lint rules.
+  # This is the enforcement backstop: even if a contributor's local pre-commit
+  # hook never fired (e.g. they didn't run `npm install` at the repo root, so
+  # husky was never activated for their clone), bad formatting/lint cannot merge.
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -23,10 +26,13 @@ jobs:
       - name: Install root dependencies
         run: npm ci
 
-      - name: Check code style (ESLint & Prettier)
-        run: npx eslint . --no-error-on-unmatched-pattern --max-warnings 0 && npx prettier --check .
+      - name: ESLint (backend)
+        run: npx eslint backend
 
-  # Job 2: Check backend
+      - name: Prettier (all)
+        run: npx prettier --check .
+
+  # Job 2: Backend unit tests
   backend-ci:
     runs-on: ubuntu-latest
     needs: lint
@@ -42,7 +48,10 @@ jobs:
       - name: Install backend dependencies
         run: npm ci
 
-  # Job 3: Check frontend
+      - name: Run backend tests
+        run: npm test
+
+  # Job 3: Frontend lint (uses the @react-native eslint config in frontend/)
   frontend-ci:
     runs-on: ubuntu-latest
     needs: lint
@@ -57,3 +66,6 @@ jobs:
 
       - name: Install frontend dependencies
         run: npm ci
+
+      - name: ESLint (frontend)
+        run: npm run lint

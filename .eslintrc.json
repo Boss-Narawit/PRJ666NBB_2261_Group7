@@ -8,5 +8,14 @@
   "parserOptions": {
     "ecmaVersion": "latest",
     "sourceType": "module"
-  }
+  },
+  "rules": {
+    "no-unused-vars": ["error", { "ignoreRestSiblings": true }]
+  },
+  "overrides": [
+    {
+      "files": ["**/*.test.js", "backend/tests/**/*.js"],
+      "env": { "jest": true }
+    }
+  ]
 }
