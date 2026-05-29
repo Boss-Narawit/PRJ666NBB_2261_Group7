@@ -13,13 +13,9 @@ router.post('/register', validateAuthentication, authController.register);
 // POST /api/auth/login
 router.post('/login', authController.login);
 
-// POST /api/auth/logout
-router.post('/logout', authController.logout);
-
-// POST /api/auth/refresh
-router.post('/refresh', authController.refresh);
-
-// DELETE /api/auth/delete-account
-router.delete('/delete-account', authController.deleteAccount);
+// Stubs — to be implemented
+router.post('/logout', (req, res) => res.json({ message: 'logout stub' }));
+router.post('/refresh', (req, res) => res.json({ message: 'refresh stub' }));
+router.delete('/delete-account', (req, res) => res.json({ message: 'delete-account stub' }));
 
 module.exports = router;
