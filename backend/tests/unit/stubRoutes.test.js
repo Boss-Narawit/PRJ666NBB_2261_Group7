@@ -3,8 +3,6 @@ const app = require('../../src/app');
 
 describe('Stub routes', () => {
   test.each([
-    ['post', '/api/auth/register'],
-    ['post', '/api/auth/login'],
     ['post', '/api/auth/logout'],
     ['post', '/api/auth/refresh'],
     ['delete', '/api/auth/delete-account'],
