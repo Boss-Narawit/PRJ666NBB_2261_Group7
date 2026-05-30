@@ -11,13 +11,13 @@ import {
   Platform,
 } from 'react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../../navigation/RootNavigator';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { ProfileStackParamList } from '../../navigation/TabNavigator';
 import { register } from '../../services/api';
+import { saveSession } from '../../services/session';
 import { colors } from '../../theme';
 
 type Props = {
-  navigation: NativeStackNavigationProp<RootStackParamList, 'Register'>;
+  navigation: NativeStackNavigationProp<ProfileStackParamList, 'Register'>;
 };
 
 // BR2: password ≥8 chars, at least 1 letter and 1 number
@@ -57,12 +57,16 @@ export default function SignUpScreen({ navigation }: Props) {
         password,
       });
 
-      // Save the token returned from the registration endpoint
+      // Persist token + profile info returned from the registration endpoint
       if (data.token) {
-        await AsyncStorage.setItem('userToken', data.token);
+        await saveSession({
+          token: data.token,
+          name: data.name,
+          email: data.email,
+        });
       }
 
-      navigation.replace('Main');
+      navigation.replace('ProfileScreen');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Registration failed');
     } finally {
@@ -83,6 +87,7 @@ export default function SignUpScreen({ navigation }: Props) {
         <Text style={styles.subtitle}>Fill in your details to get started</Text>
 
         <TextInput
+          testID="signup-name"
           style={styles.input}
           placeholder="Your name"
           placeholderTextColor="#999"
@@ -92,6 +97,7 @@ export default function SignUpScreen({ navigation }: Props) {
         />
 
         <TextInput
+          testID="signup-email"
           style={styles.input}
           placeholder="email@domain.com"
           placeholderTextColor="#999"
@@ -102,6 +108,7 @@ export default function SignUpScreen({ navigation }: Props) {
         />
 
         <TextInput
+          testID="signup-password"
           style={styles.input}
           placeholder="Password"
           placeholderTextColor="#999"
@@ -111,6 +118,7 @@ export default function SignUpScreen({ navigation }: Props) {
         />
 
         <TextInput
+          testID="signup-confirm"
           style={styles.input}
           placeholder="Confirm Password"
           placeholderTextColor="#999"
@@ -122,6 +130,7 @@ export default function SignUpScreen({ navigation }: Props) {
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
         <TouchableOpacity
+          testID="signup-submit"
           style={styles.button}
           onPress={handleSubmit}
           disabled={loading}

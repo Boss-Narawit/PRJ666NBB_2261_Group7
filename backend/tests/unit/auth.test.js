@@ -44,7 +44,15 @@ describe('Auth API (/api/auth)', () => {
       expect(res.statusCode).toBe(400);
     });
 
+    test('password missing special character returns 400', async () => {
+      const res = await request(app)
+        .post('/api/auth/register')
+        .send({ ...validUser(), password: 'Password1' });
+      expect(res.statusCode).toBe(400);
+    });
+
     test('missing name returns 500', async () => {
+      // 500 because the controller catches ValidationError instead of passing to errorHandler (should be 422)
       const { name, ...noName } = validUser();
       const res = await request(app).post('/api/auth/register').send(noName);
       expect(res.statusCode).toBe(500);

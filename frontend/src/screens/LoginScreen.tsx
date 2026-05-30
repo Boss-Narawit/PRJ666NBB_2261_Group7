@@ -11,12 +11,12 @@ import {
   Alert,
 } from 'react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../navigation/RootNavigator';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { ProfileStackParamList } from '../navigation/TabNavigator';
 import { login } from '../services/api';
+import { saveSession } from '../services/session';
 
 type Props = {
-  navigation: NativeStackNavigationProp<RootStackParamList, 'Login'>;
+  navigation: NativeStackNavigationProp<ProfileStackParamList, 'Login'>;
 };
 
 export const LoginScreen = ({ navigation }: Props) => {
@@ -35,11 +35,15 @@ export const LoginScreen = ({ navigation }: Props) => {
       // Call API
       const data = await login({ email: email.trim().toLowerCase(), password });
 
-      // Save token securely
-      await AsyncStorage.setItem('userToken', data.token);
+      // Persist token + profile info for the Profile screen
+      await saveSession({
+        token: data.token,
+        name: data.name,
+        email: data.email,
+      });
 
-      // Navigate to main app
-      navigation.replace('Main');
+      // Navigate to the profile (logged-in view of the Profile tab)
+      navigation.replace('ProfileScreen');
     } catch (error: any) {
       Alert.alert('Login Failed', error.message);
     } finally {
@@ -59,6 +63,7 @@ export const LoginScreen = ({ navigation }: Props) => {
 
         {/* Email Input */}
         <TextInput
+          testID="login-email"
           style={styles.input}
           placeholder="email@domain.com"
           placeholderTextColor="#999"
@@ -70,6 +75,7 @@ export const LoginScreen = ({ navigation }: Props) => {
 
         {/* Password Input */}
         <TextInput
+          testID="login-password"
           style={styles.input}
           placeholder="Password"
           placeholderTextColor="#999"
@@ -80,6 +86,7 @@ export const LoginScreen = ({ navigation }: Props) => {
 
         {/* Continue Button */}
         <TouchableOpacity
+          testID="login-submit"
           style={styles.button}
           onPress={handleLogin}
           disabled={loading}
@@ -99,7 +106,10 @@ export const LoginScreen = ({ navigation }: Props) => {
         </View>
 
         {/* Sign Up Link */}
-        <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+        <TouchableOpacity
+          testID="login-signup-link"
+          onPress={() => navigation.navigate('Register')}
+        >
           <Text style={styles.signUpText}>
             Don't have an account?{' '}
             <Text style={styles.signUpLink}>Sign Up</Text>
