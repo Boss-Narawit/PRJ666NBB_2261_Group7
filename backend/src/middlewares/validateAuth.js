@@ -18,11 +18,11 @@ const validateAuthentication = (req, res, next) => {
     });
   }
 
-  // Check for at least one letter, number, and special character
-  const passwordRegex = /^(?=.*[a-zA-Z])(?=.*[0-9])(?=.*[!@#$%^&*])/;
+  // BR2: at least one letter and one number
+  const passwordRegex = /^(?=.*[a-zA-Z])(?=.*[0-9])/;
   if (!passwordRegex.test(password)) {
     return res.status(400).json({
-      message: 'Password must contain at least one letter, one number, and one special character',
+      message: 'Password must contain at least one letter and one number',
     });
   }
 

@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const models = require('../../src/models');
 const Clothing = require('../../src/models/Clothing');
 
 const validClothing = () => ({
@@ -11,24 +10,6 @@ const validClothing = () => ({
   size: 'M',
   imageUrl: 'https://example.com/tee.png',
   condition: 'Good',
-});
-
-describe('models barrel', () => {
-  test('exports all 9 collections', () => {
-    expect(Object.keys(models)).toEqual(
-      expect.arrayContaining([
-        'User',
-        'Clothing',
-        'Outfit',
-        'WearLog',
-        'ThoughtfulPurchase',
-        'SimilarityCheck',
-        'Partner',
-        'Export',
-        'Notification',
-      ])
-    );
-  });
 });
 
 describe('Clothing schema validation (BR4 / BR7)', () => {

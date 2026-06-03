@@ -44,13 +44,6 @@ describe('Auth API (/api/auth)', () => {
       expect(res.statusCode).toBe(400);
     });
 
-    test('password missing special character returns 400', async () => {
-      const res = await request(app)
-        .post('/api/auth/register')
-        .send({ ...validUser(), password: 'Password1' });
-      expect(res.statusCode).toBe(400);
-    });
-
     test('missing name returns 500', async () => {
       // 500 because the controller catches ValidationError instead of passing to errorHandler (should be 422)
       const { name, ...noName } = validUser();
@@ -84,6 +77,69 @@ describe('Auth API (/api/auth)', () => {
       const res = await request(app)
         .post('/api/auth/login')
         .send({ email: 'nobody@example.com', password: 'Password1!' });
+      expect(res.statusCode).toBe(401);
+    });
+  });
+
+  describe('DELETE /api/auth/delete-account', () => {
+    test('with a valid token returns 200 and soft-deletes the account (BR3)', async () => {
+      const reg = await request(app).post('/api/auth/register').send(validUser());
+      const res = await request(app)
+        .delete('/api/auth/delete-account')
+        .set('Authorization', `Bearer ${reg.body.token}`);
+      expect(res.statusCode).toBe(200);
+    });
+
+    test('without a token returns 401', async () => {
+      const res = await request(app).delete('/api/auth/delete-account');
+      expect(res.statusCode).toBe(401);
+    });
+  });
+
+  describe('login + POST /api/auth/reactivate for a soft-deleted account', () => {
+    const softDelete = async () => {
+      const reg = await request(app).post('/api/auth/register').send(validUser());
+      await request(app)
+        .delete('/api/auth/delete-account')
+        .set('Authorization', `Bearer ${reg.body.token}`);
+    };
+
+    test('re-registering a soft-deleted email returns 403 + code (no dead-end)', async () => {
+      await softDelete();
+      const res = await request(app).post('/api/auth/register').send(validUser());
+      expect(res.statusCode).toBe(403);
+      expect(res.body.code).toBe('ACCOUNT_PENDING_DELETION');
+    });
+
+    test('login on a soft-deleted account returns 403 with the deletion code', async () => {
+      await softDelete();
+      const res = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'test@example.com', password: 'Password1!' });
+      expect(res.statusCode).toBe(403);
+      expect(res.body.code).toBe('ACCOUNT_PENDING_DELETION');
+    });
+
+    test('reactivate returns 200 + token, and normal login works again', async () => {
+      await softDelete();
+
+      const react = await request(app)
+        .post('/api/auth/reactivate')
+        .send({ email: 'test@example.com', password: 'Password1!' });
+      expect(react.statusCode).toBe(200);
+      expect(typeof react.body.token).toBe('string');
+
+      const login = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'test@example.com', password: 'Password1!' });
+      expect(login.statusCode).toBe(200);
+    });
+
+    test('reactivate with a wrong password returns 401', async () => {
+      await softDelete();
+      const res = await request(app)
+        .post('/api/auth/reactivate')
+        .send({ email: 'test@example.com', password: 'WrongPass1!' });
       expect(res.statusCode).toBe(401);
     });
   });

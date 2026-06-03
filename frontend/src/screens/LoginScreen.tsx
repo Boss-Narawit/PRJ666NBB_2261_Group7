@@ -11,15 +11,16 @@ import {
   Alert,
 } from 'react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { ProfileStackParamList } from '../navigation/TabNavigator';
-import { login } from '../services/api';
-import { saveSession } from '../services/session';
+import type { RootStackParamList } from '../navigation/RootNavigator';
+import { login, reactivate } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 type Props = {
-  navigation: NativeStackNavigationProp<ProfileStackParamList, 'Login'>;
+  navigation: NativeStackNavigationProp<RootStackParamList, 'Login'>;
 };
 
 export const LoginScreen = ({ navigation }: Props) => {
+  const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -30,22 +31,49 @@ export const LoginScreen = ({ navigation }: Props) => {
       return;
     }
 
+    const normalizedEmail = email.trim().toLowerCase();
+
     setLoading(true);
     try {
       // Call API
-      const data = await login({ email: email.trim().toLowerCase(), password });
+      const data = await login({ email: normalizedEmail, password });
 
-      // Persist token + profile info for the Profile screen
-      await saveSession({
-        token: data.token,
-        name: data.name,
-        email: data.email,
-      });
-
-      // Navigate to the profile (logged-in view of the Profile tab)
-      navigation.replace('ProfileScreen');
+      // Persist the session + flip global auth state; RootNavigator swaps
+      // to the main app automatically.
+      await signIn({ token: data.token, name: data.name, email: data.email });
     } catch (error: any) {
-      Alert.alert('Login Failed', error.message);
+      if (error.code === 'ACCOUNT_PENDING_DELETION') {
+        Alert.alert(
+          'Account Deleted',
+          'This account has been deleted. Do you want to reactivate it and log in?',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Reactivate',
+              onPress: async () => {
+                setLoading(true);
+                try {
+                  const data = await reactivate({
+                    email: normalizedEmail,
+                    password,
+                  });
+                  await signIn({
+                    token: data.token,
+                    name: data.name,
+                    email: data.email,
+                  });
+                } catch (e: any) {
+                  Alert.alert('Reactivation Failed', e.message);
+                } finally {
+                  setLoading(false);
+                }
+              },
+            },
+          ],
+        );
+      } else {
+        Alert.alert('Login Failed', error.message);
+      }
     } finally {
       setLoading(false);
     }

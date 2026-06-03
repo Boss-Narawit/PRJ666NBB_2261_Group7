@@ -9,21 +9,23 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { ProfileStackParamList } from '../../navigation/TabNavigator';
+import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { register } from '../../services/api';
-import { saveSession } from '../../services/session';
+import { useAuth } from '../../context/AuthContext';
 import { colors } from '../../theme';
 
 type Props = {
-  navigation: NativeStackNavigationProp<ProfileStackParamList, 'Register'>;
+  navigation: NativeStackNavigationProp<RootStackParamList, 'Register'>;
 };
 
 // BR2: password ≥8 chars, at least 1 letter and 1 number
 const PASSWORD_REGEX = /^(?=.*[a-zA-Z])(?=.*\d).{8,}$/;
 
 export default function SignUpScreen({ navigation }: Props) {
+  const { signIn } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -57,18 +59,29 @@ export default function SignUpScreen({ navigation }: Props) {
         password,
       });
 
-      // Persist token + profile info returned from the registration endpoint
+      // Persist the session + flip global auth state; RootNavigator swaps
+      // to the main app automatically.
       if (data.token) {
-        await saveSession({
-          token: data.token,
-          name: data.name,
-          email: data.email,
-        });
+        await signIn({ token: data.token, name: data.name, email: data.email });
       }
-
-      navigation.replace('ProfileScreen');
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Registration failed');
+    } catch (err: any) {
+      // This email belongs to a soft-deleted account — reactivation needs the
+      // original password, so send them to Sign In rather than failing here.
+      if (err?.code === 'ACCOUNT_PENDING_DELETION') {
+        Alert.alert(
+          'Account Deleted',
+          'An account with this email was deleted. Sign in to reactivate it.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Go to Sign In',
+              onPress: () => navigation.navigate('Login'),
+            },
+          ],
+        );
+      } else {
+        setError(err instanceof Error ? err.message : 'Registration failed');
+      }
     } finally {
       setLoading(false);
     }

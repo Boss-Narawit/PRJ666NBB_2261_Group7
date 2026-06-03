@@ -11,7 +11,9 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { ProfileStackParamList } from '../navigation/TabNavigator';
 import { colors } from '../theme';
-import { getStoredUser, clearSession } from '../services/session';
+import { getStoredUser } from '../services/session';
+import { deleteAccount } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 type Props = NativeStackScreenProps<ProfileStackParamList, 'ProfileScreen'>;
 
@@ -47,6 +49,7 @@ function MenuRow({ icon, label, onPress, danger }: RowProps) {
 }
 
 export default function ProfileScreen({ navigation }: Props) {
+  const { token, signOut } = useAuth();
   const [user, setUser] = useState({ name: '', email: '' });
 
   useEffect(() => {
@@ -67,7 +70,18 @@ export default function ProfileScreen({ navigation }: Props) {
       'This will permanently delete your account. This action cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: comingSoon },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              if (token) await deleteAccount(token);
+              await signOut();
+            } catch (err: any) {
+              Alert.alert('Error', err.message);
+            }
+          },
+        },
       ],
     );
 
@@ -77,10 +91,7 @@ export default function ProfileScreen({ navigation }: Props) {
       {
         text: 'Log Out',
         style: 'destructive',
-        onPress: async () => {
-          await clearSession();
-          navigation.replace('Login');
-        },
+        onPress: () => signOut(),
       },
     ]);
 

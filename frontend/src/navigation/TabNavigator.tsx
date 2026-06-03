@@ -1,14 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import {
-  TouchableOpacity,
-  View,
-  ActivityIndicator,
-  StyleSheet,
-} from 'react-native';
+import { TouchableOpacity } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
-import { getToken } from '../services/session';
 
 import MainScreen from '../screens/MainScreen';
 import ExploreScreen from '../screens/ExploreScreen';
@@ -16,45 +9,19 @@ import CartScreen from '../screens/CartScreen';
 import NotificationScreen from '../screens/NotificationScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { LoginScreen } from '../screens/LoginScreen';
-import SignUpScreen from '../screens/auth/SignUpScreen';
 
 export type ProfileStackParamList = {
-  Login: undefined;
-  Register: undefined;
   ProfileScreen: undefined;
 };
 
 const Tab = createBottomTabNavigator();
 const ProfileStack = createNativeStackNavigator<ProfileStackParamList>();
 
+// Thin stack so ProfileScreen can reach the root Settings screen via
+// getParent(); app-level auth routing now lives in RootNavigator.
 function ProfileStackNavigator() {
-  // Route based on auth state: show ProfileScreen if a token is stored, else Login.
-  const [authChecked, setAuthChecked] = useState(false);
-  const [hasToken, setHasToken] = useState(false);
-
-  useEffect(() => {
-    getToken()
-      .then(token => setHasToken(!!token))
-      .catch(() => setHasToken(false))
-      .finally(() => setAuthChecked(true));
-  }, []);
-
-  if (!authChecked) {
-    return (
-      <View style={styles.loader}>
-        <ActivityIndicator color={colors.primary} />
-      </View>
-    );
-  }
-
   return (
-    <ProfileStack.Navigator
-      screenOptions={{ headerShown: false }}
-      initialRouteName={hasToken ? 'ProfileScreen' : 'Login'}
-    >
-      <ProfileStack.Screen name="Login" component={LoginScreen} />
-      <ProfileStack.Screen name="Register" component={SignUpScreen} />
+    <ProfileStack.Navigator screenOptions={{ headerShown: false }}>
       <ProfileStack.Screen name="ProfileScreen" component={ProfileScreen} />
     </ProfileStack.Navigator>
   );
@@ -137,12 +104,3 @@ export default function TabNavigator() {
     </Tab.Navigator>
   );
 }
-
-const styles = StyleSheet.create({
-  loader: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.background,
-  },
-});
