@@ -1,6 +1,8 @@
 const express = require('express');
+const upload = require('../middlewares/upload');
 
 const {
+  uploadImage,
   uploadClothing,
   bulkUploadClothing,
   getAllClothing,
@@ -11,6 +13,8 @@ const {
 } = require('../controllers/clothingController');
 
 const router = express.Router();
+
+router.post('/upload-image', upload.single('image'), uploadImage);
 
 router.post('/upload', uploadClothing);
 

@@ -1,6 +1,45 @@
 const Clothing = require('../models/Clothing');
 const User = require('../models/User');
 
+const cloudinary = require('../config/cloudinary');
+const streamifier = require('streamifier');
+
+const uploadImage = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        message: 'No file uploaded',
+      });
+    }
+
+    const result = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        {
+          folder: 'redrobe/clothing',
+        },
+
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      );
+
+      streamifier.createReadStream(req.file.buffer).pipe(stream);
+    });
+
+    res.status(200).json({
+      message: 'Image uploaded successfully',
+      imageUrl: result.secure_url,
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      message: 'Image upload failed',
+    });
+  }
+};
+
 const uploadClothing = async (req, res) => {
   try {
     const clothing = await Clothing.create(req.body);
@@ -134,6 +173,7 @@ const getForgottenItems = async (req, res) => {
 };
 
 module.exports = {
+  uploadImage,
   uploadClothing,
   bulkUploadClothing,
   getAllClothing,
