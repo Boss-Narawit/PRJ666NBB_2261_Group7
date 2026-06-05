@@ -1,4 +1,5 @@
 const Clothing = require('../models/Clothing');
+const User = require('../models/User');
 
 const uploadClothing = async (req, res) => {
   try {
@@ -94,6 +95,44 @@ const deleteClothing = async (req, res) => {
   }
 };
 
+const getForgottenItems = async (req, res) => {
+  const userId = req.user?.id || process.env.TEST_USER_ID;
+  const user = await User.findById(userId);
+
+  if (!user) {
+    return res.status(404).json({
+      message: 'User not found',
+    });
+  }
+
+  const thresholdDays = user.preferences.forgottenItemThresholdDays;
+
+  const thresholdDate = new Date();
+
+  thresholdDate.setDate(thresholdDate.getDate() - thresholdDays);
+
+  console.log(thresholdDate);
+
+  const forgottenItems = await Clothing.find({
+    userId: userId,
+    status: 'Available',
+    $or: [
+      {
+        'analytics.lastWornAt': {
+          $lt: thresholdDate,
+        },
+      },
+      {
+        'analytics.lastWornAt': {
+          $exists: false,
+        },
+      },
+    ],
+  });
+
+  res.json(forgottenItems);
+};
+
 module.exports = {
   uploadClothing,
   bulkUploadClothing,
@@ -101,4 +140,5 @@ module.exports = {
   getClothingById,
   updateClothing,
   deleteClothing,
+  getForgottenItems,
 };

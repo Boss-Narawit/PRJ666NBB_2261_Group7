@@ -7,6 +7,7 @@ const {
   getClothingById,
   updateClothing,
   deleteClothing,
+  getForgottenItems,
 } = require('../controllers/clothingController');
 
 const router = express.Router();
@@ -14,6 +15,8 @@ const router = express.Router();
 router.post('/upload', uploadClothing);
 
 router.post('/bulk-upload', bulkUploadClothing);
+
+router.get('/forgotten-items', getForgottenItems);
 
 router.get('/', getAllClothing);
 
