@@ -1,4 +1,9 @@
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import {
+  View,
+  ActivityIndicator,
+  StyleSheet,
+  TouchableOpacity,
+} from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import TabNavigator from './TabNavigator';
@@ -7,6 +12,7 @@ import { LoginScreen } from '../screens/LoginScreen';
 import SignUpScreen from '../screens/auth/SignUpScreen';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { colors } from '../theme';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -39,20 +45,28 @@ function RootStacks() {
             <Stack.Screen
               name="Settings"
               component={SettingsScreen}
-              options={{
+              options={({ navigation }: any) => ({
                 headerShown: true,
-                headerTitle: 'Settings',
+                headerTitle: 'Setting',
                 headerStyle: {
                   backgroundColor: '#FFE9FB',
                 },
-                headerShadowVisible: true,
+                headerShadowVisible: false,
                 headerTitleStyle: {
                   fontWeight: '600',
                   fontSize: 24,
                   color: '#000000',
                 },
                 headerTitleAlign: 'center',
-              }}
+                headerLeft: () => (
+                  <TouchableOpacity
+                    onPress={() => navigation.goBack()}
+                    style={{ paddingLeft: 16 }}
+                  >
+                    <Icon name="chevron-back" size={24} color="#000000" />
+                  </TouchableOpacity>
+                ),
+              })}
             />
           </>
         ) : (
