@@ -1,5 +1,4 @@
 const request = require('supertest');
-const mongoose = require('mongoose');
 const app = require('../../src/app');
 const User = require('../../src/models/User');
 
@@ -75,9 +74,7 @@ describe('User Profile & Account API (/api/users & /api/auth)', () => {
     });
 
     test('returns 401 when not authenticated', async () => {
-      const res = await request(app)
-        .patch('/api/users/me')
-        .send({ name: 'Should Fail' });
+      const res = await request(app).patch('/api/users/me').send({ name: 'Should Fail' });
       expect(res.statusCode).toBe(401);
     });
   });
