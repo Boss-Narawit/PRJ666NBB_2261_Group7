@@ -122,7 +122,7 @@ export async function getProfile(token: string) {
 
 export async function updateProfile(
   token: string,
-  payload: { name: string; email: string },
+  payload: { name: string; email?: string },
 ) {
   let res: Response;
   try {
@@ -144,5 +144,65 @@ export async function updateProfile(
     : { message: `Server error (${res.status})` };
 
   if (!res.ok) throw new Error(data.message || 'Failed to update profile');
+  return data;
+}
+
+export interface NotificationPreferences {
+  notificationEnabled: boolean;
+  notificationFrequency: 'Daily' | 'Weekly' | 'Bi-Weekly' | 'Monthly';
+  itemStatusChangeEnabled: boolean;
+  forgottenItemAlertEnabled: boolean;
+}
+
+export async function getNotificationPreferences(
+  token: string,
+): Promise<NotificationPreferences> {
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}/api/notifications/preferences`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } catch {
+    throw new Error('Unable to reach the server. Check your connection.');
+  }
+
+  const contentType = res.headers.get('content-type') ?? '';
+  const data = contentType.includes('application/json')
+    ? await res.json()
+    : { message: `Server error (${res.status})` };
+
+  if (!res.ok)
+    throw new Error(data.message || 'Failed to fetch notification preferences');
+  return data;
+}
+
+export async function updateNotificationPreferences(
+  token: string,
+  payload: Partial<NotificationPreferences>,
+): Promise<NotificationPreferences> {
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}/api/notifications/preferences`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    throw new Error('Unable to reach the server. Check your connection.');
+  }
+
+  const contentType = res.headers.get('content-type') ?? '';
+  const data = contentType.includes('application/json')
+    ? await res.json()
+    : { message: `Server error (${res.status})` };
+
+  if (!res.ok)
+    throw new Error(
+      data.message || 'Failed to update notification preferences',
+    );
   return data;
 }

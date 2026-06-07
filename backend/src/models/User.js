@@ -24,6 +24,13 @@ const userSchema = new mongoose.Schema(
         default: FORGOTTEN_ITEM_DEFAULT_THRESHOLD_DAYS,
         min: FORGOTTEN_ITEM_MIN_THRESHOLD_DAYS,
       },
+      notificationFrequency: {
+        type: String,
+        enum: ['Daily', 'Weekly', 'Bi-Weekly', 'Monthly'],
+        default: 'Daily',
+      },
+      itemStatusChangeEnabled: { type: Boolean, default: true },
+      forgottenItemAlertEnabled: { type: Boolean, default: true },
     },
   },
   { timestamps: true }

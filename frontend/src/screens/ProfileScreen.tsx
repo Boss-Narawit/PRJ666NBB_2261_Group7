@@ -125,7 +125,7 @@ export default function ProfileScreen({ navigation }: Props) {
         <MenuRow
           icon="notifications-outline"
           label="Notification Settings"
-          onPress={comingSoon}
+          onPress={() => navigation.navigate('NotificationSettings')}
         />
       </View>
 

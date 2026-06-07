@@ -9,11 +9,13 @@ import CartScreen from '../screens/CartScreen';
 import NotificationScreen from '../screens/NotificationScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
+import NotificationSettingsScreen from '../screens/NotificationSettingsScreen';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 export type ProfileStackParamList = {
   ProfileScreen: undefined;
   EditProfile: undefined;
+  NotificationSettings: undefined;
 };
 
 const Tab = createBottomTabNavigator();
@@ -60,6 +62,34 @@ function ProfileStackNavigator() {
         options={({ navigation }: any) => ({
           headerShown: true,
           headerTitle: 'Edit Profile',
+          headerStyle: {
+            backgroundColor: '#FFE9FB',
+            borderBottomWidth: 0.5,
+            borderBottomColor: '#E6E6E6',
+          },
+          headerShadowVisible: false,
+          headerTitleStyle: {
+            fontWeight: '600',
+            fontSize: 24,
+            color: '#000000',
+          },
+          headerTitleAlign: 'center',
+          headerLeft: () => (
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={{ paddingLeft: 16 }}
+            >
+              <Icon name="chevron-back" size={24} color="#000000" />
+            </TouchableOpacity>
+          ),
+        })}
+      />
+      <ProfileStack.Screen
+        name="NotificationSettings"
+        component={NotificationSettingsScreen}
+        options={({ navigation }: any) => ({
+          headerShown: true,
+          headerTitle: 'Notifications',
           headerStyle: {
             backgroundColor: '#FFE9FB',
             borderBottomWidth: 0.5,

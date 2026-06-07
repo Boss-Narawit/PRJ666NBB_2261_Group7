@@ -1,14 +1,12 @@
 const express = require('express');
+const { authenticate } = require('../middlewares/auth');
+const { getPreferences, updatePreferences } = require('../controllers/notificationController');
 
 const router = express.Router();
 
-router.get('/preferences', (req, res) => {
-  res.json({ message: 'Get notification preferences' });
-});
+router.get('/preferences', authenticate, getPreferences);
 
-router.patch('/preferences', (req, res) => {
-  res.json({ message: 'Update notification preferences' });
-});
+router.patch('/preferences', authenticate, updatePreferences);
 
 router.post('/test', (req, res) => {
   res.json({ message: 'Send test notification' });
