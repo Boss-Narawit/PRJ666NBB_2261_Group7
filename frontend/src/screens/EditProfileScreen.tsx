@@ -12,12 +12,12 @@ import {
   Alert,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { ProfileStackParamList } from '../navigation/TabNavigator';
+import type { RootStackParamList } from '../navigation/RootNavigator';
 import { colors } from '../theme';
 import { getStoredUser, getToken, updateStoredUser } from '../services/session';
 import { updateProfile } from '../services/api';
 
-type Props = NativeStackScreenProps<ProfileStackParamList, 'EditProfile'>;
+type Props = NativeStackScreenProps<RootStackParamList, 'EditProfile'>;
 
 export default function EditProfileScreen({ navigation }: Props) {
   const [name, setName] = useState('');

@@ -11,7 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { ProfileStackParamList } from '../navigation/TabNavigator';
+import type { RootStackParamList } from '../navigation/RootNavigator';
 import { colors } from '../theme';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { getToken } from '../services/session';
@@ -20,10 +20,7 @@ import {
   updateNotificationPreferences,
 } from '../services/api';
 
-type Props = NativeStackScreenProps<
-  ProfileStackParamList,
-  'NotificationSettings'
->;
+type Props = NativeStackScreenProps<RootStackParamList, 'NotificationSettings'>;
 
 type FrequencyOption = 'Daily' | 'Weekly' | 'Bi-Weekly' | 'Monthly';
 

@@ -9,14 +9,14 @@ import {
   Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { ProfileStackParamList } from '../navigation/TabNavigator';
 import { colors } from '../theme';
 import { getStoredUser } from '../services/session';
 import { deleteAccount } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
-type Props = NativeStackScreenProps<ProfileStackParamList, 'ProfileScreen'>;
+type Props = {
+  navigation: any;
+};
 
 function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -65,8 +65,7 @@ export default function ProfileScreen({ navigation }: Props) {
   const comingSoon = () =>
     Alert.alert('Coming soon', 'This feature is not available yet.');
 
-  const openSettings = () =>
-    navigation.getParent()?.navigate('Settings' as never);
+  const openSettings = () => navigation.navigate('Settings' as never);
 
   const handleDeleteAccount = () =>
     Alert.alert(

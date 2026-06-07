@@ -8,6 +8,8 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import TabNavigator from './TabNavigator';
 import SettingsScreen from '../screens/SettingsScreen';
+import EditProfileScreen from '../screens/EditProfileScreen';
+import NotificationSettingsScreen from '../screens/NotificationSettingsScreen';
 import { LoginScreen } from '../screens/LoginScreen';
 import SignUpScreen from '../screens/auth/SignUpScreen';
 import { AuthProvider, useAuth } from '../context/AuthContext';
@@ -19,6 +21,8 @@ export type RootStackParamList = {
   Register: undefined;
   Main: undefined;
   Settings: undefined;
+  EditProfile: undefined;
+  NotificationSettings: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -48,6 +52,58 @@ function RootStacks() {
               options={({ navigation }: any) => ({
                 headerShown: true,
                 headerTitle: 'Setting',
+                headerStyle: {
+                  backgroundColor: '#FFE9FB',
+                },
+                headerShadowVisible: false,
+                headerTitleStyle: {
+                  fontWeight: '600',
+                  fontSize: 24,
+                  color: '#000000',
+                },
+                headerTitleAlign: 'center',
+                headerLeft: () => (
+                  <TouchableOpacity
+                    onPress={() => navigation.goBack()}
+                    style={{ paddingLeft: 16 }}
+                  >
+                    <Icon name="chevron-back" size={24} color="#000000" />
+                  </TouchableOpacity>
+                ),
+              })}
+            />
+            <Stack.Screen
+              name="EditProfile"
+              component={EditProfileScreen}
+              options={({ navigation }: any) => ({
+                headerShown: true,
+                headerTitle: 'Edit Profile',
+                headerStyle: {
+                  backgroundColor: '#FFE9FB',
+                },
+                headerShadowVisible: false,
+                headerTitleStyle: {
+                  fontWeight: '600',
+                  fontSize: 24,
+                  color: '#000000',
+                },
+                headerTitleAlign: 'center',
+                headerLeft: () => (
+                  <TouchableOpacity
+                    onPress={() => navigation.goBack()}
+                    style={{ paddingLeft: 16 }}
+                  >
+                    <Icon name="chevron-back" size={24} color="#000000" />
+                  </TouchableOpacity>
+                ),
+              })}
+            />
+            <Stack.Screen
+              name="NotificationSettings"
+              component={NotificationSettingsScreen}
+              options={({ navigation }: any) => ({
+                headerShown: true,
+                headerTitle: 'Notifications',
                 headerStyle: {
                   backgroundColor: '#FFE9FB',
                 },

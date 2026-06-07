@@ -19,19 +19,11 @@ export default function SettingsScreen({ navigation }: Props) {
   };
 
   const handleNavigateToEditProfile = () => {
-    // Navigate to Main tab -> Profile tab stack -> EditProfile screen
-    navigation.navigate('Main', {
-      screen: 'Profile',
-      params: { screen: 'EditProfile' },
-    } as any);
+    navigation.navigate('EditProfile' as any);
   };
 
   const handleNavigateToNotifications = () => {
-    // Navigate to Main tab -> Profile tab stack -> NotificationSettings screen
-    navigation.navigate('Main', {
-      screen: 'Profile',
-      params: { screen: 'NotificationSettings' },
-    } as any);
+    navigation.navigate('NotificationSettings' as any);
   };
 
   return (
