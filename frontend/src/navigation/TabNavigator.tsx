@@ -8,10 +8,12 @@ import ExploreScreen from '../screens/ExploreScreen';
 import CartScreen from '../screens/CartScreen';
 import NotificationScreen from '../screens/NotificationScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import EditProfileScreen from '../screens/EditProfileScreen';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 export type ProfileStackParamList = {
   ProfileScreen: undefined;
+  EditProfile: undefined;
 };
 
 const Tab = createBottomTabNavigator();
@@ -21,8 +23,65 @@ const ProfileStack = createNativeStackNavigator<ProfileStackParamList>();
 // getParent(); app-level auth routing now lives in RootNavigator.
 function ProfileStackNavigator() {
   return (
-    <ProfileStack.Navigator screenOptions={{ headerShown: false }}>
-      <ProfileStack.Screen name="ProfileScreen" component={ProfileScreen} />
+    <ProfileStack.Navigator>
+      <ProfileStack.Screen
+        name="ProfileScreen"
+        component={ProfileScreen}
+        options={({ navigation }: any) => ({
+          headerShown: true,
+          headerTitle: 'ReDrobe',
+          headerStyle: {
+            backgroundColor: '#FFE9FB',
+            borderBottomWidth: 0.5,
+            borderBottomColor: '#E6E6E6',
+          },
+          headerShadowVisible: false,
+          headerTitleStyle: {
+            fontWeight: '600',
+            fontSize: 24,
+            color: '#000000',
+          },
+          headerTitleAlign: 'center',
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={() =>
+                navigation.getParent()?.navigate('Settings' as any)
+              }
+              style={{ paddingRight: 16 }}
+            >
+              <Icon name="settings-outline" size={24} color="#000000" />
+            </TouchableOpacity>
+          ),
+        })}
+      />
+      <ProfileStack.Screen
+        name="EditProfile"
+        component={EditProfileScreen}
+        options={({ navigation }: any) => ({
+          headerShown: true,
+          headerTitle: 'Edit Profile',
+          headerStyle: {
+            backgroundColor: '#FFE9FB',
+            borderBottomWidth: 0.5,
+            borderBottomColor: '#E6E6E6',
+          },
+          headerShadowVisible: false,
+          headerTitleStyle: {
+            fontWeight: '600',
+            fontSize: 24,
+            color: '#000000',
+          },
+          headerTitleAlign: 'center',
+          headerLeft: () => (
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={{ paddingLeft: 16 }}
+            >
+              <Icon name="chevron-back" size={24} color="#000000" />
+            </TouchableOpacity>
+          ),
+        })}
+      />
     </ProfileStack.Navigator>
   );
 }
@@ -99,7 +158,10 @@ export default function TabNavigator() {
       <Tab.Screen
         name="Profile"
         component={ProfileStackNavigator}
-        options={{ tabBarButtonTestID: 'tab-profile' }}
+        options={{
+          tabBarButtonTestID: 'tab-profile',
+          headerShown: false,
+        }}
       />
     </Tab.Navigator>
   );

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useIsFocused } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -51,12 +52,15 @@ function MenuRow({ icon, label, onPress, danger }: RowProps) {
 export default function ProfileScreen({ navigation }: Props) {
   const { token, signOut } = useAuth();
   const [user, setUser] = useState({ name: '', email: '' });
+  const isFocused = useIsFocused();
 
   useEffect(() => {
-    getStoredUser()
-      .then(setUser)
-      .catch(() => setUser({ name: '', email: '' }));
-  }, []);
+    if (isFocused) {
+      getStoredUser()
+        .then(setUser)
+        .catch(() => setUser({ name: '', email: '' }));
+    }
+  }, [isFocused]);
 
   const comingSoon = () =>
     Alert.alert('Coming soon', 'This feature is not available yet.');
@@ -114,8 +118,9 @@ export default function ProfileScreen({ navigation }: Props) {
         <MenuRow
           icon="person-outline"
           label="Edit Profile"
-          onPress={comingSoon}
+          onPress={() => navigation.navigate('EditProfile')}
         />
+
         <View style={styles.separator} />
         <MenuRow
           icon="notifications-outline"

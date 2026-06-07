@@ -99,3 +99,50 @@ export async function deleteAccount(token: string) {
   if (!res.ok) throw new Error(data.message || 'Failed to delete account');
   return data;
 }
+
+export async function getProfile(token: string) {
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}/api/users/me`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } catch {
+    throw new Error('Unable to reach the server. Check your connection.');
+  }
+
+  const contentType = res.headers.get('content-type') ?? '';
+  const data = contentType.includes('application/json')
+    ? await res.json()
+    : { message: `Server error (${res.status})` };
+
+  if (!res.ok) throw new Error(data.message || 'Failed to fetch profile');
+  return data;
+}
+
+export async function updateProfile(
+  token: string,
+  payload: { name: string; email: string },
+) {
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}/api/users/me`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    throw new Error('Unable to reach the server. Check your connection.');
+  }
+
+  const contentType = res.headers.get('content-type') ?? '';
+  const data = contentType.includes('application/json')
+    ? await res.json()
+    : { message: `Server error (${res.status})` };
+
+  if (!res.ok) throw new Error(data.message || 'Failed to update profile');
+  return data;
+}

@@ -32,3 +32,11 @@ export async function getStoredUser(): Promise<StoredUser> {
 export async function clearSession(): Promise<void> {
   await AsyncStorage.removeMany([TOKEN_KEY, NAME_KEY, EMAIL_KEY]);
 }
+
+export async function updateStoredUser(data: {
+  name: string;
+  email: string;
+}): Promise<void> {
+  await AsyncStorage.setItem(NAME_KEY, data.name ?? '');
+  await AsyncStorage.setItem(EMAIL_KEY, data.email ?? '');
+}

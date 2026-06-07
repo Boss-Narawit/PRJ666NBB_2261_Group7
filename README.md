@@ -58,38 +58,50 @@ Check the local React Native environment:
 npx react-native doctor
 ```
 
-Start the Metro development server:
+Run Android:
 
 ```powershell
-npx react-native start
+npx react-native run-android
 ```
 
-Open a new terminal, move to the same `frontend` folder, and run Android:
+## Backend Run
 
+Before running the backend, make sure you have set up the environment variables (see below).
+
+### - Run from the Root folder
+You can start the backend directly from the project root using:
 ```powershell
-cd frontend
-npx react-native run-android
+npm run dev:backend
+```
+
+### - Run from the `backend` folder
+Alternatively, navigate to the `backend` folder and run the development script:
+```powershell
+cd backend
+npm run dev
 ```
 
 ## Environment Variables & Database Setup
 
-Create your own local environment file by duplicating the `.env.example` within `backend` folder:
+Create your own local environment file by duplicating the `.env.example` within the `backend` folder:
 ```powershell
-cp .env.sample .env
+cp backend/.env.example backend/.env
 ```
 
-Open your newly created `.env` file.
-You can choose to run the database locally or connect to the shared cloud cluster in MongoDB.
-Update the `MONGODB_URI` variable accordingly:
-#### - Local Development (Default)
+Open your newly created `backend/.env` file and configure the variables:
+
+#### - Database Connection (`MONGODB_URI`)
+You can connect to the shared MongoDB Atlas cloud cluster:
 ```powershell
-MONGODB_URI=mongodb://127.0.0.1:27017/redrobe_db
+MONGODB_URI=mongodb+srv://<username>:<password>@cluster-redrobe.xkfghee.mongodb.net/?appName=cluster-redrobe
 ```
 
-#### - CLoud Development
-Remove or comment out the local URI to use the cloud URI. Make sure to replace <> with real MongoDB credentials
-```powershell
-MONGODB_URI=mongodb+srv://<username>:<password>.xkfghee.mongodb.net/?appName=cluster-redrobe
-```
+> [!TIP]
+> **DNS / Connection Issues (`querySrv ECONNREFUSED`):**
+> If Node.js throws a `querySrv ECONNREFUSED` error when trying to connect to the cloud database (common on some Windows/DNS configurations), you can use the standard replica set connection string instead:
+> ```powershell
+> MONGODB_URI=mongodb://<username>:<password>@ac-6hv3spd-shard-00-00.xkfghee.mongodb.net:27017,ac-6hv3spd-shard-00-01.xkfghee.mongodb.net:27017,ac-6hv3spd-shard-00-02.xkfghee.mongodb.net:27017/redrobe?replicaSet=atlas-dxwvyn-shard-0&ssl=true&authSource=admin
+> ```
 
 Update the default placeholder of `JWT_SECRET` variable in your `.env` file with a secure, random string.
+
