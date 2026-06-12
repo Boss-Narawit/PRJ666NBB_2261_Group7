@@ -18,6 +18,12 @@ const generateToken = (userId) =>
 // Register a new user. Throws .status=400 if the email is already taken (BR1);
 // other Mongoose errors (e.g. missing required field) bubble up unchanged.
 const register = async ({ name, email, password }) => {
+  if (!email || !email.includes('@') || !email.includes('.')) {
+    const err = new Error('Please provide a valid email address');
+    err.status = 400;
+    throw err;
+  }
+  
   const userExists = await User.findOne({ email });
   if (userExists) {
     // Soft-deleted account (BR3): the row lingers until purge, which would
