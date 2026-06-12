@@ -23,7 +23,7 @@ const register = async ({ name, email, password }) => {
     err.status = 400;
     throw err;
   }
-  
+
   const userExists = await User.findOne({ email });
   if (userExists) {
     // Soft-deleted account (BR3): the row lingers until purge, which would
