@@ -1,10 +1,10 @@
 const express = require('express');
+const { authenticate } = require('../middlewares/auth');
+const { getSummary } = require('../controllers/dashboard.controller');
 
 const router = express.Router();
 
-router.get('/summary', (req, res) => {
-  res.json({ message: 'Dashboard summary' });
-});
+router.get('/summary', authenticate, getSummary);
 
 router.get('/utilization', (req, res) => {
   res.json({ message: 'Wardrobe utilization' });

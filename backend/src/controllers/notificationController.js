@@ -1,4 +1,32 @@
 const User = require('../models/User');
+const notificationService = require('../services/notification.service');
+
+// @desc    List the user's notifications (newest first, paginated)
+// @route   GET /api/notifications
+// @access  Private
+const listNotifications = async (req, res, next) => {
+  try {
+    const result = await notificationService.listNotifications(req.user.userId, {
+      page: req.query.page,
+      limit: req.query.limit,
+    });
+    res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Mark a notification as read
+// @route   PATCH /api/notifications/:id/read
+// @access  Private
+const markRead = async (req, res, next) => {
+  try {
+    const notification = await notificationService.markRead(req.user.userId, req.params.id);
+    res.status(200).json(notification);
+  } catch (err) {
+    next(err);
+  }
+};
 
 // @desc    Get notification preferences
 // @route   GET /api/notifications/preferences
@@ -66,4 +94,6 @@ const updatePreferences = async (req, res) => {
 module.exports = {
   getPreferences,
   updatePreferences,
+  listNotifications,
+  markRead,
 };
