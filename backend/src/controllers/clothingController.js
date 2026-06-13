@@ -66,7 +66,10 @@ const bulkUploadClothing = async (req, res) => {
 
 const getAllClothing = async (req, res) => {
   try {
-    const clothingItems = await Clothing.find();
+    const userId = req.user.userId;
+    const clothingItems = await Clothing.find({
+      userId,
+    });
 
     res.status(200).json(clothingItems);
   } catch (error) {
@@ -78,7 +81,11 @@ const getAllClothing = async (req, res) => {
 
 const getClothingById = async (req, res) => {
   try {
-    const clothing = await Clothing.findById(req.params.id);
+    const userId = req.user.userId;
+    const clothing = await Clothing.findOne({
+      _id: req.params.id,
+      userId,
+    });
 
     if (!clothing) {
       return res.status(404).json({
@@ -96,9 +103,17 @@ const getClothingById = async (req, res) => {
 
 const updateClothing = async (req, res) => {
   try {
-    const updatedClothing = await Clothing.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-    });
+    const userId = req.user.userId;
+    const updatedClothing = await Clothing.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        userId,
+      },
+      req.body,
+      {
+        new: true,
+      }
+    );
 
     if (!updatedClothing) {
       return res.status(404).json({
@@ -116,7 +131,11 @@ const updateClothing = async (req, res) => {
 
 const deleteClothing = async (req, res) => {
   try {
-    const deletedClothing = await Clothing.findByIdAndDelete(req.params.id);
+    const userId = req.user.userId;
+    const deletedClothing = await Clothing.findOneAndDelete({
+      _id: req.params.id,
+      userId,
+    });
 
     if (!deletedClothing) {
       return res.status(404).json({
@@ -135,7 +154,7 @@ const deleteClothing = async (req, res) => {
 };
 
 const getForgottenItems = async (req, res) => {
-  const userId = req.user?.id || process.env.TEST_USER_ID;
+  const userId = req.user?.userId;
   const user = await User.findById(userId);
 
   if (!user) {

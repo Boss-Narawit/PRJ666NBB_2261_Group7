@@ -1,4 +1,5 @@
 const express = require('express');
+const { authenticate } = require('../middlewares/auth');
 const upload = require('../middlewares/upload');
 
 const {
@@ -13,6 +14,7 @@ const {
 } = require('../controllers/clothingController');
 
 const router = express.Router();
+router.use(authenticate);
 
 router.post('/upload-image', upload.single('image'), uploadImage);
 
