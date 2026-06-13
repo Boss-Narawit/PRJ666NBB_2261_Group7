@@ -206,3 +206,112 @@ export async function updateNotificationPreferences(
     );
   return data;
 }
+export interface AppNotification {
+  _id: string;
+  type: string;
+  message: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface NotificationList {
+  notifications: AppNotification[];
+  total: number;
+  unreadCount: number;
+  page: number;
+  limit: number;
+}
+
+export interface DashboardSummary {
+  userName: string;
+  totalItems: number;
+  wornThisMonth: number;
+  forgottenCount: number;
+  forgottenItems: {
+    _id: string;
+    name: string;
+    brand: string;
+    imageUrl: string;
+    analytics?: {
+      lastWornAt?: string;
+    };
+  }[];
+}
+
+export async function getDashboardSummary(
+  token: string,
+): Promise<DashboardSummary> {
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}/api/dashboard/summary`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } catch {
+    throw new Error('Unable to reach the server. Check your connection.');
+  }
+
+  const contentType = res.headers.get('content-type') ?? '';
+  const data = contentType.includes('application/json')
+    ? await res.json()
+    : { message: `Server error (${res.status})` };
+
+  // errorHandler-mapped errors arrive as { error }, not { message }
+  if (!res.ok)
+    throw new Error(
+      data.message || data.error || 'Failed to fetch dashboard summary',
+    );
+  return data;
+}
+
+export async function getNotifications(
+  token: string,
+  page = 1,
+): Promise<NotificationList> {
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}/api/notifications?page=${page}`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } catch {
+    throw new Error('Unable to reach the server. Check your connection.');
+  }
+
+  const contentType = res.headers.get('content-type') ?? '';
+  const data = contentType.includes('application/json')
+    ? await res.json()
+    : { message: `Server error (${res.status})` };
+
+  if (!res.ok)
+    throw new Error(
+      data.message || data.error || 'Failed to fetch notifications',
+    );
+  return data;
+}
+
+export async function markNotificationRead(
+  token: string,
+  id: string,
+): Promise<AppNotification> {
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}/api/notifications/${id}/read`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } catch {
+    throw new Error('Unable to reach the server. Check your connection.');
+  }
+
+  const contentType = res.headers.get('content-type') ?? '';
+  const data = contentType.includes('application/json')
+    ? await res.json()
+    : { message: `Server error (${res.status})` };
+
+  if (!res.ok)
+    throw new Error(
+      data.message || data.error || 'Failed to mark notification as read',
+    );
+  return data;
+}

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -6,11 +6,15 @@ import {
   ScrollView,
   TouchableOpacity,
   FlatList,
+  ActivityIndicator,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
+import { useAuth } from '../context/AuthContext';
+import { getDashboardSummary, DashboardSummary } from '../services/api';
 
-// Mock data for categories
+// Static navigation shortcuts — not data-driven
 const categories = [
   { id: '1', name: 'Jacket', icon: 'shirt-outline' },
   { id: '2', name: 'Shirts', icon: 'shirt-outline' },
@@ -18,24 +22,40 @@ const categories = [
   { id: '4', name: 'Shoes', icon: 'footsteps-outline' },
 ];
 
-// Mock data for forgotten items
-const forgottenItems = [
-  {
-    id: '1',
-    name: 'Blue Jeans',
-    brand: 'Calvin Klein',
-    lastWorn: '2026-01-29',
-  },
-  { id: '2', name: 'Flower Sweater', brand: 'Muji', lastWorn: '2026-01-29' },
-  {
-    id: '3',
-    name: 'Leopard Sneakers',
-    brand: 'Sneaker Co',
-    lastWorn: '2026-01-29',
-  },
-];
+function formatLastWorn(lastWornAt?: string) {
+  return lastWornAt ? lastWornAt.slice(0, 10) : 'Never';
+}
 
 export default function MainScreen({ navigation }: any) {
+  const { token } = useAuth();
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Refetch whenever the dashboard tab regains focus — stats change after
+  // adding items or logging wears elsewhere in the app.
+  useFocusEffect(
+    useCallback(() => {
+      if (!token) return;
+      let cancelled = false;
+      getDashboardSummary(token)
+        .then(data => {
+          if (!cancelled) {
+            setSummary(data);
+            setError(null);
+          }
+        })
+        .catch(err => {
+          if (!cancelled) setError(err.message || 'Failed to load dashboard.');
+        })
+        .finally(() => {
+          if (!cancelled) setIsLoading(false);
+        });
+      return () => {
+        cancelled = true;
+      };
+    }, [token]),
+  );
   const renderCategoryItem = ({ item }: any) => (
     <TouchableOpacity style={styles.categoryCard}>
       <View
@@ -58,7 +78,9 @@ export default function MainScreen({ navigation }: any) {
       <View style={styles.forgottenInfo}>
         <Text style={styles.forgottenName}>{item.name}</Text>
         <Text style={styles.forgottenBrand}>{item.brand}</Text>
-        <Text style={styles.forgottenDate}>Last worn: {item.lastWorn}</Text>
+        <Text style={styles.forgottenDate}>
+          Last worn: {formatLastWorn(item.analytics?.lastWornAt)}
+        </Text>
       </View>
       <TouchableOpacity
         style={[styles.wearButton, { backgroundColor: colors.primary }]}
@@ -76,29 +98,40 @@ export default function MainScreen({ navigation }: any) {
       {/* Header */}
       <View style={styles.header}>
         <Text style={[styles.logo, { color: colors.primary }]}>
-          Hello, User
+          Hello, {summary?.userName ?? 'User'}
         </Text>
         <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
           <Icon name="person-circle-outline" size={32} color={colors.primary} />
         </TouchableOpacity>
       </View>
 
+      {isLoading && (
+        <ActivityIndicator
+          size="large"
+          color={colors.primary}
+          style={styles.loading}
+        />
+      )}
+      {error && !isLoading && <Text style={styles.errorText}>{error}</Text>}
+
       {/* Stats Summary */}
       <View style={styles.statsContainer}>
         <View style={[styles.statCard, { backgroundColor: colors.white }]}>
-          <Text style={styles.statNumber}>24</Text>
+          <Text style={styles.statNumber}>{summary?.totalItems ?? '–'}</Text>
           <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
             Total Items
           </Text>
         </View>
         <View style={[styles.statCard, { backgroundColor: colors.white }]}>
-          <Text style={styles.statNumber}>12</Text>
+          <Text style={styles.statNumber}>{summary?.wornThisMonth ?? '–'}</Text>
           <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
             Worn This Month
           </Text>
         </View>
         <View style={[styles.statCard, { backgroundColor: colors.white }]}>
-          <Text style={styles.statNumber}>8</Text>
+          <Text style={styles.statNumber}>
+            {summary?.forgottenCount ?? '–'}
+          </Text>
           <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
             Forgotten
           </Text>
@@ -178,12 +211,16 @@ export default function MainScreen({ navigation }: any) {
             </Text>
           </TouchableOpacity>
         </View>
-        <FlatList
-          data={forgottenItems}
-          renderItem={renderForgottenItem}
-          keyExtractor={item => item.id}
-          scrollEnabled={false}
-        />
+        {summary && summary.forgottenItems.length === 0 ? (
+          <Text style={styles.emptyText}>No forgotten items — well done!</Text>
+        ) : (
+          <FlatList
+            data={summary?.forgottenItems ?? []}
+            renderItem={renderForgottenItem}
+            keyExtractor={item => item._id}
+            scrollEnabled={false}
+          />
+        )}
       </View>
 
       <View style={styles.bottomPadding} />
@@ -367,5 +404,21 @@ const styles = StyleSheet.create({
   },
   bottomPadding: {
     height: 40,
+  },
+  loading: {
+    marginTop: 16,
+  },
+  errorText: {
+    fontSize: 13,
+    color: '#C0392B',
+    textAlign: 'center',
+    paddingHorizontal: 20,
+    marginTop: 8,
+  },
+  emptyText: {
+    fontSize: 13,
+    color: '#999',
+    textAlign: 'center',
+    paddingVertical: 16,
   },
 });
