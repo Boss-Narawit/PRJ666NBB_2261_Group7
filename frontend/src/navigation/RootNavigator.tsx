@@ -139,25 +139,25 @@ function RootStacks() {
                 ),
               })}
             />
-            <Stack.Screen 
-              name="Wardrobe" 
-              component={WardrobeScreen} 
-              options={{ headerShown: false }} 
+            <Stack.Screen
+              name="Wardrobe"
+              component={WardrobeScreen}
+              options={{ headerShown: false }}
             />
-            <Stack.Screen 
-              name="AddCloth" 
-              component={AddClothScreen} 
-              options={{ headerShown: false }} 
+            <Stack.Screen
+              name="AddCloth"
+              component={AddClothScreen}
+              options={{ headerShown: false }}
             />
-            <Stack.Screen 
-              name="WearLog" 
-              component={WearHistoryScreen} 
-              options={{ headerShown: false }} 
+            <Stack.Screen
+              name="WearLog"
+              component={WearHistoryScreen}
+              options={{ headerShown: false }}
             />
-            <Stack.Screen 
-              name="WearLogDetail" 
-              component={WearLogDetailScreen} 
-              options={{ headerShown: false }} 
+            <Stack.Screen
+              name="WearLogDetail"
+              component={WearLogDetailScreen}
+              options={{ headerShown: false }}
             />
           </>
         ) : (

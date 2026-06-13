@@ -20,8 +20,18 @@ const wearHistoryData = [
     date: '2026-01-29',
     items: [
       { name: 'Black Hoodie', brand: 'Nike', wearCount: 12, category: 'Tops' },
-      { name: 'Blue Jeans', brand: "Levi's", wearCount: 8, category: 'Bottoms' },
-      { name: 'White Sneakers', brand: 'Adidas', wearCount: 15, category: 'Shoes' },
+      {
+        name: 'Blue Jeans',
+        brand: "Levi's",
+        wearCount: 8,
+        category: 'Bottoms',
+      },
+      {
+        name: 'White Sneakers',
+        brand: 'Adidas',
+        wearCount: 15,
+        category: 'Shoes',
+      },
     ],
   },
   {
@@ -29,16 +39,36 @@ const wearHistoryData = [
     date: '2026-01-28',
     items: [
       { name: 'Grey Sweater', brand: 'Muji', wearCount: 5, category: 'Tops' },
-      { name: 'Black Pants', brand: 'Uniqlo', wearCount: 10, category: 'Bottoms' },
-      { name: 'Leather Boots', brand: 'Dr. Martens', wearCount: 8, category: 'Shoes' },
+      {
+        name: 'Black Pants',
+        brand: 'Uniqlo',
+        wearCount: 10,
+        category: 'Bottoms',
+      },
+      {
+        name: 'Leather Boots',
+        brand: 'Dr. Martens',
+        wearCount: 8,
+        category: 'Shoes',
+      },
     ],
   },
   {
     id: '3',
     date: '2026-01-27',
     items: [
-      { name: 'Floral Dress', brand: 'Zara', wearCount: 3, category: 'Dresses' },
-      { name: 'Denim Jacket', brand: 'Levi\'s', wearCount: 6, category: 'Outerwear' },
+      {
+        name: 'Floral Dress',
+        brand: 'Zara',
+        wearCount: 3,
+        category: 'Dresses',
+      },
+      {
+        name: 'Denim Jacket',
+        brand: "Levi's",
+        wearCount: 6,
+        category: 'Outerwear',
+      },
     ],
   },
   {
@@ -46,12 +76,24 @@ const wearHistoryData = [
     date: '2026-01-26',
     items: [
       { name: 'White Shirt', brand: 'Uniqlo', wearCount: 20, category: 'Tops' },
-      { name: 'Beige Blazer', brand: 'J.Crew', wearCount: 1, category: 'Outerwear' },
+      {
+        name: 'Beige Blazer',
+        brand: 'J.Crew',
+        wearCount: 1,
+        category: 'Outerwear',
+      },
     ],
   },
 ];
 
-const categories = ['Tops', 'Bottoms', 'Dresses', 'Outerwear', 'Shoes', 'Accessories'];
+const categories = [
+  'Tops',
+  'Bottoms',
+  'Dresses',
+  'Outerwear',
+  'Shoes',
+  'Accessories',
+];
 const seasons = ['Summer', 'Winter', 'Fall', 'Spring'];
 
 type Props = {
@@ -128,9 +170,9 @@ export default function WearHistoryScreen({ navigation }: Props) {
 
   const handleLogPress = (log: any) => {
     navigation.navigate('WearLogDetail', {
-        logId: log.id,
-        date: log.date,
-        items: log.items,
+      logId: log.id,
+      date: log.date,
+      items: log.items,
     });
   };
 
@@ -145,13 +187,24 @@ export default function WearHistoryScreen({ navigation }: Props) {
       'Are you sure you want to delete this wear log?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: () => setShowDetailModal(false) },
-      ]
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => setShowDetailModal(false),
+        },
+      ],
     );
   };
 
-  const renderWearLogItem = ({ item }: { item: typeof wearHistoryData[0] }) => (
-    <TouchableOpacity style={styles.logCard} onPress={() => handleLogPress(item)}>
+  const renderWearLogItem = ({
+    item,
+  }: {
+    item: (typeof wearHistoryData)[0];
+  }) => (
+    <TouchableOpacity
+      style={styles.logCard}
+      onPress={() => handleLogPress(item)}
+    >
       <Text style={styles.logDate}>{item.date}</Text>
       <View style={styles.logItems}>
         {item.items.map((clothing, index) => (
@@ -161,10 +214,10 @@ export default function WearHistoryScreen({ navigation }: Props) {
           </Text>
         ))}
       </View>
-      <TouchableOpacity 
-        style={styles.viewDetailsButton} 
+      <TouchableOpacity
+        style={styles.viewDetailsButton}
         onPress={() => handleLogPress(item)}
-        >
+      >
         <Text style={styles.viewDetailsText}>View Details &gt;</Text>
       </TouchableOpacity>
     </TouchableOpacity>
@@ -174,30 +227,56 @@ export default function WearHistoryScreen({ navigation }: Props) {
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
           <Icon name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Wear History</Text>
-        <TouchableOpacity onPress={() => setShowFilters(true)} style={styles.filterButton}>
+        <TouchableOpacity
+          onPress={() => setShowFilters(true)}
+          style={styles.filterButton}
+        >
           <Icon name="filter-outline" size={24} color={colors.primary} />
         </TouchableOpacity>
       </View>
 
       {/* Filter Chips */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterChips}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.filterChips}
+      >
         <TouchableOpacity
-          style={[styles.chip, activeFilter === 'Last 7 Days' && styles.chipActive]}
+          style={[
+            styles.chip,
+            activeFilter === 'Last 7 Days' && styles.chipActive,
+          ]}
           onPress={() => setActiveFilter('Last 7 Days')}
         >
-          <Text style={[styles.chipText, activeFilter === 'Last 7 Days' && styles.chipTextActive]}>
+          <Text
+            style={[
+              styles.chipText,
+              activeFilter === 'Last 7 Days' && styles.chipTextActive,
+            ]}
+          >
             Last 7 Days
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.chip, activeFilter === 'Last 30 Days' && styles.chipActive]}
+          style={[
+            styles.chip,
+            activeFilter === 'Last 30 Days' && styles.chipActive,
+          ]}
           onPress={() => setActiveFilter('Last 30 Days')}
         >
-          <Text style={[styles.chipText, activeFilter === 'Last 30 Days' && styles.chipTextActive]}>
+          <Text
+            style={[
+              styles.chipText,
+              activeFilter === 'Last 30 Days' && styles.chipTextActive,
+            ]}
+          >
             Last 30 Days
           </Text>
         </TouchableOpacity>
@@ -205,7 +284,12 @@ export default function WearHistoryScreen({ navigation }: Props) {
           style={[styles.chip, activeFilter === 'Custom' && styles.chipActive]}
           onPress={() => setActiveFilter('Custom')}
         >
-          <Text style={[styles.chipText, activeFilter === 'Custom' && styles.chipTextActive]}>
+          <Text
+            style={[
+              styles.chipText,
+              activeFilter === 'Custom' && styles.chipTextActive,
+            ]}
+          >
             Custom
           </Text>
         </TouchableOpacity>
@@ -231,7 +315,7 @@ export default function WearHistoryScreen({ navigation }: Props) {
       <FlatList
         data={wearHistoryData}
         renderItem={renderWearLogItem}
-        keyExtractor={(item) => item.id}
+        keyExtractor={item => item.id}
         scrollEnabled={false}
         contentContainerStyle={styles.listContainer}
       />
@@ -252,26 +336,50 @@ export default function WearHistoryScreen({ navigation }: Props) {
               <Text style={styles.filterSectionTitle}>Date Range:</Text>
               <View style={styles.filterRow}>
                 <TouchableOpacity
-                  style={[styles.filterChip, activeFilter === 'Last 7 Days' && styles.chipActive]}
+                  style={[
+                    styles.filterChip,
+                    activeFilter === 'Last 7 Days' && styles.chipActive,
+                  ]}
                   onPress={() => setActiveFilter('Last 7 Days')}
                 >
-                  <Text style={[styles.filterChipText, activeFilter === 'Last 7 Days' && styles.chipTextActive]}>
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      activeFilter === 'Last 7 Days' && styles.chipTextActive,
+                    ]}
+                  >
                     Last 7 Days
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.filterChip, activeFilter === 'Last 30 Days' && styles.chipActive]}
+                  style={[
+                    styles.filterChip,
+                    activeFilter === 'Last 30 Days' && styles.chipActive,
+                  ]}
                   onPress={() => setActiveFilter('Last 30 Days')}
                 >
-                  <Text style={[styles.filterChipText, activeFilter === 'Last 30 Days' && styles.chipTextActive]}>
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      activeFilter === 'Last 30 Days' && styles.chipTextActive,
+                    ]}
+                  >
                     Last 30 Days
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.filterChip, activeFilter === 'Custom' && styles.chipActive]}
+                  style={[
+                    styles.filterChip,
+                    activeFilter === 'Custom' && styles.chipActive,
+                  ]}
                   onPress={() => setActiveFilter('Custom')}
                 >
-                  <Text style={[styles.filterChipText, activeFilter === 'Custom' && styles.chipTextActive]}>
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      activeFilter === 'Custom' && styles.chipTextActive,
+                    ]}
+                  >
                     Custom
                   </Text>
                 </TouchableOpacity>
@@ -297,7 +405,7 @@ export default function WearHistoryScreen({ navigation }: Props) {
               {/* Category Filter */}
               <Text style={styles.filterSectionTitle}>Category:</Text>
               <View style={styles.filterRow}>
-                {categories.map((cat) => (
+                {categories.map(cat => (
                   <TouchableOpacity
                     key={cat}
                     style={[
@@ -309,7 +417,8 @@ export default function WearHistoryScreen({ navigation }: Props) {
                     <Text
                       style={[
                         styles.filterChipText,
-                        selectedCategories.includes(cat) && styles.chipTextActive,
+                        selectedCategories.includes(cat) &&
+                          styles.chipTextActive,
                       ]}
                     >
                       {cat}
@@ -324,13 +433,17 @@ export default function WearHistoryScreen({ navigation }: Props) {
                 <Text style={styles.brandSelectorText}>
                   {selectedBrand || 'Select Brand...'}
                 </Text>
-                <Icon name="chevron-down" size={20} color={colors.textSecondary} />
+                <Icon
+                  name="chevron-down"
+                  size={20}
+                  color={colors.textSecondary}
+                />
               </TouchableOpacity>
 
               {/* Season Filter */}
               <Text style={styles.filterSectionTitle}>Season:</Text>
               <View style={styles.filterRow}>
-                {seasons.map((season) => (
+                {seasons.map(season => (
                   <TouchableOpacity
                     key={season}
                     style={[
@@ -342,7 +455,8 @@ export default function WearHistoryScreen({ navigation }: Props) {
                     <Text
                       style={[
                         styles.filterChipText,
-                        selectedSeasons.includes(season) && styles.chipTextActive,
+                        selectedSeasons.includes(season) &&
+                          styles.chipTextActive,
                       ]}
                     >
                       {season}
@@ -353,7 +467,10 @@ export default function WearHistoryScreen({ navigation }: Props) {
             </ScrollView>
 
             <View style={styles.modalFooter}>
-              <TouchableOpacity style={styles.resetButton} onPress={resetFilters}>
+              <TouchableOpacity
+                style={styles.resetButton}
+                onPress={resetFilters}
+              >
                 <Text style={styles.resetButtonText}>Reset</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -383,19 +500,29 @@ export default function WearHistoryScreen({ navigation }: Props) {
                 <View key={index} style={styles.detailItem}>
                   <Text style={styles.detailItemName}>{item.name}</Text>
                   {item.brand && (
-                    <Text style={styles.detailItemBrand}>Brand: {item.brand}</Text>
+                    <Text style={styles.detailItemBrand}>
+                      Brand: {item.brand}
+                    </Text>
                   )}
-                  <Text style={styles.detailItemWorn}>Worn: {item.wearCount} times</Text>
+                  <Text style={styles.detailItemWorn}>
+                    Worn: {item.wearCount} times
+                  </Text>
                 </View>
               ))}
             </ScrollView>
 
             <View style={styles.detailFooter}>
-              <TouchableOpacity style={styles.editButton} onPress={handleEditLog}>
+              <TouchableOpacity
+                style={styles.editButton}
+                onPress={handleEditLog}
+              >
                 <Icon name="create-outline" size={20} color={colors.white} />
                 <Text style={styles.editButtonText}>Edit Log</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteLog}>
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={handleDeleteLog}
+              >
                 <Icon name="trash-outline" size={20} color={colors.error} />
                 <Text style={styles.deleteButtonText}>Delete Log</Text>
               </TouchableOpacity>

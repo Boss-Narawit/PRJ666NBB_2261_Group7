@@ -41,15 +41,15 @@ export default function WearLogDetailScreen({ navigation, route }: Props) {
       'Are you sure you want to delete this wear log?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
-          style: 'destructive', 
+        {
+          text: 'Delete',
+          style: 'destructive',
           onPress: () => {
             // navigation.goBack();
             Alert.alert('Deleted', 'Wear log has been deleted');
-          }
+          },
         },
-      ]
+      ],
     );
   };
 
@@ -61,7 +61,10 @@ export default function WearLogDetailScreen({ navigation, route }: Props) {
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
           <Icon name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Wear Log Detail</Text>
@@ -77,16 +80,20 @@ export default function WearLogDetailScreen({ navigation, route }: Props) {
       {/* Items List */}
       <View style={styles.itemsContainer}>
         <Text style={styles.itemsTitle}>Items Worn</Text>
-        
+
         {items.map((item, index) => (
-          <TouchableOpacity 
-            key={index} 
+          <TouchableOpacity
+            key={index}
             style={styles.itemCard}
             onPress={() => handleEditItem(item.name)}
             activeOpacity={0.7}
           >
             <View style={styles.itemImage}>
-              <Icon name="shirt-outline" size={30} color={colors.textSecondary} />
+              <Icon
+                name="shirt-outline"
+                size={30}
+                color={colors.textSecondary}
+              />
             </View>
             <View style={styles.itemInfo}>
               <Text style={styles.itemName}>{item.name}</Text>

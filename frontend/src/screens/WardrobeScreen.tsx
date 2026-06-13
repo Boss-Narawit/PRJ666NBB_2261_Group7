@@ -14,19 +14,107 @@ import { colors } from '../theme';
 
 // Mock data for wardrobe items
 const wardrobeItems = [
-  { id: '1', name: 'White Sneakers', brand: 'Nike', category: 'Shoes', wearCount: 24, image: null, color: 'White' },
-  { id: '2', name: 'Winter Jacket', brand: 'North Face', category: 'Outerwear', wearCount: 30, image: null, color: 'Black' },
-  { id: '3', name: 'Blue Shirts', brand: 'Uniqlo', category: 'Tops', wearCount: 24, image: null, color: 'Blue' },
-  { id: '4', name: 'Black Jeans', brand: 'Levi\'s', category: 'Bottoms', wearCount: 15, image: null, color: 'Black' },
-  { id: '5', name: 'Running Shoes', brand: 'Adidas', category: 'Shoes', wearCount: 42, image: null, color: 'White' },
-  { id: '6', name: 'Denim Jacket', brand: 'Zara', category: 'Outerwear', wearCount: 8, image: null, color: 'Blue' },
-  { id: '7', name: 'Floral Dress', brand: 'H&M', category: 'Dresses', wearCount: 5, image: null, color: 'Pink' },
-  { id: '8', name: 'Grey Sweater', brand: 'Muji', category: 'Tops', wearCount: 12, image: null, color: 'Grey' },
-  { id: '9', name: 'Leather Boots', brand: 'Dr. Martens', category: 'Shoes', wearCount: 18, image: null, color: 'Brown' },
-  { id: '10', name: 'Cargo Pants', brand: 'Carhartt', category: 'Bottoms', wearCount: 6, image: null, color: 'Olive' },
+  {
+    id: '1',
+    name: 'White Sneakers',
+    brand: 'Nike',
+    category: 'Shoes',
+    wearCount: 24,
+    image: null,
+    color: 'White',
+  },
+  {
+    id: '2',
+    name: 'Winter Jacket',
+    brand: 'North Face',
+    category: 'Outerwear',
+    wearCount: 30,
+    image: null,
+    color: 'Black',
+  },
+  {
+    id: '3',
+    name: 'Blue Shirts',
+    brand: 'Uniqlo',
+    category: 'Tops',
+    wearCount: 24,
+    image: null,
+    color: 'Blue',
+  },
+  {
+    id: '4',
+    name: 'Black Jeans',
+    brand: "Levi's",
+    category: 'Bottoms',
+    wearCount: 15,
+    image: null,
+    color: 'Black',
+  },
+  {
+    id: '5',
+    name: 'Running Shoes',
+    brand: 'Adidas',
+    category: 'Shoes',
+    wearCount: 42,
+    image: null,
+    color: 'White',
+  },
+  {
+    id: '6',
+    name: 'Denim Jacket',
+    brand: 'Zara',
+    category: 'Outerwear',
+    wearCount: 8,
+    image: null,
+    color: 'Blue',
+  },
+  {
+    id: '7',
+    name: 'Floral Dress',
+    brand: 'H&M',
+    category: 'Dresses',
+    wearCount: 5,
+    image: null,
+    color: 'Pink',
+  },
+  {
+    id: '8',
+    name: 'Grey Sweater',
+    brand: 'Muji',
+    category: 'Tops',
+    wearCount: 12,
+    image: null,
+    color: 'Grey',
+  },
+  {
+    id: '9',
+    name: 'Leather Boots',
+    brand: 'Dr. Martens',
+    category: 'Shoes',
+    wearCount: 18,
+    image: null,
+    color: 'Brown',
+  },
+  {
+    id: '10',
+    name: 'Cargo Pants',
+    brand: 'Carhartt',
+    category: 'Bottoms',
+    wearCount: 6,
+    image: null,
+    color: 'Olive',
+  },
 ];
 
-const categories = ['All', 'Tops', 'Bottoms', 'Dresses', 'Outerwear', 'Shoes', 'Accessories'];
+const categories = [
+  'All',
+  'Tops',
+  'Bottoms',
+  'Dresses',
+  'Outerwear',
+  'Shoes',
+  'Accessories',
+];
 
 type Props = {
   navigation: any;
@@ -38,17 +126,19 @@ export default function WardrobeScreen({ navigation }: Props) {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   // Filter items based on search and category
-  const filteredItems = wardrobeItems.filter((item) => {
-    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          item.brand.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === 'All' || item.category === selectedCategory;
+  const filteredItems = wardrobeItems.filter(item => {
+    const matchesSearch =
+      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.brand.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory =
+      selectedCategory === 'All' || item.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
   // Recent items (last 5 added or most worn - using mock data)
   const recentItems = wardrobeItems.slice(0, 5);
 
-  const renderGridItem = ({ item }: { item: typeof wardrobeItems[0] }) => (
+  const renderGridItem = ({ item }: { item: (typeof wardrobeItems)[0] }) => (
     <TouchableOpacity style={styles.gridCard}>
       <View style={styles.gridImage}>
         <Icon name="shirt-outline" size={40} color={colors.textSecondary} />
@@ -59,7 +149,7 @@ export default function WardrobeScreen({ navigation }: Props) {
     </TouchableOpacity>
   );
 
-  const renderListItem = ({ item }: { item: typeof wardrobeItems[0] }) => (
+  const renderListItem = ({ item }: { item: (typeof wardrobeItems)[0] }) => (
     <TouchableOpacity style={styles.listCard}>
       <View style={styles.listImage}>
         <Icon name="shirt-outline" size={30} color={colors.textSecondary} />
@@ -77,13 +167,15 @@ export default function WardrobeScreen({ navigation }: Props) {
     </TouchableOpacity>
   );
 
-  const renderRecentItem = ({ item }: { item: typeof wardrobeItems[0] }) => (
+  const renderRecentItem = ({ item }: { item: (typeof wardrobeItems)[0] }) => (
     <TouchableOpacity style={styles.recentCard}>
       <View style={styles.recentImage}>
         <Icon name="shirt-outline" size={24} color={colors.textSecondary} />
       </View>
       <Text style={styles.recentItemName}>{item.name}</Text>
-      <Text style={styles.recentItemWearCount}>Worn {item.wearCount} times</Text>
+      <Text style={styles.recentItemWearCount}>
+        Worn {item.wearCount} times
+      </Text>
     </TouchableOpacity>
   );
 
@@ -91,18 +183,29 @@ export default function WardrobeScreen({ navigation }: Props) {
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
           <Icon name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Wardrobe</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('AddCloth')} style={styles.addButton}>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('AddCloth')}
+          style={styles.addButton}
+        >
           <Icon name="add-circle-outline" size={28} color={colors.primary} />
         </TouchableOpacity>
       </View>
 
       {/* Search Bar */}
       <View style={styles.searchContainer}>
-        <Icon name="search-outline" size={20} color={colors.textSecondary} style={styles.searchIcon} />
+        <Icon
+          name="search-outline"
+          size={20}
+          color={colors.textSecondary}
+          style={styles.searchIcon}
+        />
         <TextInput
           style={styles.searchInput}
           placeholder="Search by name or brand..."
@@ -118,13 +221,13 @@ export default function WardrobeScreen({ navigation }: Props) {
       </View>
 
       {/* Category Filters */}
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false} 
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
         style={styles.categoriesContainer}
         contentContainerStyle={styles.categoriesContent}
       >
-        {categories.map((cat) => (
+        {categories.map(cat => (
           <TouchableOpacity
             key={cat}
             style={[
@@ -156,7 +259,7 @@ export default function WardrobeScreen({ navigation }: Props) {
         <FlatList
           data={recentItems}
           renderItem={renderRecentItem}
-          keyExtractor={(item) => item.id}
+          keyExtractor={item => item.id}
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.recentList}
@@ -167,11 +270,13 @@ export default function WardrobeScreen({ navigation }: Props) {
       <View style={styles.allItemsSection}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>All Items</Text>
-          <TouchableOpacity onPress={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}>
-            <Icon 
-              name={viewMode === 'grid' ? 'list-outline' : 'grid-outline'} 
-              size={24} 
-              color={colors.primary} 
+          <TouchableOpacity
+            onPress={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+          >
+            <Icon
+              name={viewMode === 'grid' ? 'list-outline' : 'grid-outline'}
+              size={24}
+              color={colors.primary}
             />
           </TouchableOpacity>
         </View>
@@ -180,19 +285,25 @@ export default function WardrobeScreen({ navigation }: Props) {
           <FlatList
             data={filteredItems}
             renderItem={renderGridItem}
-            keyExtractor={(item) => item.id}
+            keyExtractor={item => item.id}
             numColumns={2}
             columnWrapperStyle={styles.gridRow}
             scrollEnabled={false}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
-                <Icon name="shirt-outline" size={60} color={colors.textSecondary} />
+                <Icon
+                  name="shirt-outline"
+                  size={60}
+                  color={colors.textSecondary}
+                />
                 <Text style={styles.emptyText}>No items found</Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.emptyButton}
                   onPress={() => navigation.navigate('AddCloth')}
                 >
-                  <Text style={styles.emptyButtonText}>Add Your First Item</Text>
+                  <Text style={styles.emptyButtonText}>
+                    Add Your First Item
+                  </Text>
                 </TouchableOpacity>
               </View>
             }
@@ -201,17 +312,23 @@ export default function WardrobeScreen({ navigation }: Props) {
           <FlatList
             data={filteredItems}
             renderItem={renderListItem}
-            keyExtractor={(item) => item.id}
+            keyExtractor={item => item.id}
             scrollEnabled={false}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
-                <Icon name="shirt-outline" size={60} color={colors.textSecondary} />
+                <Icon
+                  name="shirt-outline"
+                  size={60}
+                  color={colors.textSecondary}
+                />
                 <Text style={styles.emptyText}>No items found</Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.emptyButton}
                   onPress={() => navigation.navigate('AddCloth')}
                 >
-                  <Text style={styles.emptyButtonText}>Add Your First Item</Text>
+                  <Text style={styles.emptyButtonText}>
+                    Add Your First Item
+                  </Text>
                 </TouchableOpacity>
               </View>
             }
@@ -220,7 +337,7 @@ export default function WardrobeScreen({ navigation }: Props) {
       </View>
 
       {/* Add New Cloth Button */}
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.fab}
         onPress={() => navigation.navigate('AddCloth')}
       >

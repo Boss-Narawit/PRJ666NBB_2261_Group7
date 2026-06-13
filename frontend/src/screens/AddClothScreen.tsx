@@ -21,7 +21,7 @@ type Props = {
 export default function AddClothScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(false);
   const [photo, setPhoto] = useState<string | null>(null);
-  
+
   // Form fields
   const [brand, setBrand] = useState('');
   const [material, setMaterial] = useState('');
@@ -38,8 +38,13 @@ export default function AddClothScreen({ navigation }: Props) {
   ];
 
   const categories = [
-    'Tops', 'Bottoms', 'Dresses', 'Outerwear', 
-    'Shoes', 'Accessories', 'Activewear'
+    'Tops',
+    'Bottoms',
+    'Dresses',
+    'Outerwear',
+    'Shoes',
+    'Accessories',
+    'Activewear',
   ];
 
   const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
@@ -51,7 +56,7 @@ export default function AddClothScreen({ navigation }: Props) {
         quality: 0.8,
         includeBase64: false,
       },
-      (response) => {
+      response => {
         if (response.assets && response.assets[0]?.uri) {
           setPhoto(response.assets[0].uri);
         } else if (response.didCancel) {
@@ -59,14 +64,17 @@ export default function AddClothScreen({ navigation }: Props) {
         } else {
           Alert.alert('Error', 'Failed to select photo');
         }
-      }
+      },
     );
   };
 
   const handleSave = async () => {
     // Validation (BR4 - required fields)
     if (!brand || !category || !color || !size || !photo) {
-      Alert.alert('Error', 'Please fill all required fields (Brand, Category, Color, Size, and Photo)');
+      Alert.alert(
+        'Error',
+        'Please fill all required fields (Brand, Category, Color, Size, and Photo)',
+      );
       return;
     }
 
@@ -80,9 +88,9 @@ export default function AddClothScreen({ navigation }: Props) {
       // formData.append('size', size);
       // formData.append('photo', { uri: photo, type: 'image/jpeg', name: 'photo.jpg' });
       // await clothingAPI.create(formData);
-      
+
       Alert.alert('Success', 'Clothing item added!', [
-        { text: 'OK', onPress: () => navigation.goBack() }
+        { text: 'OK', onPress: () => navigation.goBack() },
       ]);
     } catch (error) {
       Alert.alert('Error', 'Failed to save clothing item');
@@ -95,7 +103,10 @@ export default function AddClothScreen({ navigation }: Props) {
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
           <Icon name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Wardrobe</Text>
@@ -112,7 +123,10 @@ export default function AddClothScreen({ navigation }: Props) {
       {photo && (
         <View style={styles.photoPreview}>
           <Image source={{ uri: photo }} style={styles.previewImage} />
-          <TouchableOpacity style={styles.removePhoto} onPress={() => setPhoto(null)}>
+          <TouchableOpacity
+            style={styles.removePhoto}
+            onPress={() => setPhoto(null)}
+          >
             <Icon name="close-circle" size={24} color={colors.error} />
           </TouchableOpacity>
         </View>
@@ -128,14 +142,24 @@ export default function AddClothScreen({ navigation }: Props) {
       {/* Recent Items Section */}
       <View style={styles.recentSection}>
         <Text style={styles.sectionTitle}>Recent Items</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.recentList}>
-          {recentItems.map((item) => (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.recentList}
+        >
+          {recentItems.map(item => (
             <TouchableOpacity key={item.id} style={styles.recentItem}>
               <View style={styles.recentItemImage}>
-                <Icon name="shirt-outline" size={30} color={colors.textSecondary} />
+                <Icon
+                  name="shirt-outline"
+                  size={30}
+                  color={colors.textSecondary}
+                />
               </View>
               <Text style={styles.recentItemName}>{item.name}</Text>
-              <Text style={styles.recentItemWorn}>Worn {item.wearCount} times</Text>
+              <Text style={styles.recentItemWorn}>
+                Worn {item.wearCount} times
+              </Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -172,8 +196,12 @@ export default function AddClothScreen({ navigation }: Props) {
           <Text style={styles.label}>
             Category <Text style={styles.requiredStar}>*</Text>
           </Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryList}>
-            {categories.map((cat) => (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.categoryList}
+          >
+            {categories.map(cat => (
               <TouchableOpacity
                 key={cat}
                 style={[
@@ -213,14 +241,15 @@ export default function AddClothScreen({ navigation }: Props) {
           <Text style={styles.label}>
             Size <Text style={styles.requiredStar}>*</Text>
           </Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.sizeList}>
-            {sizes.map((s) => (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.sizeList}
+          >
+            {sizes.map(s => (
               <TouchableOpacity
                 key={s}
-                style={[
-                  styles.sizeChip,
-                  size === s && styles.sizeChipActive,
-                ]}
+                style={[styles.sizeChip, size === s && styles.sizeChipActive]}
                 onPress={() => setSize(s)}
               >
                 <Text
