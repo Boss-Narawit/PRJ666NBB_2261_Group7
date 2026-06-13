@@ -10,6 +10,10 @@ import TabNavigator from './TabNavigator';
 import SettingsScreen from '../screens/SettingsScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
 import NotificationSettingsScreen from '../screens/NotificationSettingsScreen';
+import AddClothScreen from '../screens/AddClothScreen';
+import WardrobeScreen from '../screens/WardrobeScreen';
+import WearHistoryScreen from '../screens/WearHistoryScreen';
+import WearLogDetailScreen from '../screens/WearLogDetailScreen';
 import { LoginScreen } from '../screens/LoginScreen';
 import SignUpScreen from '../screens/auth/SignUpScreen';
 import { AuthProvider, useAuth } from '../context/AuthContext';
@@ -23,6 +27,19 @@ export type RootStackParamList = {
   Settings: undefined;
   EditProfile: undefined;
   NotificationSettings: undefined;
+  Wardrobe: undefined;
+  AddCloth: undefined;
+  WearLog: undefined;
+  WearLogDetail: {
+    logId: string;
+    date: string;
+    items: {
+      name: string;
+      brand?: string;
+      wearCount: number;
+      image?: string;
+    }[];
+  };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -30,8 +47,6 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 function RootStacks() {
   const { token, isLoading } = useAuth();
 
-  // Wait for the stored token check before deciding which stack to show,
-  // so we never flash Login for an already-logged-in user.
   if (isLoading) {
     return (
       <View style={styles.loader}>
@@ -123,6 +138,26 @@ function RootStacks() {
                   </TouchableOpacity>
                 ),
               })}
+            />
+            <Stack.Screen 
+              name="Wardrobe" 
+              component={WardrobeScreen} 
+              options={{ headerShown: false }} 
+            />
+            <Stack.Screen 
+              name="AddCloth" 
+              component={AddClothScreen} 
+              options={{ headerShown: false }} 
+            />
+            <Stack.Screen 
+              name="WearLog" 
+              component={WearHistoryScreen} 
+              options={{ headerShown: false }} 
+            />
+            <Stack.Screen 
+              name="WearLogDetail" 
+              component={WearLogDetailScreen} 
+              options={{ headerShown: false }} 
             />
           </>
         ) : (
