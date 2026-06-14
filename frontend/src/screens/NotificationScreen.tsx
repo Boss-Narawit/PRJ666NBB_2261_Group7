@@ -193,8 +193,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.primary,
     paddingHorizontal: 20,
-    paddingTop: 60,
+    paddingTop: 15,
     paddingBottom: 12,
+    letterSpacing: -0.5, // Sleek letter spacing for the title
   },
   list: {
     paddingHorizontal: 20,
@@ -215,7 +216,7 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   unreadCard: {
-    backgroundColor: colors.primary + '10',
+    backgroundColor: '#FFEBF6', // Opaque solid color to fix Android shadow rendering bug (removes ugly gray halo border)
   },
   iconCircle: {
     width: 40,
@@ -232,6 +233,8 @@ const styles = StyleSheet.create({
   message: {
     fontSize: 14,
     color: colors.textPrimary,
+    lineHeight: 18,
+    letterSpacing: 0.1, // Adjusted letter spacing for improved readability
   },
   unreadMessage: {
     fontWeight: '600',
@@ -240,6 +243,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
     marginTop: 4,
+    letterSpacing: 0.1, // Matching letter spacing
   },
   unreadDot: {
     width: 8,

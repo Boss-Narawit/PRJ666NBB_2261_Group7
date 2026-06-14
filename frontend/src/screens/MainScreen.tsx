@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   FlatList,
   ActivityIndicator,
+  ImageBackground,
+  Image,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -16,10 +18,10 @@ import { getDashboardSummary, DashboardSummary } from '../services/api';
 
 // Static navigation shortcuts — not data-driven
 const categories = [
-  { id: '1', name: 'Jacket', icon: 'shirt-outline' },
-  { id: '2', name: 'Shirts', icon: 'shirt-outline' },
-  { id: '3', name: 'Pants', icon: 'shirt-outline' },
-  { id: '4', name: 'Shoes', icon: 'footsteps-outline' },
+  { id: '1', name: 'Jacket', image: require('../assets/images/Jacket.png') },
+  { id: '2', name: 'Shirts', image: require('../assets/images/Shirts.png') },
+  { id: '3', name: 'Pants', image: require('../assets/images/Pants.png') },
+  { id: '4', name: 'Shoes', image: require('../assets/images/Shoes.png') },
 ];
 
 function formatLastWorn(lastWornAt?: string) {
@@ -64,7 +66,7 @@ export default function MainScreen({ navigation }: any) {
           { backgroundColor: colors.primary + '20' },
         ]}
       >
-        <Icon name={item.icon} size={28} color={colors.primary} />
+        <Image source={item.image} style={styles.categoryImage} />
       </View>
       <Text style={styles.categoryName}>{item.name}</Text>
     </TouchableOpacity>
@@ -96,14 +98,24 @@ export default function MainScreen({ navigation }: any) {
       showsVerticalScrollIndicator={false}
     >
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={[styles.logo, { color: colors.primary }]}>
-          Hello, {summary?.userName ?? 'User'}
-        </Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
-          <Icon name="person-circle-outline" size={32} color={colors.primary} />
-        </TouchableOpacity>
-      </View>
+      <ImageBackground
+        source={require('../assets/images/Banner.png')}
+        style={styles.header}
+        resizeMode="cover"
+      >
+        <View style={styles.headerContent}>
+          <Text style={[styles.logo, { color: colors.primary }]}>
+            Hello, {summary?.userName ?? 'User'}
+          </Text>
+          <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+            <Icon
+              name="person-circle-outline"
+              size={32}
+              color={colors.primary}
+            />
+          </TouchableOpacity>
+        </View>
+      </ImageBackground>
 
       {isLoading && (
         <ActivityIndicator
@@ -118,13 +130,21 @@ export default function MainScreen({ navigation }: any) {
       <View style={styles.statsContainer}>
         <View style={[styles.statCard, { backgroundColor: colors.white }]}>
           <Text style={styles.statNumber}>{summary?.totalItems ?? '–'}</Text>
-          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+          <Text
+            style={[styles.statLabel, { color: colors.textSecondary }]}
+            numberOfLines={2}
+            adjustsFontSizeToFit
+          >
             Total Items
           </Text>
         </View>
         <View style={[styles.statCard, { backgroundColor: colors.white }]}>
           <Text style={styles.statNumber}>{summary?.wornThisMonth ?? '–'}</Text>
-          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+          <Text
+            style={[styles.statLabel, { color: colors.textSecondary }]}
+            numberOfLines={2}
+            adjustsFontSizeToFit
+          >
             Worn This Month
           </Text>
         </View>
@@ -132,7 +152,11 @@ export default function MainScreen({ navigation }: any) {
           <Text style={styles.statNumber}>
             {summary?.forgottenCount ?? '–'}
           </Text>
-          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+          <Text
+            style={[styles.statLabel, { color: colors.textSecondary }]}
+            numberOfLines={2}
+            adjustsFontSizeToFit
+          >
             Forgotten
           </Text>
         </View>
@@ -233,16 +257,24 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
+    width: '100%',
+    overflow: 'hidden',
+  },
+  headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 60,
+    paddingTop: 20,
     paddingBottom: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.45)', // Translucent overlay to make pink text/icons stand out
   },
   logo: {
     fontSize: 28,
     fontWeight: 'bold',
+    textShadowColor: 'rgba(0, 0, 0, 0.2)', // Soft text shadow for readability
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
   statsContainer: {
     flexDirection: 'row',
@@ -253,7 +285,8 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     borderRadius: 12,
-    padding: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 8, // Reduced horizontal padding to allow space for text
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -267,8 +300,9 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 11, // Slightly reduced font size
     marginTop: 4,
+    textAlign: 'center',
   },
   section: {
     marginTop: 20,
@@ -302,6 +336,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
+    overflow: 'hidden', // Clips the image into a circle
+  },
+  categoryImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover', // Fills the circular space beautifully
   },
   categoryName: {
     fontSize: 12,
