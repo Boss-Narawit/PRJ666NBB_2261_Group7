@@ -89,7 +89,7 @@ export default function SignUpScreen({ navigation }: Props) {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
+      style={styles.keyboardAvoidingView}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView
@@ -272,5 +272,8 @@ const styles = StyleSheet.create({
   link: {
     color: colors.primary,
     textDecorationLine: 'underline',
+  },
+  keyboardAvoidingView: {
+    flex: 1,
   },
 });

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
-  Image,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
@@ -28,7 +27,7 @@ type Props = {
 };
 
 export default function WearLogDetailScreen({ navigation, route }: Props) {
-  const { logId, date, items } = route.params;
+  const { date, items } = route.params;
 
   const handleEditLog = () => {
     Alert.alert('Edit Log', 'Navigate to edit wear log screen');
@@ -68,7 +67,7 @@ export default function WearLogDetailScreen({ navigation, route }: Props) {
           <Icon name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Wear Log Detail</Text>
-        <View style={{ width: 40 }} />
+        <View style={styles.headerRightSpacer} />
       </View>
 
       {/* Date Section */}
@@ -268,5 +267,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.primary,
     fontWeight: '500',
+  },
+  headerRightSpacer: {
+    width: 40,
   },
 });

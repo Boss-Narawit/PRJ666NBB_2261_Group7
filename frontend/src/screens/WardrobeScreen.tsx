@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   FlatList,
   TextInput,
-  Image,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';

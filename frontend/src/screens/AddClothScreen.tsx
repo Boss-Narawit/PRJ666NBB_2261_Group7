@@ -92,7 +92,7 @@ export default function AddClothScreen({ navigation }: Props) {
       Alert.alert('Success', 'Clothing item added!', [
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to save clothing item');
     } finally {
       setLoading(false);
@@ -110,7 +110,7 @@ export default function AddClothScreen({ navigation }: Props) {
           <Icon name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Wardrobe</Text>
-        <View style={{ width: 40 }} />
+        <View style={styles.headerRightSpacer} />
       </View>
 
       {/* Add New Cloth Button */}
@@ -497,5 +497,8 @@ const styles = StyleSheet.create({
   },
   bottomPadding: {
     height: 40,
+  },
+  headerRightSpacer: {
+    width: 40,
   },
 });

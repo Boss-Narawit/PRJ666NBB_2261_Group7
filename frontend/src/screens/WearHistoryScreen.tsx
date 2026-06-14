@@ -102,8 +102,8 @@ type Props = {
 
 export default function WearHistoryScreen({ navigation }: Props) {
   const [activeFilter, setActiveFilter] = useState('Last 7 Days');
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [selectedLog, setSelectedLog] = useState<any>(null);
+  const [_selectedDate, _setSelectedDate] = useState<string | null>(null);
+  const [selectedLog, _setSelectedLog] = useState<any>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
