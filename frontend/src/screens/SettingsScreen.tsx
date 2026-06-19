@@ -78,7 +78,7 @@ export default function SettingsScreen({ navigation }: Props) {
 
       <TouchableOpacity
         style={styles.settingButton}
-        onPress={() => comingSoon('Partner')}
+        onPress={() => navigation.navigate('Export')}
         activeOpacity={0.8}
       >
         <Icon

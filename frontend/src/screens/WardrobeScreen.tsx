@@ -272,11 +272,6 @@ export default function WardrobeScreen({ navigation }: Props) {
           <TouchableOpacity
             onPress={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
           >
-            <Icon
-              name={viewMode === 'grid' ? 'list-outline' : 'grid-outline'}
-              size={24}
-              color={colors.primary}
-            />
           </TouchableOpacity>
         </View>
 

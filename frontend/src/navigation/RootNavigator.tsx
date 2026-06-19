@@ -14,6 +14,8 @@ import AddClothScreen from '../screens/AddClothScreen';
 import WardrobeScreen from '../screens/WardrobeScreen';
 import WearHistoryScreen from '../screens/WearHistoryScreen';
 import WearLogDetailScreen from '../screens/WearLogDetailScreen';
+import ExportScreen from '../screens/ExportScreen';
+import QualityChecklistScreen from '../screens/QualityChecklistScreen';
 import { LoginScreen } from '../screens/LoginScreen';
 import SignUpScreen from '../screens/auth/SignUpScreen';
 import { AuthProvider, useAuth } from '../context/AuthContext';
@@ -39,6 +41,12 @@ export type RootStackParamList = {
       wearCount: number;
       image?: string;
     }[];
+  };
+  Export: undefined;
+  QualityChecklist: {
+    items: string[];
+    type: 'resale' | 'donation';
+    destination: string;
   };
 };
 
@@ -158,6 +166,16 @@ function RootStacks() {
               name="WearLogDetail"
               component={WearLogDetailScreen}
               options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+              name="Export" 
+              component={ExportScreen} 
+              options={{ headerShown: false }} 
+            />
+            <Stack.Screen 
+              name="QualityChecklist" 
+              component={QualityChecklistScreen} 
+              options={{ headerShown: false }} 
             />
           </>
         ) : (
