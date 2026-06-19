@@ -16,6 +16,7 @@ import WearHistoryScreen from '../screens/WearHistoryScreen';
 import WearLogDetailScreen from '../screens/WearLogDetailScreen';
 import ExportScreen from '../screens/ExportScreen';
 import QualityChecklistScreen from '../screens/QualityChecklistScreen';
+import ForgottenItemsScreen from '../screens/ForgottenItemsScreen';
 import { LoginScreen } from '../screens/LoginScreen';
 import SignUpScreen from '../screens/auth/SignUpScreen';
 import { AuthProvider, useAuth } from '../context/AuthContext';
@@ -48,6 +49,7 @@ export type RootStackParamList = {
     type: 'resale' | 'donation';
     destination: string;
   };
+  ForgottenItems: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -176,6 +178,11 @@ function RootStacks() {
               name="QualityChecklist" 
               component={QualityChecklistScreen} 
               options={{ headerShown: false }} 
+            />
+            <Stack.Screen 
+              name="ForgottenItems"
+              component={ForgottenItemsScreen}
+              options={{ headerShown: false }}
             />
           </>
         ) : (
