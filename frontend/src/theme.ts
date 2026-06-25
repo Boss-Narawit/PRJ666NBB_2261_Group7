@@ -7,4 +7,6 @@ export const colors = {
   inputBackground: '#FAFAFA',
   white: '#fff',
   error: '#e53e3e',
+  success: '#38A169',
+  warning: '#D69E2E',  
 };

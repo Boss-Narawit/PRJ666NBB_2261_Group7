@@ -4,7 +4,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
 
 import MainScreen from '../screens/MainScreen';
-import ExploreScreen from '../screens/ExploreScreen';
+import ThoughtfulPurchasing from '../screens/ThoughtfulPurchasingScreen';
 import CartScreen from '../screens/CartScreen';
 import NotificationScreen from '../screens/NotificationScreen';
 import ProfileScreen from '../screens/ProfileScreen';
@@ -77,7 +77,16 @@ export default function TabNavigator() {
       })}
     >
       <Tab.Screen name="Home" component={MainScreen} />
-      <Tab.Screen name="Explore" component={ExploreScreen} />
+      <Tab.Screen 
+        name="ThoughtfulPurchasing" 
+        component={ThoughtfulPurchasing}
+        options={{
+          tabBarLabel: 'ThoughtfulPurchasing',  // Keep as 'Explore' or change to 'AI Check'
+          tabBarIcon: ({ focused, color, size }) => (
+            <Icon name={focused ? 'compass' : 'compass-outline'} size={size} color={color} />
+          ),
+        }}
+      />
       <Tab.Screen name="Cart" component={CartScreen} />
       <Tab.Screen name="Notifications" component={NotificationScreen} />
       <Tab.Screen
