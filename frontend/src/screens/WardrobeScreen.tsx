@@ -137,8 +137,11 @@ export default function WardrobeScreen({ navigation }: Props) {
   // Recent items (last 5 added or most worn - using mock data)
   const recentItems = wardrobeItems.slice(0, 5);
 
-  const renderGridItem = ({ item }: { item: (typeof wardrobeItems)[0] }) => (
-    <TouchableOpacity style={styles.gridCard}>
+  const renderGridItem = ({ item }: { item: typeof wardrobeItems[0] }) => (
+    <TouchableOpacity 
+      style={styles.gridCard}
+      onPress={() => navigation.navigate('ItemDetail', { itemId: item.id })}
+    >
       <View style={styles.gridImage}>
         <Icon name="shirt-outline" size={40} color={colors.textSecondary} />
       </View>
@@ -148,8 +151,11 @@ export default function WardrobeScreen({ navigation }: Props) {
     </TouchableOpacity>
   );
 
-  const renderListItem = ({ item }: { item: (typeof wardrobeItems)[0] }) => (
-    <TouchableOpacity style={styles.listCard}>
+  const renderListItem = ({ item }: { item: typeof wardrobeItems[0] }) => (
+    <TouchableOpacity 
+      style={styles.listCard}
+      onPress={() => navigation.navigate('ItemDetail', { itemId: item.id })}
+    >
       <View style={styles.listImage}>
         <Icon name="shirt-outline" size={30} color={colors.textSecondary} />
       </View>

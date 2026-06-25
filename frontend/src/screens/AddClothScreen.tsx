@@ -30,13 +30,6 @@ export default function AddClothScreen({ navigation }: Props) {
   const [size, setSize] = useState('');
   const [description, setDescription] = useState('');
 
-  // Recent items suggestions (from your design)
-  const recentItems = [
-    { id: 1, name: 'White Sneakers', wearCount: 24 },
-    { id: 2, name: 'Winter Jacket', wearCount: 30 },
-    { id: 3, name: 'Blue Shirts', wearCount: 24 },
-  ];
-
   const categories = [
     'Tops',
     'Bottoms',
@@ -138,32 +131,6 @@ export default function AddClothScreen({ navigation }: Props) {
         <Text style={styles.selectPhotoText}>Select Photo</Text>
         <Text style={styles.requiredStar}>*</Text>
       </TouchableOpacity>
-
-      {/* Recent Items Section */}
-      <View style={styles.recentSection}>
-        <Text style={styles.sectionTitle}>Recent Items</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.recentList}
-        >
-          {recentItems.map(item => (
-            <TouchableOpacity key={item.id} style={styles.recentItem}>
-              <View style={styles.recentItemImage}>
-                <Icon
-                  name="shirt-outline"
-                  size={30}
-                  color={colors.textSecondary}
-                />
-              </View>
-              <Text style={styles.recentItemName}>{item.name}</Text>
-              <Text style={styles.recentItemWorn}>
-                Worn {item.wearCount} times
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
 
       {/* Form Fields */}
       <View style={styles.form}>

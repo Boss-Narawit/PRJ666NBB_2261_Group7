@@ -17,6 +17,7 @@ import WearLogDetailScreen from '../screens/WearLogDetailScreen';
 import ExportScreen from '../screens/ExportScreen';
 import QualityChecklistScreen from '../screens/QualityChecklistScreen';
 import ForgottenItemsScreen from '../screens/ForgottenItemsScreen';
+import ItemDetailScreen from '../screens/ItemDetailScreen';
 import { LoginScreen } from '../screens/LoginScreen';
 import SignUpScreen from '../screens/auth/SignUpScreen';
 import { AuthProvider, useAuth } from '../context/AuthContext';
@@ -50,6 +51,9 @@ export type RootStackParamList = {
     destination: string;
   };
   ForgottenItems: undefined;
+  ItemDetail: {
+    itemId?: string;
+  };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -183,6 +187,11 @@ function RootStacks() {
               name="ForgottenItems"
               component={ForgottenItemsScreen}
               options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+              name="ItemDetail" 
+              component={ItemDetailScreen} 
+              options={{ headerShown: false }} 
             />
           </>
         ) : (
