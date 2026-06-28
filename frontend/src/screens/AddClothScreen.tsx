@@ -53,7 +53,7 @@ export default function AddClothScreen({ navigation }: Props) {
         if (response.assets && response.assets[0]?.uri) {
           setPhoto(response.assets[0].uri);
         } else if (response.didCancel) {
-          console.log('User cancelled');
+          // user cancelled the picker — no action needed
         } else {
           Alert.alert('Error', 'Failed to select photo');
         }

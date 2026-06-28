@@ -15,7 +15,13 @@ import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
 import { useAuth } from '../context/AuthContext';
-import { getClothingById, Clothing } from '../services/api';
+import {
+  getClothingById,
+  updateClothing,
+  createWearLog,
+  ClothingUpdate,
+  Clothing,
+} from '../services/api';
 
 type Props = {
   navigation: any;
@@ -31,7 +37,6 @@ type DisplayItem = {
   id: string;
   name: string;
   brand: string;
-  material: string;
   category: string;
   color: string;
   size: string;
@@ -42,13 +47,16 @@ type DisplayItem = {
   lastWorn: string;
 };
 
+// The model stores category lowercase (tops/bottoms/...); show it title-cased.
+const toTitle = (s: string) =>
+  s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
+
 function toDisplayItem(c: Clothing): DisplayItem {
   return {
     id: c._id,
     name: c.name,
     brand: c.brand,
-    material: '', // not tracked on the Clothing model
-    category: c.category,
+    category: toTitle(c.category),
     color: c.colors?.[0] ?? '',
     size: c.size,
     description: c.notes ?? '',
@@ -61,6 +69,7 @@ function toDisplayItem(c: Clothing): DisplayItem {
   };
 }
 
+// Title-cased labels of the model's category enum (mapped back to lowercase on save).
 const categories = [
   'Tops',
   'Bottoms',
@@ -68,12 +77,28 @@ const categories = [
   'Outerwear',
   'Shoes',
   'Accessories',
-  'Activewear',
+  'Other',
 ];
 
 const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 
-const conditions = ['New', 'Like New', 'Good', 'Worn', 'Damage'];
+// The Clothing model's condition enum — used verbatim, no lossy remap.
+const conditions = ['Excellent', 'Good', 'Fair', 'Damaged'];
+
+// Map an edited display field onto the Clothing model's shape for PATCH.
+// Exported for unit testing — this is the reconciliation the screen hinges on.
+export function fieldToPatch(field: string, value: string): ClothingUpdate {
+  switch (field) {
+    case 'category':
+      return { category: value.toLowerCase() };
+    case 'color':
+      return { colors: [value] }; // model stores colors[]; UI edits the primary color
+    case 'description':
+      return { notes: value };
+    default:
+      return { [field]: value }; // brand, size, condition
+  }
+}
 
 export default function ItemDetailScreen({ navigation, route }: Props) {
   const { token } = useAuth();
@@ -135,42 +160,64 @@ export default function ItemDetailScreen({ navigation, route }: Props) {
     setShowEditModal(true);
   };
 
-  const handlePickerSelect = (value: string) => {
-    if (!item) return;
-    setItem({ ...item, [pickerField]: value });
-    setShowPickerModal(false);
-    Alert.alert('Success', `${pickerField} updated to "${value}"!`);
-  };
-
-  const handleSaveEdit = () => {
-    if (item && editingField) {
-      setItem({ ...item, [editingField]: editValue });
-      setShowEditModal(false);
-      setEditingField(null);
-      Alert.alert('Success', `${editingField} updated successfully!`);
+  // PATCH a single edited field, then re-render from the server's response
+  // (server is authoritative — keeps display in sync with stored enums).
+  const persistField = async (field: string, value: string) => {
+    if (!item || !token) return;
+    try {
+      const updated = await updateClothing(
+        token,
+        item.id,
+        fieldToPatch(field, value),
+      );
+      setItem(toDisplayItem(updated));
+    } catch (err: any) {
+      Alert.alert('Update failed', err.message || 'Could not save changes.');
     }
   };
 
-  const handleConditionSelect = (condition: string) => {
-    if (!item) return;
-    setItem({ ...item, condition });
+  const handlePickerSelect = (value: string) => {
     setShowPickerModal(false);
-    Alert.alert('Success', `Condition updated to "${condition}"!`);
+    persistField(pickerField, value);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingField) return;
+    const field = editingField;
+    setShowEditModal(false);
+    setEditingField(null);
+    persistField(field, editValue);
   };
 
   const handleLogWear = () => {
-    if (!item) return;
+    if (!item || !token) return;
     Alert.alert('Log Wear', `Log "${item.name}" as worn today?`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Log Wear',
-        onPress: () => {
-          setItem({
-            ...item,
-            wearCount: item.wearCount + 1,
-            lastWorn: new Date().toLocaleDateString(),
-          });
+        onPress: async () => {
+          try {
+            await createWearLog(token, {
+              logDate: new Date().toISOString(),
+              clothingWorn: [{ itemId: item.id }],
+            });
+          } catch (err: any) {
+            const msg =
+              err.status === 409
+                ? 'You already logged a wear for today.'
+                : err.message || 'Could not log wear.';
+            Alert.alert('Log Wear', msg);
+            return;
+          }
+          // Log is committed. Wear count / last-worn are derived server-side
+          // (BR9) — refetch to reflect them, but a failed refetch is non-fatal.
           Alert.alert('Success', `${item.name} logged as worn today!`);
+          try {
+            const refreshed = await getClothingById(token, item.id);
+            setItem(toDisplayItem(refreshed));
+          } catch {
+            // The next focus refetch will reconcile the displayed counts.
+          }
         },
       },
     ]);
@@ -182,15 +229,13 @@ export default function ItemDetailScreen({ navigation, route }: Props) {
 
   const getConditionColor = (condition: string) => {
     switch (condition) {
-      case 'New':
+      case 'Excellent':
         return '#38A169';
-      case 'Like New':
-        return '#48BB78';
       case 'Good':
-        return '#D69E2E';
-      case 'Worn':
+        return '#48BB78';
+      case 'Fair':
         return '#ED8936';
-      case 'Damage':
+      case 'Damaged':
         return '#E53E3E';
       default:
         return colors.textSecondary;
@@ -301,7 +346,6 @@ export default function ItemDetailScreen({ navigation, route }: Props) {
       {/* Details Card */}
       <View style={styles.card}>
         {renderField('Brand', item.brand, 'brand')}
-        {renderField('Material', item.material, 'material')}
         {renderField('Category', item.category, 'category')}
         {renderField('Color', item.color, 'color')}
         {renderField('Size', item.size, 'size')}
@@ -446,13 +490,7 @@ export default function ItemDetailScreen({ navigation, route }: Props) {
                   item[pickerField as keyof typeof item] === option &&
                     styles.optionRowSelected,
                 ]}
-                onPress={() => {
-                  if (pickerField === 'condition') {
-                    handleConditionSelect(option);
-                  } else {
-                    handlePickerSelect(option);
-                  }
-                }}
+                onPress={() => handlePickerSelect(option)}
               >
                 <Text
                   style={[

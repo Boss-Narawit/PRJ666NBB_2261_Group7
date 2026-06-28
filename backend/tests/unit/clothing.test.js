@@ -119,6 +119,18 @@ describe('Clothing API (/api/clothing)', () => {
       expect(res.body.name).toBe('Renamed Tee');
     });
 
+    test('returns 422 on an invalid enum value (runValidators)', async () => {
+      const created = await Clothing.create(validItem(userId));
+      const res = await request(app)
+        .patch(`/api/clothing/${created._id}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ condition: 'BrandNew' });
+      expect(res.statusCode).toBe(422);
+      // value must not have been persisted
+      const reloaded = await Clothing.findById(created._id);
+      expect(reloaded.condition).toBe(created.condition);
+    });
+
     test('returns 404 when updating a missing item', async () => {
       const res = await request(app)
         .patch(`/api/clothing/${new mongoose.Types.ObjectId()}`)

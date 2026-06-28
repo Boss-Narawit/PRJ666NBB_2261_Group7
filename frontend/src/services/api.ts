@@ -301,6 +301,26 @@ export async function getClothingById(
   return data;
 }
 
+// Editable fields the ItemDetail screen can PATCH. Values must already match the
+// Clothing model's enums (category lowercase, condition Excellent/Good/Fair/Damaged).
+export type ClothingUpdate = Partial<
+  Pick<
+    Clothing,
+    'name' | 'brand' | 'category' | 'colors' | 'size' | 'condition' | 'notes'
+  >
+>;
+
+export function updateClothing(
+  token: string,
+  id: string,
+  payload: ClothingUpdate,
+): Promise<Clothing> {
+  return apiFetch<Clothing>(`/api/clothing/${id}`, token, {
+    method: 'PATCH',
+    body: payload,
+  });
+}
+
 export interface WearLog {
   _id: string;
   logDate: string;
@@ -348,6 +368,24 @@ export async function getWearLogs(
   if (!res.ok)
     throw new Error(data.message || data.error || 'Failed to fetch wear logs');
   return data;
+}
+
+export interface CreateWearLogPayload {
+  logDate: string;
+  clothingWorn: { itemId: string }[];
+  occasion?: string;
+  notes?: string;
+}
+
+// Throws an Error with `.status === 409` when a log already exists for the day (BR8).
+export function createWearLog(
+  token: string,
+  payload: CreateWearLogPayload,
+): Promise<{ _id: string }> {
+  return apiFetch<{ _id: string }>('/api/wear-logs', token, {
+    method: 'POST',
+    body: payload,
+  });
 }
 
 export async function getDashboardSummary(
@@ -458,7 +496,11 @@ async function apiFetch<T>(
     ? await res.json()
     : { message: `Server error (${res.status})` };
 
-  if (!res.ok) throw new Error(data.message || data.error || 'Request failed');
+  if (!res.ok) {
+    const err: any = new Error(data.message || data.error || 'Request failed');
+    err.status = res.status; // lets callers branch on the HTTP code (e.g. 409 BR8)
+    throw err;
+  }
   return data as T;
 }
 

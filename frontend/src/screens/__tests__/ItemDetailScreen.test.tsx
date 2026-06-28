@@ -1,6 +1,6 @@
 import React from 'react';
 import renderer, { act } from 'react-test-renderer';
-import ItemDetailScreen from '../ItemDetailScreen';
+import ItemDetailScreen, { fieldToPatch } from '../ItemDetailScreen';
 import { getClothingById } from '../../services/api';
 
 // Mock vector icons
@@ -40,6 +40,34 @@ function textValues(tree: any): string[] {
 }
 
 const route = { params: { itemId: 'c1' } };
+
+// The reconciliation between the UI's display shape and the Clothing model's
+// enums/field names — the part most likely to break a future edit silently.
+describe('fieldToPatch reconciliation', () => {
+  it('lowercases category to match the model enum', () => {
+    expect(fieldToPatch('category', 'Outerwear')).toEqual({
+      category: 'outerwear',
+    });
+  });
+
+  it('maps the single color input onto the colors[] field', () => {
+    expect(fieldToPatch('color', 'Navy')).toEqual({ colors: ['Navy'] });
+  });
+
+  it('maps description onto notes', () => {
+    expect(fieldToPatch('description', 'Summer piece')).toEqual({
+      notes: 'Summer piece',
+    });
+  });
+
+  it('passes through brand/size/condition unchanged', () => {
+    expect(fieldToPatch('brand', 'Zara')).toEqual({ brand: 'Zara' });
+    expect(fieldToPatch('size', 'M')).toEqual({ size: 'M' });
+    expect(fieldToPatch('condition', 'Damaged')).toEqual({
+      condition: 'Damaged',
+    });
+  });
+});
 
 describe('ItemDetailScreen Component', () => {
   beforeEach(() => {

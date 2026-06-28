@@ -113,6 +113,7 @@ const updateClothing = async (req, res) => {
       req.body,
       {
         new: true,
+        runValidators: true, // reject invalid enum/required values instead of saving silently (BR4/BR7)
       }
     );
 
@@ -124,6 +125,11 @@ const updateClothing = async (req, res) => {
 
     res.status(200).json(updatedClothing);
   } catch (error) {
+    if (error.name === 'ValidationError') {
+      return res.status(422).json({
+        message: error.message,
+      });
+    }
     res.status(500).json({
       message: error.message,
     });
