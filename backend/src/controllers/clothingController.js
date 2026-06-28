@@ -1,5 +1,6 @@
 const Clothing = require('../models/Clothing');
 const User = require('../models/User');
+const { forgottenFilter, MS_PER_DAY } = require('../services/dashboard.service');
 
 const cloudinary = require('../config/cloudinary');
 const streamifier = require('streamifier');
@@ -164,29 +165,10 @@ const getForgottenItems = async (req, res) => {
   }
 
   const thresholdDays = user.preferences.forgottenItemThresholdDays;
+  const cutoff = new Date(Date.now() - thresholdDays * MS_PER_DAY);
 
-  const thresholdDate = new Date();
-
-  thresholdDate.setDate(thresholdDate.getDate() - thresholdDays);
-
-  console.log(thresholdDate);
-
-  const forgottenItems = await Clothing.find({
-    userId: userId,
-    status: 'Available',
-    $or: [
-      {
-        'analytics.lastWornAt': {
-          $lt: thresholdDate,
-        },
-      },
-      {
-        'analytics.lastWornAt': {
-          $exists: false,
-        },
-      },
-    ],
-  });
+  // Shared definition with the dashboard + job so counts never disagree (BR11/BR23).
+  const forgottenItems = await Clothing.find(forgottenFilter(userId, cutoff));
 
   res.json(forgottenItems);
 };

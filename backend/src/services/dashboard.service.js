@@ -65,4 +65,4 @@ const getSummary = async (userId) => {
   };
 };
 
-module.exports = { getSummary };
+module.exports = { getSummary, forgottenFilter, MS_PER_DAY };
