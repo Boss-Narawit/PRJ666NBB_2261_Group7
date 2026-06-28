@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -9,74 +9,68 @@ import {
   Modal,
   TextInput,
   Alert,
+  ActivityIndicator,
+  Image,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
+import { useAuth } from '../context/AuthContext';
+import { getForgottenItems, Clothing } from '../services/api';
 
-// Mock data for forgotten items
-const forgottenItemsData = [
-  {
-    id: '1',
-    name: 'Muji Sweater',
-    brand: 'Muji',
-    category: 'Sweater',
-    color: 'Grey',
-    lastWorn: '2026-01-29',
-    unwornDays: 32,
-    image: null,
-    condition: 'Worn',
-  },
-  {
-    id: '2',
-    name: 'Winter Jacket',
-    brand: 'North Face',
-    category: 'Jacket',
-    color: 'Black',
-    lastWorn: '2026-01-20',
-    unwornDays: 45,
-    image: null,
-    condition: 'Good',
-  },
-  {
-    id: '3',
-    name: 'Floral Dress',
-    brand: 'Zara',
-    category: 'Dress',
-    color: 'Pink',
-    lastWorn: '2026-02-01',
-    unwornDays: 28,
-    image: null,
-    condition: 'Excellent',
-  },
-  {
-    id: '4',
-    name: 'Denim Jacket',
-    brand: "Levi's",
-    category: 'Jacket',
-    color: 'Blue',
-    lastWorn: '2026-01-15',
-    unwornDays: 50,
-    image: null,
-    condition: 'Good',
-  },
-];
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+// Days since the item was last worn — falls back to createdAt for never-worn items.
+function unwornDaysOf(item: Clothing) {
+  const ref = item.analytics?.lastWornAt ?? item.createdAt;
+  if (!ref) return 0;
+  return Math.floor((Date.now() - new Date(ref).getTime()) / MS_PER_DAY);
+}
+
+function lastWornLabel(item: Clothing) {
+  const worn = item.analytics?.lastWornAt;
+  return worn ? new Date(worn).toLocaleDateString() : 'Never worn';
+}
 
 type Props = {
   navigation: any;
 };
 
 export default function ForgottenItemsScreen({ navigation }: Props) {
+  const { token } = useAuth();
+  const [items, setItems] = useState<Clothing[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedFilter, setSelectedFilter] = useState('Last 30 Days');
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [thresholdDays, setThresholdDays] = useState('21');
-  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [selectedItem, setSelectedItem] = useState<Clothing | null>(null);
   const [showItemDetail, setShowItemDetail] = useState(false);
+
+  const load = useCallback(async () => {
+    if (!token) return;
+    try {
+      const data = await getForgottenItems(token);
+      setItems(data);
+      setError(null);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load forgotten items.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [token]);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
 
   const handleFilterPress = (filter: string) => {
     setSelectedFilter(filter);
   };
 
-  const handleItemPress = (item: any) => {
+  const handleItemPress = (item: Clothing) => {
     setSelectedItem(item);
     setShowItemDetail(true);
   };
@@ -88,7 +82,7 @@ export default function ForgottenItemsScreen({ navigation }: Props) {
 
   const handleExportDonate = () => {
     setShowItemDetail(false);
-    navigation.navigate('Export');
+    if (selectedItem) navigation.navigate('Export', { item: selectedItem });
   };
 
   const handleSaveSettings = () => {
@@ -98,23 +92,35 @@ export default function ForgottenItemsScreen({ navigation }: Props) {
       return;
     }
     setShowSettingsModal(false);
-    Alert.alert('Settings Saved', `Forgotten item threshold set to ${days} days`);
+    Alert.alert(
+      'Settings Saved',
+      `Forgotten item threshold set to ${days} days`,
+    );
   };
 
-  const renderForgottenItem = ({ item }: { item: typeof forgottenItemsData[0] }) => (
-    <TouchableOpacity style={styles.itemCard} onPress={() => handleItemPress(item)}>
+  const renderForgottenItem = ({ item }: { item: Clothing }) => (
+    <TouchableOpacity
+      style={styles.itemCard}
+      onPress={() => handleItemPress(item)}
+    >
       <View style={styles.itemImage}>
-        <Icon name="shirt-outline" size={30} color={colors.textSecondary} />
+        {item.imageUrl ? (
+          <Image source={{ uri: item.imageUrl }} style={styles.thumbnail} />
+        ) : (
+          <Icon name="shirt-outline" size={30} color={colors.textSecondary} />
+        )}
       </View>
       <View style={styles.itemInfo}>
         <Text style={styles.itemName}>{item.name}</Text>
         <Text style={styles.itemDetails}>
-          {item.category} • {item.brand} • {item.color}
+          {item.category} • {item.brand} • {item.colors?.[0] ?? '—'}
         </Text>
-        <Text style={styles.itemLastWorn}>Last worn: {item.lastWorn}</Text>
+        <Text style={styles.itemLastWorn}>
+          Last worn: {lastWornLabel(item)}
+        </Text>
       </View>
       <View style={styles.unwornBadge}>
-        <Text style={styles.unwornBadgeText}>{item.unwornDays}d</Text>
+        <Text style={styles.unwornBadgeText}>{unwornDaysOf(item)}d</Text>
       </View>
     </TouchableOpacity>
   );
@@ -123,24 +129,42 @@ export default function ForgottenItemsScreen({ navigation }: Props) {
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
           <Icon name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Forgotten Items</Text>
-        <TouchableOpacity onPress={() => setShowSettingsModal(true)} style={styles.settingsButton}>
+        <TouchableOpacity
+          onPress={() => setShowSettingsModal(true)}
+          style={styles.settingsButton}
+        >
           <Icon name="settings-outline" size={24} color={colors.primary} />
         </TouchableOpacity>
       </View>
 
       {/* Filter Chips */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterChips}>
-        {['Last 7 Days', 'Last 30 Days', 'Custom'].map((filter) => (
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.filterChips}
+      >
+        {['Last 7 Days', 'Last 30 Days', 'Custom'].map(filter => (
           <TouchableOpacity
             key={filter}
-            style={[styles.chip, selectedFilter === filter && styles.chipActive]}
+            style={[
+              styles.chip,
+              selectedFilter === filter && styles.chipActive,
+            ]}
             onPress={() => handleFilterPress(filter)}
           >
-            <Text style={[styles.chipText, selectedFilter === filter && styles.chipTextActive]}>
+            <Text
+              style={[
+                styles.chipText,
+                selectedFilter === filter && styles.chipTextActive,
+              ]}
+            >
               {filter}
             </Text>
           </TouchableOpacity>
@@ -149,25 +173,39 @@ export default function ForgottenItemsScreen({ navigation }: Props) {
 
       {/* Unworn Summary */}
       <View style={styles.summaryContainer}>
-        <Text style={styles.summaryText}>
-          {forgottenItemsData.length} items forgotten
-        </Text>
+        <Text style={styles.summaryText}>{items.length} items forgotten</Text>
       </View>
 
+      {error && <Text style={styles.errorText}>{error}</Text>}
+
       {/* Forgotten Items List */}
-      <FlatList
-        data={forgottenItemsData}
-        renderItem={renderForgottenItem}
-        keyExtractor={(item) => item.id}
-        scrollEnabled={false}
-        contentContainerStyle={styles.listContainer}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Icon name="checkmark-circle-outline" size={60} color={colors.primary} />
-            <Text style={styles.emptyText}>No forgotten items — well done!</Text>
-          </View>
-        }
-      />
+      {isLoading ? (
+        <ActivityIndicator
+          size="large"
+          color={colors.primary}
+          style={styles.loading}
+        />
+      ) : (
+        <FlatList
+          data={items}
+          renderItem={renderForgottenItem}
+          keyExtractor={item => item._id}
+          scrollEnabled={false}
+          contentContainerStyle={styles.listContainer}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Icon
+                name="checkmark-circle-outline"
+                size={60}
+                color={colors.primary}
+              />
+              <Text style={styles.emptyText}>
+                No forgotten items — well done!
+              </Text>
+            </View>
+          }
+        />
+      )}
 
       {/* Item Detail Modal */}
       <Modal visible={showItemDetail} animationType="slide" transparent={true}>
@@ -182,7 +220,18 @@ export default function ForgottenItemsScreen({ navigation }: Props) {
 
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.modalImage}>
-                <Icon name="shirt-outline" size={60} color={colors.textSecondary} />
+                {selectedItem?.imageUrl ? (
+                  <Image
+                    source={{ uri: selectedItem.imageUrl }}
+                    style={styles.modalThumbnail}
+                  />
+                ) : (
+                  <Icon
+                    name="shirt-outline"
+                    size={60}
+                    color={colors.textSecondary}
+                  />
+                )}
               </View>
 
               <View style={styles.modalInfo}>
@@ -196,7 +245,7 @@ export default function ForgottenItemsScreen({ navigation }: Props) {
                 </Text>
                 <Text style={styles.modalInfoText}>
                   <Text style={styles.modalInfoLabel}>Color: </Text>
-                  {selectedItem?.color}
+                  {selectedItem?.colors?.join(', ')}
                 </Text>
                 <Text style={styles.modalInfoText}>
                   <Text style={styles.modalInfoLabel}>Condition: </Text>
@@ -204,19 +253,30 @@ export default function ForgottenItemsScreen({ navigation }: Props) {
                 </Text>
                 <Text style={styles.modalInfoText}>
                   <Text style={styles.modalInfoLabel}>Last worn: </Text>
-                  {selectedItem?.lastWorn}
+                  {selectedItem ? lastWornLabel(selectedItem) : ''}
                 </Text>
                 <Text style={styles.modalUnworn}>
-                  Unworn for {selectedItem?.unwornDays} days
+                  Unworn for {selectedItem ? unwornDaysOf(selectedItem) : 0}{' '}
+                  days
                 </Text>
               </View>
 
               <View style={styles.modalActions}>
-                <TouchableOpacity style={styles.logWearButton} onPress={handleLogWear}>
-                  <Icon name="checkmark-circle-outline" size={20} color={colors.white} />
+                <TouchableOpacity
+                  style={styles.logWearButton}
+                  onPress={handleLogWear}
+                >
+                  <Icon
+                    name="checkmark-circle-outline"
+                    size={20}
+                    color={colors.white}
+                  />
                   <Text style={styles.logWearButtonText}>Log Wear</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.exportButton} onPress={handleExportDonate}>
+                <TouchableOpacity
+                  style={styles.exportButton}
+                  onPress={handleExportDonate}
+                >
                   <Icon name="send-outline" size={20} color={colors.primary} />
                   <Text style={styles.exportButtonText}>Export/Donate</Text>
                 </TouchableOpacity>
@@ -227,7 +287,11 @@ export default function ForgottenItemsScreen({ navigation }: Props) {
       </Modal>
 
       {/* Settings Modal */}
-      <Modal visible={showSettingsModal} animationType="slide" transparent={true}>
+      <Modal
+        visible={showSettingsModal}
+        animationType="slide"
+        transparent={true}
+      >
         <View style={styles.modalOverlay}>
           <View style={styles.settingsModalContent}>
             <View style={styles.modalHeader}>
@@ -542,5 +606,15 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: colors.textSecondary,
     marginTop: 12,
+  },
+  thumbnail: { width: '100%', height: '100%', borderRadius: 8 },
+  modalThumbnail: { width: '100%', height: '100%', borderRadius: 12 },
+  loading: { marginTop: 24 },
+  errorText: {
+    fontSize: 13,
+    color: '#C0392B',
+    textAlign: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 8,
   },
 });

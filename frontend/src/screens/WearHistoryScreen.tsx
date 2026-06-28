@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -9,82 +9,42 @@ import {
   Modal,
   TextInput,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
+import { useAuth } from '../context/AuthContext';
+import { getWearLogs, WearLog } from '../services/api';
 
-// Mock data for wear history
-const wearHistoryData = [
-  {
-    id: '1',
-    date: '2026-01-29',
-    items: [
-      { name: 'Black Hoodie', brand: 'Nike', wearCount: 12, category: 'Tops' },
-      {
-        name: 'Blue Jeans',
-        brand: "Levi's",
-        wearCount: 8,
-        category: 'Bottoms',
-      },
-      {
-        name: 'White Sneakers',
-        brand: 'Adidas',
-        wearCount: 15,
-        category: 'Shoes',
-      },
-    ],
-  },
-  {
-    id: '2',
-    date: '2026-01-28',
-    items: [
-      { name: 'Grey Sweater', brand: 'Muji', wearCount: 5, category: 'Tops' },
-      {
-        name: 'Black Pants',
-        brand: 'Uniqlo',
-        wearCount: 10,
-        category: 'Bottoms',
-      },
-      {
-        name: 'Leather Boots',
-        brand: 'Dr. Martens',
-        wearCount: 8,
-        category: 'Shoes',
-      },
-    ],
-  },
-  {
-    id: '3',
-    date: '2026-01-27',
-    items: [
-      {
-        name: 'Floral Dress',
-        brand: 'Zara',
-        wearCount: 3,
-        category: 'Dresses',
-      },
-      {
-        name: 'Denim Jacket',
-        brand: "Levi's",
-        wearCount: 6,
-        category: 'Outerwear',
-      },
-    ],
-  },
-  {
-    id: '4',
-    date: '2026-01-26',
-    items: [
-      { name: 'White Shirt', brand: 'Uniqlo', wearCount: 20, category: 'Tops' },
-      {
-        name: 'Beige Blazer',
-        brand: 'J.Crew',
-        wearCount: 1,
-        category: 'Outerwear',
-      },
-    ],
-  },
-];
+// Display shape the list/stats/detail UI consumes, mapped from the API's
+// populated WearLog documents.
+type DisplayItem = {
+  name: string;
+  brand: string;
+  wearCount: number;
+  category: string;
+};
+type DisplayLog = {
+  id: string;
+  date: string;
+  items: DisplayItem[];
+};
+
+function toDisplayLog(log: WearLog): DisplayLog {
+  return {
+    id: log._id,
+    date: log.logDate.slice(0, 10),
+    items: log.clothingWorn
+      .filter(c => c.itemId) // populated ref is null if the item was deleted
+      .map(c => ({
+        name: c.itemId!.name,
+        brand: c.itemId!.brand,
+        category: c.itemId!.category,
+        wearCount: c.itemId!.analytics?.wearCount ?? 0,
+      })),
+  };
+}
 
 const categories = [
   'Tops',
@@ -101,6 +61,10 @@ type Props = {
 };
 
 export default function WearHistoryScreen({ navigation }: Props) {
+  const { token } = useAuth();
+  const [wearLogs, setWearLogs] = useState<WearLog[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState('Last 7 Days');
   const [_selectedDate, _setSelectedDate] = useState<string | null>(null);
   const [selectedLog, _setSelectedLog] = useState<any>(null);
@@ -112,12 +76,39 @@ export default function WearHistoryScreen({ navigation }: Props) {
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
 
+  // Refetch on focus — history changes after logging a wear elsewhere.
+  useFocusEffect(
+    useCallback(() => {
+      if (!token) return;
+      let cancelled = false;
+      getWearLogs(token)
+        .then(data => {
+          if (!cancelled) {
+            setWearLogs(data.wearLogs);
+            setError(null);
+          }
+        })
+        .catch(err => {
+          if (!cancelled)
+            setError(err.message || 'Failed to load wear history.');
+        })
+        .finally(() => {
+          if (!cancelled) setIsLoading(false);
+        });
+      return () => {
+        cancelled = true;
+      };
+    }, [token]),
+  );
+
+  const logs = useMemo(() => wearLogs.map(toDisplayLog), [wearLogs]);
+
   // Calculate stats
-  const totalLogs = wearHistoryData.length;
+  const totalLogs = logs.length;
   const mostWornItem = () => {
     let maxWear = 0;
     let mostWorn = '';
-    wearHistoryData.forEach(log => {
+    logs.forEach(log => {
       log.items.forEach(item => {
         if (item.wearCount > maxWear) {
           maxWear = item.wearCount;
@@ -130,7 +121,7 @@ export default function WearHistoryScreen({ navigation }: Props) {
   const leastWornItem = () => {
     let minWear = Infinity;
     let leastWorn = '';
-    wearHistoryData.forEach(log => {
+    logs.forEach(log => {
       log.items.forEach(item => {
         if (item.wearCount < minWear) {
           minWear = item.wearCount;
@@ -138,7 +129,7 @@ export default function WearHistoryScreen({ navigation }: Props) {
         }
       });
     });
-    return { name: leastWorn, count: minWear };
+    return { name: leastWorn, count: minWear === Infinity ? 0 : minWear };
   };
 
   const mostWorn = mostWornItem();
@@ -196,11 +187,7 @@ export default function WearHistoryScreen({ navigation }: Props) {
     );
   };
 
-  const renderWearLogItem = ({
-    item,
-  }: {
-    item: (typeof wearHistoryData)[0];
-  }) => (
+  const renderWearLogItem = ({ item }: { item: DisplayLog }) => (
     <TouchableOpacity
       style={styles.logCard}
       onPress={() => handleLogPress(item)}
@@ -312,12 +299,32 @@ export default function WearHistoryScreen({ navigation }: Props) {
       </View>
 
       {/* Wear History List */}
+      {isLoading && (
+        <ActivityIndicator
+          size="large"
+          color={colors.primary}
+          style={styles.loading}
+        />
+      )}
+      {error && !isLoading && <Text style={styles.errorText}>{error}</Text>}
       <FlatList
-        data={wearHistoryData}
+        data={logs}
         renderItem={renderWearLogItem}
         keyExtractor={item => item.id}
         scrollEnabled={false}
         contentContainerStyle={styles.listContainer}
+        ListEmptyComponent={
+          !isLoading && !error ? (
+            <View style={styles.emptyContainer}>
+              <Icon
+                name="time-outline"
+                size={48}
+                color={colors.textSecondary}
+              />
+              <Text style={styles.emptyText}>No wear logs yet</Text>
+            </View>
+          ) : null
+        }
       />
 
       {/* Filter Modal */}
@@ -812,5 +819,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.error,
     fontWeight: '500',
+  },
+  loading: {
+    marginVertical: 24,
+  },
+  errorText: {
+    fontSize: 13,
+    color: '#C0392B',
+    textAlign: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 8,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: 8,
   },
 });

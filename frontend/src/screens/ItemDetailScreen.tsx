@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -9,9 +9,13 @@ import {
   Alert,
   Modal,
   TextInput,
+  ActivityIndicator,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
+import { useAuth } from '../context/AuthContext';
+import { getClothingById, Clothing } from '../services/api';
 
 type Props = {
   navigation: any;
@@ -22,25 +26,49 @@ type Props = {
   };
 };
 
-// Mock data for the item
-const mockItem = {
-  id: '1',
-  name: 'Black Hoodie',
-  brand: 'Adidas',
-  material: 'Polyester 92%',
-  category: 'Outerwear',
-  color: 'Black',
-  size: 'M',
-  description: 'Chinese New Year 2026 collection',
-  condition: 'Worn',
-  image: null,
-  wearCount: 12,
-  lastWorn: '2026-01-29',
+// The screen's editable display shape, mapped from the API Clothing document.
+type DisplayItem = {
+  id: string;
+  name: string;
+  brand: string;
+  material: string;
+  category: string;
+  color: string;
+  size: string;
+  description: string;
+  condition: string;
+  image: string | null;
+  wearCount: number;
+  lastWorn: string;
 };
 
+function toDisplayItem(c: Clothing): DisplayItem {
+  return {
+    id: c._id,
+    name: c.name,
+    brand: c.brand,
+    material: '', // not tracked on the Clothing model
+    category: c.category,
+    color: c.colors?.[0] ?? '',
+    size: c.size,
+    description: c.notes ?? '',
+    condition: c.condition,
+    image: c.imageUrl || null,
+    wearCount: c.analytics?.wearCount ?? 0,
+    lastWorn: c.analytics?.lastWornAt
+      ? c.analytics.lastWornAt.slice(0, 10)
+      : 'Never',
+  };
+}
+
 const categories = [
-  'Tops', 'Bottoms', 'Dresses', 'Outerwear', 
-  'Shoes', 'Accessories', 'Activewear',
+  'Tops',
+  'Bottoms',
+  'Dresses',
+  'Outerwear',
+  'Shoes',
+  'Accessories',
+  'Activewear',
 ];
 
 const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
@@ -48,13 +76,44 @@ const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 const conditions = ['New', 'Like New', 'Good', 'Worn', 'Damage'];
 
 export default function ItemDetailScreen({ navigation, route }: Props) {
-  const [item, setItem] = useState(mockItem);
+  const { token } = useAuth();
+  const itemId = route?.params?.itemId;
+  const [item, setItem] = useState<DisplayItem | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const [showPickerModal, setShowPickerModal] = useState(false);
   const [pickerOptions, setPickerOptions] = useState<string[]>([]);
   const [pickerField, setPickerField] = useState<string>('');
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!token || !itemId) {
+        setError('Missing item reference.');
+        setIsLoading(false);
+        return;
+      }
+      let cancelled = false;
+      getClothingById(token, itemId)
+        .then(data => {
+          if (!cancelled) {
+            setItem(toDisplayItem(data));
+            setError(null);
+          }
+        })
+        .catch(err => {
+          if (!cancelled) setError(err.message || 'Failed to load item.');
+        })
+        .finally(() => {
+          if (!cancelled) setIsLoading(false);
+        });
+      return () => {
+        cancelled = true;
+      };
+    }, [token, itemId]),
+  );
 
   const handleEditField = (field: string, currentValue: string) => {
     // Category and Size should use the picker modal with predefined options
@@ -77,13 +136,14 @@ export default function ItemDetailScreen({ navigation, route }: Props) {
   };
 
   const handlePickerSelect = (value: string) => {
+    if (!item) return;
     setItem({ ...item, [pickerField]: value });
     setShowPickerModal(false);
     Alert.alert('Success', `${pickerField} updated to "${value}"!`);
   };
 
   const handleSaveEdit = () => {
-    if (editingField) {
+    if (item && editingField) {
       setItem({ ...item, [editingField]: editValue });
       setShowEditModal(false);
       setEditingField(null);
@@ -92,26 +152,28 @@ export default function ItemDetailScreen({ navigation, route }: Props) {
   };
 
   const handleConditionSelect = (condition: string) => {
+    if (!item) return;
     setItem({ ...item, condition });
     setShowPickerModal(false);
     Alert.alert('Success', `Condition updated to "${condition}"!`);
   };
 
   const handleLogWear = () => {
-    Alert.alert(
-      'Log Wear',
-      `Log "${item.name}" as worn today?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Log Wear', 
-          onPress: () => {
-            setItem({ ...item, wearCount: item.wearCount + 1, lastWorn: new Date().toLocaleDateString() });
-            Alert.alert('Success', `${item.name} logged as worn today!`);
-          }
-        }
-      ]
-    );
+    if (!item) return;
+    Alert.alert('Log Wear', `Log "${item.name}" as worn today?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Log Wear',
+        onPress: () => {
+          setItem({
+            ...item,
+            wearCount: item.wearCount + 1,
+            lastWorn: new Date().toLocaleDateString(),
+          });
+          Alert.alert('Success', `${item.name} logged as worn today!`);
+        },
+      },
+    ]);
   };
 
   const handleExportDonate = () => {
@@ -120,36 +182,56 @@ export default function ItemDetailScreen({ navigation, route }: Props) {
 
   const getConditionColor = (condition: string) => {
     switch (condition) {
-      case 'New': return '#38A169';
-      case 'Like New': return '#48BB78';
-      case 'Good': return '#D69E2E';
-      case 'Worn': return '#ED8936';
-      case 'Damage': return '#E53E3E';
-      default: return colors.textSecondary;
+      case 'New':
+        return '#38A169';
+      case 'Like New':
+        return '#48BB78';
+      case 'Good':
+        return '#D69E2E';
+      case 'Worn':
+        return '#ED8936';
+      case 'Damage':
+        return '#E53E3E';
+      default:
+        return colors.textSecondary;
     }
   };
 
   const renderField = (label: string, value: string, field: string) => {
     // Check if field should show a chip or text
     const isChipField = field === 'category' || field === 'size';
-    const displayValue = value || (field === 'category' ? 'Select Category' : field === 'size' ? 'Select Size' : 'Not set');
+    const displayValue =
+      value ||
+      (field === 'category'
+        ? 'Select Category'
+        : field === 'size'
+          ? 'Select Size'
+          : 'Not set');
 
     return (
-      <TouchableOpacity 
-        style={styles.fieldRow} 
+      <TouchableOpacity
+        style={styles.fieldRow}
         onPress={() => handleEditField(field, value)}
         activeOpacity={0.7}
       >
         <Text style={styles.fieldLabel}>{label}</Text>
         <View style={styles.fieldValueContainer}>
           {isChipField ? (
-            <View style={[styles.fieldChip, { backgroundColor: colors.primary + '15' }]}>
+            <View
+              style={[
+                styles.fieldChip,
+                { backgroundColor: colors.primary + '15' },
+              ]}
+            >
               <Text style={[styles.fieldChipText, { color: colors.primary }]}>
                 {displayValue}
               </Text>
             </View>
           ) : (
-            <Text style={styles.fieldValue} numberOfLines={field === 'description' ? 2 : 1}>
+            <Text
+              style={styles.fieldValue}
+              numberOfLines={field === 'description' ? 2 : 1}
+            >
               {displayValue}
             </Text>
           )}
@@ -159,11 +241,41 @@ export default function ItemDetailScreen({ navigation, route }: Props) {
     );
   };
 
+  if (isLoading) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (error || !item) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <Icon
+          name="alert-circle-outline"
+          size={48}
+          color={colors.textSecondary}
+        />
+        <Text style={styles.errorText}>{error || 'Item not found.'}</Text>
+        <TouchableOpacity
+          style={styles.backLink}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.backLinkText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
           <Icon name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Item Detail</Text>
@@ -193,15 +305,18 @@ export default function ItemDetailScreen({ navigation, route }: Props) {
         {renderField('Category', item.category, 'category')}
         {renderField('Color', item.color, 'color')}
         {renderField('Size', item.size, 'size')}
-        
+
         {/* Description - separate because it's multiline */}
         <View style={styles.fieldRow}>
           <Text style={styles.fieldLabel}>Description</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.fieldValueContainer}
             onPress={() => handleEditField('description', item.description)}
           >
-            <Text style={[styles.fieldValue, styles.descriptionText]} numberOfLines={2}>
+            <Text
+              style={[styles.fieldValue, styles.descriptionText]}
+              numberOfLines={2}
+            >
               {item.description || 'No description'}
             </Text>
             <Icon name="create-outline" size={18} color={colors.primary} />
@@ -212,18 +327,30 @@ export default function ItemDetailScreen({ navigation, route }: Props) {
       {/* Condition Section */}
       <View style={styles.conditionSection}>
         <Text style={styles.conditionLabel}>Condition</Text>
-        <TouchableOpacity 
-          style={[styles.conditionBadge, { backgroundColor: getConditionColor(item.condition) + '20' }]}
+        <TouchableOpacity
+          style={[
+            styles.conditionBadge,
+            { backgroundColor: getConditionColor(item.condition) + '20' },
+          ]}
           onPress={() => {
             setPickerOptions(conditions);
             setPickerField('condition');
             setShowPickerModal(true);
           }}
         >
-          <Text style={[styles.conditionText, { color: getConditionColor(item.condition) }]}>
+          <Text
+            style={[
+              styles.conditionText,
+              { color: getConditionColor(item.condition) },
+            ]}
+          >
             {item.condition}
           </Text>
-          <Icon name="chevron-down" size={20} color={getConditionColor(item.condition)} />
+          <Icon
+            name="chevron-down"
+            size={20}
+            color={getConditionColor(item.condition)}
+          />
         </TouchableOpacity>
       </View>
 
@@ -243,10 +370,17 @@ export default function ItemDetailScreen({ navigation, route }: Props) {
       {/* Action Buttons */}
       <View style={styles.actionButtons}>
         <TouchableOpacity style={styles.logWearButton} onPress={handleLogWear}>
-          <Icon name="checkmark-circle-outline" size={20} color={colors.white} />
+          <Icon
+            name="checkmark-circle-outline"
+            size={20}
+            color={colors.white}
+          />
           <Text style={styles.logWearButtonText}>Log Wear</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.exportButton} onPress={handleExportDonate}>
+        <TouchableOpacity
+          style={styles.exportButton}
+          onPress={handleExportDonate}
+        >
           <Icon name="send-outline" size={20} color={colors.primary} />
           <Text style={styles.exportButtonText}>Export/Donate</Text>
         </TouchableOpacity>
@@ -296,19 +430,21 @@ export default function ItemDetailScreen({ navigation, route }: Props) {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                Select {pickerField.charAt(0).toUpperCase() + pickerField.slice(1)}
+                Select{' '}
+                {pickerField.charAt(0).toUpperCase() + pickerField.slice(1)}
               </Text>
               <TouchableOpacity onPress={() => setShowPickerModal(false)}>
                 <Icon name="close" size={24} color={colors.textPrimary} />
               </TouchableOpacity>
             </View>
 
-            {pickerOptions.map((option) => (
+            {pickerOptions.map(option => (
               <TouchableOpacity
                 key={option}
                 style={[
                   styles.optionRow,
-                  item[pickerField as keyof typeof item] === option && styles.optionRowSelected,
+                  item[pickerField as keyof typeof item] === option &&
+                    styles.optionRowSelected,
                 ]}
                 onPress={() => {
                   if (pickerField === 'condition') {
@@ -321,7 +457,8 @@ export default function ItemDetailScreen({ navigation, route }: Props) {
                 <Text
                   style={[
                     styles.optionText,
-                    item[pickerField as keyof typeof item] === option && styles.optionTextSelected,
+                    item[pickerField as keyof typeof item] === option &&
+                      styles.optionTextSelected,
                   ]}
                 >
                   {option}
@@ -638,5 +775,29 @@ const styles = StyleSheet.create({
   },
   bottomPadding: {
     height: 40,
+  },
+  centered: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  errorText: {
+    fontSize: 15,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 12,
+  },
+  backLink: {
+    marginTop: 20,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  backLinkText: {
+    fontSize: 15,
+    color: colors.primary,
+    fontWeight: '600',
   },
 });

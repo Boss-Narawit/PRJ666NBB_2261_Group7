@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,94 +7,79 @@ import {
   TouchableOpacity,
   FlatList,
   Alert,
+  Image,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
-
-// Mock data for clothing items
-const clothingItems = [
-  { id: '1', name: 'Black Hoodie', brand: 'Nike', category: 'Hoodie', image: null },
-  { id: '2', name: 'Blue Jeans', brand: "Levi's", category: 'Bottoms', image: null },
-  { id: '3', name: 'White Sneakers', brand: 'Adidas', category: 'Shoes', image: null },
-  { id: '4', name: 'Floral Dress', brand: 'Zara', category: 'Dresses', image: null },
-];
-
-// Mock data for resale platforms
-const resalePlatforms = [
-  { id: '1', name: 'Platform 1' },
-  { id: '2', name: 'Platform 2' },
-  { id: '3', name: 'Platform 3' },
-];
-
-// Mock data for donation centers
-const donationCenters = [
-  { id: '1', name: 'Donation Centre 1' },
-  { id: '2', name: 'Donation Centre 2' },
-  { id: '3', name: 'Donation Centre 3' },
-];
+import { useAuth } from '../context/AuthContext';
+import { getClothing, listPartners, Clothing, Partner } from '../services/api';
 
 type Props = {
   navigation: any;
+  route?: { params?: { item?: Clothing } };
 };
 
-export default function ExportScreen({ navigation }: Props) {
-  const [selectedTab, setSelectedTab] = useState<'resale' | 'donation'>('resale');
-  const [selectedItems, setSelectedItems] = useState<string[]>([]);
-  const [selectedResalePlatform, setSelectedResalePlatform] = useState<string | null>(null);
-  const [selectedDonationCenter, setSelectedDonationCenter] = useState<string | null>(null);
-  const [showQualityChecklist, setShowQualityChecklist] = useState(false);
-  const [selectedItemForExport, setSelectedItemForExport] = useState<any>(null);
+export default function ExportScreen({ navigation, route }: Props) {
+  const { token } = useAuth();
+  const preItem = route?.params?.item;
+  const [selectedTab, setSelectedTab] = useState<'resale' | 'donation'>(
+    'resale',
+  );
+  const [clothing, setClothing] = useState<Clothing[]>([]);
+  const [partners, setPartners] = useState<Partner[]>([]);
+  const [selectedItems, setSelectedItems] = useState<string[]>(
+    preItem ? [preItem._id] : [],
+  );
+  const [selectedPartnerId, setSelectedPartnerId] = useState<string | null>(
+    null,
+  );
+
+  // Only Available items can be exported (BR23 keeps archived out).
+  useEffect(() => {
+    if (!token) return;
+    getClothing(token)
+      .then(data => setClothing(data.filter(c => c.status === 'Available')))
+      .catch(() => setClothing([]));
+  }, [token]);
+
+  // Partners are filtered by destination type; reset the pick when the tab flips.
+  useEffect(() => {
+    if (!token) return;
+    setSelectedPartnerId(null);
+    listPartners(token, selectedTab)
+      .then(setPartners)
+      .catch(() => setPartners([]));
+  }, [token, selectedTab]);
 
   const toggleItemSelection = (itemId: string) => {
-    if (selectedItems.includes(itemId)) {
-      setSelectedItems(selectedItems.filter(id => id !== itemId));
-    } else {
-      setSelectedItems([...selectedItems, itemId]);
-    }
-  };
-
-  const handleExport = () => {
-    if (selectedItems.length === 0) {
-      Alert.alert('Error', 'Please select at least one item to export');
-      return;
-    }
-
-    const platform = selectedTab === 'resale' ? selectedResalePlatform : selectedDonationCenter;
-    if (!platform) {
-      Alert.alert('Error', `Please select a ${selectedTab} destination`);
-      return;
-    }
-
-    // Navigate to quality checklist
-    setShowQualityChecklist(true);
-  };
-
-  const handleConfirmExport = () => {
-    Alert.alert(
-      'Export Confirmed',
-      `Your items have been exported for ${selectedTab}!`,
-      [{ text: 'OK', onPress: () => navigation.goBack() }]
+    setSelectedItems(prev =>
+      prev.includes(itemId)
+        ? prev.filter(id => id !== itemId)
+        : [...prev, itemId],
     );
-    setShowQualityChecklist(false);
   };
 
-  const renderItem = ({ item }: { item: typeof clothingItems[0] }) => (
+  const renderItem = ({ item }: { item: Clothing }) => (
     <TouchableOpacity
       style={[
         styles.itemCard,
-        selectedItems.includes(item.id) && styles.itemCardSelected,
+        selectedItems.includes(item._id) && styles.itemCardSelected,
       ]}
-      onPress={() => toggleItemSelection(item.id)}
+      onPress={() => toggleItemSelection(item._id)}
     >
       <View style={styles.itemImage}>
-        <Icon name="shirt-outline" size={30} color={colors.textSecondary} />
+        {item.imageUrl ? (
+          <Image source={{ uri: item.imageUrl }} style={styles.thumbnail} />
+        ) : (
+          <Icon name="shirt-outline" size={30} color={colors.textSecondary} />
+        )}
       </View>
       <View style={styles.itemInfo}>
         <Text style={styles.itemName}>{item.name}</Text>
         <Text style={styles.itemBrand}>{item.brand}</Text>
         <Text style={styles.itemCategory}>{item.category}</Text>
       </View>
-      {selectedItems.includes(item.id) && (
+      {selectedItems.includes(item._id) && (
         <View style={styles.checkmark}>
           <Icon name="checkmark-circle" size={24} color={colors.primary} />
         </View>
@@ -102,26 +87,16 @@ export default function ExportScreen({ navigation }: Props) {
     </TouchableOpacity>
   );
 
-  const renderPlatform = ({ item }: { item: { id: string; name: string } }) => (
+  const renderPlatform = ({ item }: { item: Partner }) => (
     <TouchableOpacity
       style={[
         styles.platformCard,
-        (selectedTab === 'resale' && selectedResalePlatform === item.id) ||
-        (selectedTab === 'donation' && selectedDonationCenter === item.id)
-          ? styles.platformCardSelected
-          : null,
+        selectedPartnerId === item._id && styles.platformCardSelected,
       ]}
-      onPress={() => {
-        if (selectedTab === 'resale') {
-          setSelectedResalePlatform(item.id);
-        } else {
-          setSelectedDonationCenter(item.id);
-        }
-      }}
+      onPress={() => setSelectedPartnerId(item._id)}
     >
       <View style={styles.platformRadio}>
-        {(selectedTab === 'resale' && selectedResalePlatform === item.id) ||
-        (selectedTab === 'donation' && selectedDonationCenter === item.id) ? (
+        {selectedPartnerId === item._id ? (
           <View style={styles.radioSelected} />
         ) : null}
       </View>
@@ -133,7 +108,10 @@ export default function ExportScreen({ navigation }: Props) {
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
           <Icon name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Export Item</Text>
@@ -146,7 +124,12 @@ export default function ExportScreen({ navigation }: Props) {
           style={[styles.tab, selectedTab === 'resale' && styles.tabActive]}
           onPress={() => setSelectedTab('resale')}
         >
-          <Text style={[styles.tabText, selectedTab === 'resale' && styles.tabTextActive]}>
+          <Text
+            style={[
+              styles.tabText,
+              selectedTab === 'resale' && styles.tabTextActive,
+            ]}
+          >
             Resale
           </Text>
         </TouchableOpacity>
@@ -154,7 +137,12 @@ export default function ExportScreen({ navigation }: Props) {
           style={[styles.tab, selectedTab === 'donation' && styles.tabActive]}
           onPress={() => setSelectedTab('donation')}
         >
-          <Text style={[styles.tabText, selectedTab === 'donation' && styles.tabTextActive]}>
+          <Text
+            style={[
+              styles.tabText,
+              selectedTab === 'donation' && styles.tabTextActive,
+            ]}
+          >
             Donation
           </Text>
         </TouchableOpacity>
@@ -164,10 +152,13 @@ export default function ExportScreen({ navigation }: Props) {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Select Items to Export</Text>
         <FlatList
-          data={clothingItems}
+          data={clothing}
           renderItem={renderItem}
-          keyExtractor={(item) => item.id}
+          keyExtractor={item => item._id}
           scrollEnabled={false}
+          ListEmptyComponent={
+            <Text style={styles.emptyText}>No items available to export.</Text>
+          }
         />
       </View>
 
@@ -177,10 +168,15 @@ export default function ExportScreen({ navigation }: Props) {
           Choose {selectedTab === 'resale' ? 'Platform' : 'Donation Center'}
         </Text>
         <FlatList
-          data={selectedTab === 'resale' ? resalePlatforms : donationCenters}
+          data={partners}
           renderItem={renderPlatform}
-          keyExtractor={(item) => item.id}
+          keyExtractor={item => item._id}
           scrollEnabled={false}
+          ListEmptyComponent={
+            <Text style={styles.emptyText}>
+              No {selectedTab} partners available.
+            </Text>
+          }
         />
       </View>
 
@@ -192,19 +188,14 @@ export default function ExportScreen({ navigation }: Props) {
             Alert.alert('Error', 'Please select at least one item');
             return;
           }
-          if (selectedTab === 'resale' && !selectedResalePlatform) {
-            Alert.alert('Error', 'Please select a resale platform');
+          if (!selectedPartnerId) {
+            Alert.alert('Error', `Please select a ${selectedTab} destination`);
             return;
           }
-          if (selectedTab === 'donation' && !selectedDonationCenter) {
-            Alert.alert('Error', 'Please select a donation center');
-            return;
-          }
-          // Navigate to quality checklist instead of showing modal
           navigation.navigate('QualityChecklist', {
             items: selectedItems,
             type: selectedTab,
-            destination: selectedTab === 'resale' ? selectedResalePlatform : selectedDonationCenter,
+            destination: selectedPartnerId,
           });
         }}
       >
@@ -366,5 +357,12 @@ const styles = StyleSheet.create({
   },
   bottomPadding: {
     height: 40,
+  },
+  thumbnail: { width: '100%', height: '100%', borderRadius: 8 },
+  emptyText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    paddingVertical: 12,
   },
 });

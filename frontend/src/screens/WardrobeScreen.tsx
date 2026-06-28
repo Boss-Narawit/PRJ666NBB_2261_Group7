@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -7,104 +7,17 @@ import {
   TouchableOpacity,
   FlatList,
   TextInput,
+  ActivityIndicator,
+  Image,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
+import { useAuth } from '../context/AuthContext';
+import { getClothing, Clothing } from '../services/api';
 
-// Mock data for wardrobe items
-const wardrobeItems = [
-  {
-    id: '1',
-    name: 'White Sneakers',
-    brand: 'Nike',
-    category: 'Shoes',
-    wearCount: 24,
-    image: null,
-    color: 'White',
-  },
-  {
-    id: '2',
-    name: 'Winter Jacket',
-    brand: 'North Face',
-    category: 'Outerwear',
-    wearCount: 30,
-    image: null,
-    color: 'Black',
-  },
-  {
-    id: '3',
-    name: 'Blue Shirts',
-    brand: 'Uniqlo',
-    category: 'Tops',
-    wearCount: 24,
-    image: null,
-    color: 'Blue',
-  },
-  {
-    id: '4',
-    name: 'Black Jeans',
-    brand: "Levi's",
-    category: 'Bottoms',
-    wearCount: 15,
-    image: null,
-    color: 'Black',
-  },
-  {
-    id: '5',
-    name: 'Running Shoes',
-    brand: 'Adidas',
-    category: 'Shoes',
-    wearCount: 42,
-    image: null,
-    color: 'White',
-  },
-  {
-    id: '6',
-    name: 'Denim Jacket',
-    brand: 'Zara',
-    category: 'Outerwear',
-    wearCount: 8,
-    image: null,
-    color: 'Blue',
-  },
-  {
-    id: '7',
-    name: 'Floral Dress',
-    brand: 'H&M',
-    category: 'Dresses',
-    wearCount: 5,
-    image: null,
-    color: 'Pink',
-  },
-  {
-    id: '8',
-    name: 'Grey Sweater',
-    brand: 'Muji',
-    category: 'Tops',
-    wearCount: 12,
-    image: null,
-    color: 'Grey',
-  },
-  {
-    id: '9',
-    name: 'Leather Boots',
-    brand: 'Dr. Martens',
-    category: 'Shoes',
-    wearCount: 18,
-    image: null,
-    color: 'Brown',
-  },
-  {
-    id: '10',
-    name: 'Cargo Pants',
-    brand: 'Carhartt',
-    category: 'Bottoms',
-    wearCount: 6,
-    image: null,
-    color: 'Olive',
-  },
-];
-
+// Chip labels are capitalized for display; backend categories are lowercase,
+// so all category comparisons below are case-insensitive.
 const categories = [
   'All',
   'Tops',
@@ -115,55 +28,115 @@ const categories = [
   'Accessories',
 ];
 
+function wearCountOf(item: Clothing) {
+  return item.analytics?.wearCount ?? 0;
+}
+
 type Props = {
   navigation: any;
 };
 
 export default function WardrobeScreen({ navigation }: Props) {
+  const { token } = useAuth();
+  const [items, setItems] = useState<Clothing[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-  // Filter items based on search and category
-  const filteredItems = wardrobeItems.filter(item => {
+  // Refetch on focus — the wardrobe changes after adding/editing items elsewhere.
+  useFocusEffect(
+    useCallback(() => {
+      if (!token) return;
+      let cancelled = false;
+      getClothing(token)
+        .then(data => {
+          if (!cancelled) {
+            setItems(data);
+            setError(null);
+          }
+        })
+        .catch(err => {
+          if (!cancelled) setError(err.message || 'Failed to load wardrobe.');
+        })
+        .finally(() => {
+          if (!cancelled) setIsLoading(false);
+        });
+      return () => {
+        cancelled = true;
+      };
+    }, [token]),
+  );
+
+  // Filter items based on search and category (category compare is case-insensitive)
+  const filteredItems = items.filter(item => {
     const matchesSearch =
       item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.brand.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory =
-      selectedCategory === 'All' || item.category === selectedCategory;
+      selectedCategory === 'All' ||
+      item.category.toLowerCase() === selectedCategory.toLowerCase();
     return matchesSearch && matchesCategory;
   });
 
-  // Recent items (last 5 added or most worn - using mock data)
-  const recentItems = wardrobeItems.slice(0, 5);
+  // Recent items (first 5 returned)
+  const recentItems = items.slice(0, 5);
 
-  const renderGridItem = ({ item }: { item: typeof wardrobeItems[0] }) => (
-    <TouchableOpacity 
+  // Only show the empty state once the fetch settles — otherwise it flashes
+  // alongside the loading spinner on first paint.
+  const emptyState =
+    !isLoading && !error ? (
+      <View style={styles.emptyContainer}>
+        <Icon name="shirt-outline" size={60} color={colors.textSecondary} />
+        <Text style={styles.emptyText}>No items found</Text>
+        <TouchableOpacity
+          style={styles.emptyButton}
+          onPress={() => navigation.navigate('AddCloth')}
+        >
+          <Text style={styles.emptyButtonText}>Add Your First Item</Text>
+        </TouchableOpacity>
+      </View>
+    ) : null;
+
+  const renderGridItem = ({ item }: { item: Clothing }) => (
+    <TouchableOpacity
       style={styles.gridCard}
-      onPress={() => navigation.navigate('ItemDetail', { itemId: item.id })}
+      onPress={() => navigation.navigate('ItemDetail', { itemId: item._id })}
     >
       <View style={styles.gridImage}>
-        <Icon name="shirt-outline" size={40} color={colors.textSecondary} />
+        {item.imageUrl ? (
+          <Image source={{ uri: item.imageUrl }} style={styles.thumbnail} />
+        ) : (
+          <Icon name="shirt-outline" size={40} color={colors.textSecondary} />
+        )}
       </View>
       <Text style={styles.gridItemName}>{item.name}</Text>
       <Text style={styles.gridItemBrand}>{item.brand}</Text>
-      <Text style={styles.gridItemWearCount}>Worn {item.wearCount} times</Text>
+      <Text style={styles.gridItemWearCount}>
+        Worn {wearCountOf(item)} times
+      </Text>
     </TouchableOpacity>
   );
 
-  const renderListItem = ({ item }: { item: typeof wardrobeItems[0] }) => (
-    <TouchableOpacity 
+  const renderListItem = ({ item }: { item: Clothing }) => (
+    <TouchableOpacity
       style={styles.listCard}
-      onPress={() => navigation.navigate('ItemDetail', { itemId: item.id })}
+      onPress={() => navigation.navigate('ItemDetail', { itemId: item._id })}
     >
       <View style={styles.listImage}>
-        <Icon name="shirt-outline" size={30} color={colors.textSecondary} />
+        {item.imageUrl ? (
+          <Image source={{ uri: item.imageUrl }} style={styles.thumbnail} />
+        ) : (
+          <Icon name="shirt-outline" size={30} color={colors.textSecondary} />
+        )}
       </View>
       <View style={styles.listInfo}>
         <Text style={styles.listItemName}>{item.name}</Text>
         <Text style={styles.listItemBrand}>{item.brand}</Text>
         <Text style={styles.listItemDetails}>
-          {item.category} • {item.color} • Worn {item.wearCount} times
+          {item.category} • {item.colors?.[0] ?? '—'} • Worn {wearCountOf(item)}{' '}
+          times
         </Text>
       </View>
       <TouchableOpacity style={styles.moreButton}>
@@ -172,14 +145,18 @@ export default function WardrobeScreen({ navigation }: Props) {
     </TouchableOpacity>
   );
 
-  const renderRecentItem = ({ item }: { item: (typeof wardrobeItems)[0] }) => (
+  const renderRecentItem = ({ item }: { item: Clothing }) => (
     <TouchableOpacity style={styles.recentCard}>
       <View style={styles.recentImage}>
-        <Icon name="shirt-outline" size={24} color={colors.textSecondary} />
+        {item.imageUrl ? (
+          <Image source={{ uri: item.imageUrl }} style={styles.thumbnail} />
+        ) : (
+          <Icon name="shirt-outline" size={24} color={colors.textSecondary} />
+        )}
       </View>
       <Text style={styles.recentItemName}>{item.name}</Text>
       <Text style={styles.recentItemWearCount}>
-        Worn {item.wearCount} times
+        Worn {wearCountOf(item)} times
       </Text>
     </TouchableOpacity>
   );
@@ -253,6 +230,15 @@ export default function WardrobeScreen({ navigation }: Props) {
         ))}
       </ScrollView>
 
+      {isLoading && (
+        <ActivityIndicator
+          size="large"
+          color={colors.primary}
+          style={styles.loading}
+        />
+      )}
+      {error && !isLoading && <Text style={styles.errorText}>{error}</Text>}
+
       {/* Recent Items Section */}
       <View style={styles.recentSection}>
         <View style={styles.sectionHeader}>
@@ -264,7 +250,7 @@ export default function WardrobeScreen({ navigation }: Props) {
         <FlatList
           data={recentItems}
           renderItem={renderRecentItem}
-          keyExtractor={item => item.id}
+          keyExtractor={item => item._id}
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.recentList}
@@ -278,6 +264,11 @@ export default function WardrobeScreen({ navigation }: Props) {
           <TouchableOpacity
             onPress={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
           >
+            <Icon
+              name={viewMode === 'grid' ? 'list-outline' : 'grid-outline'}
+              size={24}
+              color={colors.primary}
+            />
           </TouchableOpacity>
         </View>
 
@@ -285,53 +276,19 @@ export default function WardrobeScreen({ navigation }: Props) {
           <FlatList
             data={filteredItems}
             renderItem={renderGridItem}
-            keyExtractor={item => item.id}
+            keyExtractor={item => item._id}
             numColumns={2}
             columnWrapperStyle={styles.gridRow}
             scrollEnabled={false}
-            ListEmptyComponent={
-              <View style={styles.emptyContainer}>
-                <Icon
-                  name="shirt-outline"
-                  size={60}
-                  color={colors.textSecondary}
-                />
-                <Text style={styles.emptyText}>No items found</Text>
-                <TouchableOpacity
-                  style={styles.emptyButton}
-                  onPress={() => navigation.navigate('AddCloth')}
-                >
-                  <Text style={styles.emptyButtonText}>
-                    Add Your First Item
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            }
+            ListEmptyComponent={emptyState}
           />
         ) : (
           <FlatList
             data={filteredItems}
             renderItem={renderListItem}
-            keyExtractor={item => item.id}
+            keyExtractor={item => item._id}
             scrollEnabled={false}
-            ListEmptyComponent={
-              <View style={styles.emptyContainer}>
-                <Icon
-                  name="shirt-outline"
-                  size={60}
-                  color={colors.textSecondary}
-                />
-                <Text style={styles.emptyText}>No items found</Text>
-                <TouchableOpacity
-                  style={styles.emptyButton}
-                  onPress={() => navigation.navigate('AddCloth')}
-                >
-                  <Text style={styles.emptyButtonText}>
-                    Add Your First Item
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            }
+            ListEmptyComponent={emptyState}
           />
         )}
       </View>
@@ -591,5 +548,21 @@ const styles = StyleSheet.create({
   },
   bottomPadding: {
     height: 80,
+  },
+  thumbnail: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 12,
+    resizeMode: 'cover',
+  },
+  loading: {
+    marginVertical: 24,
+  },
+  errorText: {
+    fontSize: 13,
+    color: '#C0392B',
+    textAlign: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 8,
   },
 });

@@ -7,6 +7,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Modal,
+  Pressable,
+  ScrollView,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -46,6 +49,7 @@ export default function NotificationScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<AppNotification | null>(null);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -86,6 +90,8 @@ export default function NotificationScreen() {
   );
 
   const handlePress = async (item: AppNotification) => {
+    // Open the full-detail card with the read state as-is at tap time.
+    setSelected(item);
     if (item.isRead || !token) return;
     // Optimistic flip; reload on failure to stay in sync with the server.
     setNotifications(prev =>
@@ -173,6 +179,47 @@ export default function NotificationScreen() {
           </View>
         }
       />
+      <Modal
+        visible={selected !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelected(null)}
+      >
+        <Pressable style={styles.overlay} onPress={() => setSelected(null)}>
+          {/* Stop propagation so taps inside the card don't dismiss it. */}
+          <Pressable style={styles.detailCard} onPress={() => {}}>
+            <View style={styles.detailHeader}>
+              <View style={styles.iconCircle}>
+                <Icon
+                  name={
+                    (selected && TYPE_ICONS[selected.type]) ??
+                    'notifications-outline'
+                  }
+                  size={22}
+                  color={colors.primary}
+                />
+              </View>
+              <TouchableOpacity
+                onPress={() => setSelected(null)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Icon name="close" size={24} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView
+              style={styles.detailScroll}
+              showsVerticalScrollIndicator={false}
+            >
+              <Text style={styles.detailMessage}>{selected?.message}</Text>
+            </ScrollView>
+            {selected && (
+              <Text style={styles.detailTime}>
+                {timeAgo(selected.createdAt)}
+              </Text>
+            )}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -266,5 +313,38 @@ const styles = StyleSheet.create({
   },
   footerLoading: {
     paddingVertical: 12,
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    paddingHorizontal: 28,
+  },
+  detailCard: {
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    padding: 20,
+    maxHeight: '70%',
+  },
+  detailHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  detailScroll: {
+    flexShrink: 1,
+  },
+  detailMessage: {
+    fontSize: 16,
+    color: colors.textPrimary,
+    lineHeight: 24,
+    letterSpacing: 0.1,
+  },
+  detailTime: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 16,
+    letterSpacing: 0.1,
   },
 });

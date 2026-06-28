@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  TextInput,
   Image,
   Alert,
   Modal,
@@ -13,24 +14,32 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
 import { launchImageLibrary } from 'react-native-image-picker';
 import CustomDatePicker from '../components/CustomDatePicker';
+import { useAuth } from '../context/AuthContext';
+import { createPurchase } from '../services/api';
+
+// BR14: the cooling-off period must be at least 24h (1440 min).
+const COOLDOWN_MIN_MINUTES = 1440;
 
 type Props = {
   navigation: any;
 };
 
 export default function ThoughtfulPurchasingScreen({ navigation }: Props) {
+  const { token } = useAuth();
   const [photo, setPhoto] = useState<string | null>(null);
-  
+  const [itemName, setItemName] = useState('');
+
   // Set start date to today, end date to tomorrow
   const today = new Date();
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
-  
-  const [startDate, setStartDate] = useState<Date>(today);
+
+  const [startDate] = useState<Date>(today);
   const [endDate, setEndDate] = useState<Date>(tomorrow);
   const [showEndPicker, setShowEndPicker] = useState(false);
   const [showSimilarityResult, setShowSimilarityResult] = useState(false);
   const [similarityScore] = useState<number>(75);
+  const [submitting, setSubmitting] = useState(false);
 
   const formatDate = (date: Date) => {
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -46,7 +55,7 @@ export default function ThoughtfulPurchasingScreen({ navigation }: Props) {
         quality: 0.8,
         includeBase64: false,
       },
-      (response) => {
+      response => {
         if (response.assets && response.assets[0]?.uri) {
           setPhoto(response.assets[0].uri);
         } else if (response.didCancel) {
@@ -54,7 +63,7 @@ export default function ThoughtfulPurchasingScreen({ navigation }: Props) {
         } else {
           Alert.alert('Error', 'Failed to select photo');
         }
-      }
+      },
     );
   };
 
@@ -66,12 +75,46 @@ export default function ThoughtfulPurchasingScreen({ navigation }: Props) {
     setShowSimilarityResult(true);
   };
 
-  const handleStartTimer = () => {
-    Alert.alert(
-      'Cooling-off Timer Started',
-      `Your 24-hour cooling-off period has started from ${formatDate(startDate)} to ${formatDate(endDate)}. You will be notified when it ends.`,
-      [{ text: 'OK', onPress: () => navigation.goBack() }]
+  const handleStartTimer = async () => {
+    if (!token) return;
+    if (!itemName.trim()) {
+      Alert.alert('Error', 'Please enter what you are considering buying');
+      return;
+    }
+    // The picker has day granularity (returns local midnight), so measure in whole
+    // calendar days from start → end. This is independent of tap time, so the
+    // default (tomorrow) is always exactly 1440 min and never trips BR14 by lingering.
+    const dayStart = (d: Date) => {
+      const x = new Date(d);
+      x.setHours(0, 0, 0, 0);
+      return x;
+    };
+    const days = Math.round(
+      (dayStart(endDate).getTime() - dayStart(startDate).getTime()) / 86400000,
     );
+    const cooldownMinutes = days * 24 * 60;
+    if (cooldownMinutes < COOLDOWN_MIN_MINUTES) {
+      Alert.alert('Error', 'The cooling-off period must be at least 24 hours.');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await createPurchase(token, {
+        itemName: itemName.trim(),
+        cooldownMinutes,
+      });
+      setShowSimilarityResult(false);
+      Alert.alert(
+        'Cooling-off Timer Started',
+        `Your cooling-off period runs until ${formatDate(endDate)}. You'll be able to confirm the purchase in your cart once it ends.`,
+        [{ text: 'OK', onPress: () => navigation.goBack() }],
+      );
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Could not start the timer.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const renderSimilarityResult = () => {
@@ -83,7 +126,11 @@ export default function ThoughtfulPurchasingScreen({ navigation }: Props) {
       : `Great news! This item is only ${similarityScore}% similar to items in your wardrobe.`;
 
     return (
-      <Modal visible={showSimilarityResult} transparent={true} animationType="slide">
+      <Modal
+        visible={showSimilarityResult}
+        transparent={true}
+        animationType="slide"
+      >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
@@ -105,7 +152,8 @@ export default function ThoughtfulPurchasingScreen({ navigation }: Props) {
               <View style={styles.warningContainer}>
                 <Icon name="bulb-outline" size={20} color="#D69E2E" />
                 <Text style={styles.warningText}>
-                  You might already own something similar. Consider waiting 24 hours before purchasing.
+                  You might already own something similar. Consider waiting 24
+                  hours before purchasing.
                 </Text>
               </View>
             )}
@@ -120,8 +168,11 @@ export default function ThoughtfulPurchasingScreen({ navigation }: Props) {
               <TouchableOpacity
                 style={[styles.modalButton, styles.startTimerModalButton]}
                 onPress={handleStartTimer}
+                disabled={submitting}
               >
-                <Text style={styles.startTimerText}>Start Timer</Text>
+                <Text style={styles.startTimerText}>
+                  {submitting ? 'Starting…' : 'Start Timer'}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -140,12 +191,28 @@ export default function ThoughtfulPurchasingScreen({ navigation }: Props) {
             <Image source={{ uri: photo }} style={styles.uploadedImage} />
           ) : (
             <View style={styles.uploadPlaceholder}>
-              <Icon name="cloud-upload-outline" size={48} color={colors.textSecondary} />
+              <Icon
+                name="cloud-upload-outline"
+                size={48}
+                color={colors.textSecondary}
+              />
               <Text style={styles.uploadText}>Tap to upload image</Text>
               <Text style={styles.uploadSubtext}>JPG, PNG, WEBP supported</Text>
             </View>
           )}
         </TouchableOpacity>
+      </View>
+
+      {/* Item Name */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Item Name</Text>
+        <TextInput
+          style={styles.nameInput}
+          placeholder="What are you considering buying?"
+          placeholderTextColor={colors.textSecondary}
+          value={itemName}
+          onChangeText={setItemName}
+        />
       </View>
 
       {/* Date Section */}
@@ -155,7 +222,11 @@ export default function ThoughtfulPurchasingScreen({ navigation }: Props) {
           <View style={styles.dateItem}>
             <Text style={styles.dateLabel}>Start Date</Text>
             <View style={[styles.dateInput, styles.dateInputDisabled]}>
-              <Icon name="calendar-outline" size={20} color={colors.textSecondary} />
+              <Icon
+                name="calendar-outline"
+                size={20}
+                color={colors.textSecondary}
+              />
               <Text style={[styles.dateText, styles.dateTextDisabled]}>
                 {formatDate(startDate)}
               </Text>
@@ -180,32 +251,47 @@ export default function ThoughtfulPurchasingScreen({ navigation }: Props) {
       <CustomDatePicker
         visible={showEndPicker}
         onClose={() => setShowEndPicker(false)}
-        onConfirm={(date) => {
+        onConfirm={date => {
           setEndDate(date);
           setShowEndPicker(false);
         }}
         initialDate={endDate}
-        startDate={startDate}  // ← Pass the start date to prevent selecting dates before it
+        startDate={startDate} // ← Pass the start date to prevent selecting dates before it
         mode="end"
       />
 
       {/* AI Similarity Check Button */}
-      <TouchableOpacity style={styles.similarityButton} onPress={handleSimilarityCheck}>
+      <TouchableOpacity
+        style={styles.similarityButton}
+        onPress={handleSimilarityCheck}
+      >
         <Icon name="scan-outline" size={24} color={colors.white} />
         <Text style={styles.similarityButtonText}>AI Similarity Check</Text>
       </TouchableOpacity>
 
       {/* Start Timer Button */}
-      <TouchableOpacity style={styles.startTimerButton} onPress={handleStartTimer}>
+      <TouchableOpacity
+        style={styles.startTimerButton}
+        onPress={handleStartTimer}
+        disabled={submitting}
+      >
         <Icon name="hourglass-outline" size={24} color={colors.white} />
-        <Text style={styles.startTimerButtonText}>Start Timer</Text>
+        <Text style={styles.startTimerButtonText}>
+          {submitting ? 'Starting…' : 'Start Timer'}
+        </Text>
       </TouchableOpacity>
 
       {/* Info Text */}
       <View style={styles.infoContainer}>
-        <Icon name="information-circle-outline" size={20} color={colors.textSecondary} />
+        <Icon
+          name="information-circle-outline"
+          size={20}
+          color={colors.textSecondary}
+        />
         <Text style={styles.infoText}>
-          Upload an image of an item you're considering purchasing. The AI will compare it with your existing wardrobe and alert you if you already own something similar.
+          Upload an image of an item you're considering purchasing. The AI will
+          compare it with your existing wardrobe and alert you if you already
+          own something similar.
         </Text>
       </View>
 
@@ -248,6 +334,15 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.textPrimary,
     marginBottom: 12,
+  },
+  nameInput: {
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.inputBorder,
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 15,
+    color: colors.textPrimary,
   },
   uploadContainer: {
     borderWidth: 2,

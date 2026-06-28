@@ -21,6 +21,7 @@ import ItemDetailScreen from '../screens/ItemDetailScreen';
 import { LoginScreen } from '../screens/LoginScreen';
 import SignUpScreen from '../screens/auth/SignUpScreen';
 import { AuthProvider, useAuth } from '../context/AuthContext';
+import { Clothing } from '../services/api';
 import { colors } from '../theme';
 import Icon from 'react-native-vector-icons/Ionicons';
 
@@ -44,7 +45,7 @@ export type RootStackParamList = {
       image?: string;
     }[];
   };
-  Export: undefined;
+  Export: { item?: Clothing } | undefined;
   QualityChecklist: {
     items: string[];
     type: 'resale' | 'donation';
@@ -173,25 +174,25 @@ function RootStacks() {
               component={WearLogDetailScreen}
               options={{ headerShown: false }}
             />
-            <Stack.Screen 
-              name="Export" 
-              component={ExportScreen} 
-              options={{ headerShown: false }} 
+            <Stack.Screen
+              name="Export"
+              component={ExportScreen}
+              options={{ headerShown: false }}
             />
-            <Stack.Screen 
-              name="QualityChecklist" 
-              component={QualityChecklistScreen} 
-              options={{ headerShown: false }} 
+            <Stack.Screen
+              name="QualityChecklist"
+              component={QualityChecklistScreen}
+              options={{ headerShown: false }}
             />
-            <Stack.Screen 
+            <Stack.Screen
               name="ForgottenItems"
               component={ForgottenItemsScreen}
               options={{ headerShown: false }}
             />
-            <Stack.Screen 
-              name="ItemDetail" 
-              component={ItemDetailScreen} 
-              options={{ headerShown: false }} 
+            <Stack.Screen
+              name="ItemDetail"
+              component={ItemDetailScreen}
+              options={{ headerShown: false }}
             />
           </>
         ) : (

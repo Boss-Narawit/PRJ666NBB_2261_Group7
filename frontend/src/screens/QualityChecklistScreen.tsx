@@ -9,6 +9,8 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
+import { useAuth } from '../context/AuthContext';
+import { exportResale, exportDonation, ExportPayload } from '../services/api';
 
 type Props = {
   navigation: any;
@@ -21,9 +23,13 @@ type Props = {
   };
 };
 
+// Fields shared with the partner (BR22) once the checklist confirms intent.
+const SHARED_FIELDS = ['name', 'brand', 'category', 'condition', 'imageUrl'];
+
 export default function QualityChecklistScreen({ navigation, route }: Props) {
   const { items, type, destination } = route.params;
-  
+  const { token } = useAuth();
+
   const [checklist, setChecklist] = useState({
     tears: false,
     stains: false,
@@ -31,6 +37,7 @@ export default function QualityChecklistScreen({ navigation, route }: Props) {
     photos: false,
     description: false,
   });
+  const [submitting, setSubmitting] = useState(false);
 
   const toggleChecklist = (key: keyof typeof checklist) => {
     setChecklist(prev => ({ ...prev, [key]: !prev[key] }));
@@ -38,29 +45,55 @@ export default function QualityChecklistScreen({ navigation, route }: Props) {
 
   const allChecked = Object.values(checklist).every(v => v === true);
 
-  const handleConfirmExport = () => {
+  const handleConfirmExport = async () => {
     if (!allChecked) {
       Alert.alert('Error', 'Please complete all checklist items');
       return;
     }
+    if (!token) return;
+    setSubmitting(true);
 
-    Alert.alert(
-      'Export Confirmed',
-      `Your ${items.length} item(s) have been exported for ${type}!`,
-      [
-        {
-          text: 'OK',
-          onPress: () => navigation.navigate('Main'),
-        },
-      ]
-    );
+    // Backend exports one item at a time (each archives transactionally),
+    // so loop the selection and report any per-item failures (e.g. BR21).
+    const exportOne = type === 'resale' ? exportResale : exportDonation;
+    let succeeded = 0;
+    const failures: string[] = [];
+
+    for (const clothingId of items) {
+      const payload: ExportPayload = {
+        clothingId,
+        partnerId: destination,
+        checklistCompleted: true,
+        consent: true,
+        selectedFields: SHARED_FIELDS,
+      };
+      try {
+        await exportOne(token, payload);
+        succeeded += 1;
+      } catch (err: any) {
+        failures.push(err.message || 'Unknown error');
+      }
+    }
+
+    setSubmitting(false);
+
+    const summary =
+      failures.length === 0
+        ? `Your ${succeeded} item(s) have been exported for ${type}!`
+        : `${succeeded} exported, ${failures.length} failed:\n${failures.join('\n')}`;
+    Alert.alert('Export Result', summary, [
+      { text: 'OK', onPress: () => navigation.navigate('Main') },
+    ]);
   };
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
           <Icon name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Quality Checklist</Text>
@@ -70,7 +103,8 @@ export default function QualityChecklistScreen({ navigation, route }: Props) {
       {/* Info */}
       <View style={styles.infoContainer}>
         <Text style={styles.infoText}>
-          Please confirm the following before exporting {items.length} item(s) for {type}
+          Please confirm the following before exporting {items.length} item(s)
+          for {type}
         </Text>
       </View>
 
@@ -80,8 +114,12 @@ export default function QualityChecklistScreen({ navigation, route }: Props) {
           style={styles.checklistItem}
           onPress={() => toggleChecklist('tears')}
         >
-          <View style={[styles.checkbox, checklist.tears && styles.checkboxChecked]}>
-            {checklist.tears && <Icon name="checkmark" size={18} color={colors.white} />}
+          <View
+            style={[styles.checkbox, checklist.tears && styles.checkboxChecked]}
+          >
+            {checklist.tears && (
+              <Icon name="checkmark" size={18} color={colors.white} />
+            )}
           </View>
           <Text style={styles.checklistText}>No major tears</Text>
         </TouchableOpacity>
@@ -90,8 +128,15 @@ export default function QualityChecklistScreen({ navigation, route }: Props) {
           style={styles.checklistItem}
           onPress={() => toggleChecklist('stains')}
         >
-          <View style={[styles.checkbox, checklist.stains && styles.checkboxChecked]}>
-            {checklist.stains && <Icon name="checkmark" size={18} color={colors.white} />}
+          <View
+            style={[
+              styles.checkbox,
+              checklist.stains && styles.checkboxChecked,
+            ]}
+          >
+            {checklist.stains && (
+              <Icon name="checkmark" size={18} color={colors.white} />
+            )}
           </View>
           <Text style={styles.checklistText}>No heavy stains</Text>
         </TouchableOpacity>
@@ -100,8 +145,15 @@ export default function QualityChecklistScreen({ navigation, route }: Props) {
           style={styles.checklistItem}
           onPress={() => toggleChecklist('buttonsZippers')}
         >
-          <View style={[styles.checkbox, checklist.buttonsZippers && styles.checkboxChecked]}>
-            {checklist.buttonsZippers && <Icon name="checkmark" size={18} color={colors.white} />}
+          <View
+            style={[
+              styles.checkbox,
+              checklist.buttonsZippers && styles.checkboxChecked,
+            ]}
+          >
+            {checklist.buttonsZippers && (
+              <Icon name="checkmark" size={18} color={colors.white} />
+            )}
           </View>
           <Text style={styles.checklistText}>Buttons & zippers work</Text>
         </TouchableOpacity>
@@ -110,8 +162,15 @@ export default function QualityChecklistScreen({ navigation, route }: Props) {
           style={styles.checklistItem}
           onPress={() => toggleChecklist('photos')}
         >
-          <View style={[styles.checkbox, checklist.photos && styles.checkboxChecked]}>
-            {checklist.photos && <Icon name="checkmark" size={18} color={colors.white} />}
+          <View
+            style={[
+              styles.checkbox,
+              checklist.photos && styles.checkboxChecked,
+            ]}
+          >
+            {checklist.photos && (
+              <Icon name="checkmark" size={18} color={colors.white} />
+            )}
           </View>
           <Text style={styles.checklistText}>Accurate photos</Text>
         </TouchableOpacity>
@@ -120,8 +179,15 @@ export default function QualityChecklistScreen({ navigation, route }: Props) {
           style={styles.checklistItem}
           onPress={() => toggleChecklist('description')}
         >
-          <View style={[styles.checkbox, checklist.description && styles.checkboxChecked]}>
-            {checklist.description && <Icon name="checkmark" size={18} color={colors.white} />}
+          <View
+            style={[
+              styles.checkbox,
+              checklist.description && styles.checkboxChecked,
+            ]}
+          >
+            {checklist.description && (
+              <Icon name="checkmark" size={18} color={colors.white} />
+            )}
           </View>
           <Text style={styles.checklistText}>Matches description</Text>
         </TouchableOpacity>
@@ -130,11 +196,16 @@ export default function QualityChecklistScreen({ navigation, route }: Props) {
       {/* Action Buttons */}
       <View style={styles.actionContainer}>
         <TouchableOpacity
-          style={[styles.confirmButton, !allChecked && styles.confirmButtonDisabled]}
+          style={[
+            styles.confirmButton,
+            (!allChecked || submitting) && styles.confirmButtonDisabled,
+          ]}
           onPress={handleConfirmExport}
-          disabled={!allChecked}
+          disabled={!allChecked || submitting}
         >
-          <Text style={styles.confirmButtonText}>Confirm & Export</Text>
+          <Text style={styles.confirmButtonText}>
+            {submitting ? 'Exporting…' : 'Confirm & Export'}
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
