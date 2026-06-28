@@ -238,6 +238,118 @@ export interface DashboardSummary {
   }[];
 }
 
+export interface Clothing {
+  _id: string;
+  name: string;
+  brand: string;
+  category: string;
+  colors: string[];
+  size: string;
+  imageUrl: string;
+  condition: string;
+  status: string;
+  notes?: string;
+  analytics?: {
+    wearCount?: number;
+    lastWornAt?: string;
+  };
+  createdAt?: string;
+}
+
+export async function getClothing(token: string): Promise<Clothing[]> {
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}/api/clothing`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } catch {
+    throw new Error('Unable to reach the server. Check your connection.');
+  }
+
+  const contentType = res.headers.get('content-type') ?? '';
+  const data = contentType.includes('application/json')
+    ? await res.json()
+    : { message: `Server error (${res.status})` };
+
+  if (!res.ok)
+    throw new Error(data.message || data.error || 'Failed to fetch wardrobe');
+  return data;
+}
+
+export async function getClothingById(
+  token: string,
+  id: string,
+): Promise<Clothing> {
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}/api/clothing/${id}`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } catch {
+    throw new Error('Unable to reach the server. Check your connection.');
+  }
+
+  const contentType = res.headers.get('content-type') ?? '';
+  const data = contentType.includes('application/json')
+    ? await res.json()
+    : { message: `Server error (${res.status})` };
+
+  if (!res.ok)
+    throw new Error(data.message || data.error || 'Failed to fetch item');
+  return data;
+}
+
+export interface WearLog {
+  _id: string;
+  logDate: string;
+  occasion?: string;
+  notes?: string;
+  clothingWorn: {
+    _id: string;
+    itemId: {
+      _id: string;
+      name: string;
+      brand: string;
+      category: string;
+      imageUrl: string;
+      analytics?: { wearCount?: number };
+    } | null;
+  }[];
+}
+
+export interface WearLogList {
+  wearLogs: WearLog[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export async function getWearLogs(
+  token: string,
+  page = 1,
+): Promise<WearLogList> {
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}/api/wear-logs?page=${page}`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } catch {
+    throw new Error('Unable to reach the server. Check your connection.');
+  }
+
+  const contentType = res.headers.get('content-type') ?? '';
+  const data = contentType.includes('application/json')
+    ? await res.json()
+    : { message: `Server error (${res.status})` };
+
+  if (!res.ok)
+    throw new Error(data.message || data.error || 'Failed to fetch wear logs');
+  return data;
+}
+
 export async function getDashboardSummary(
   token: string,
 ): Promise<DashboardSummary> {
@@ -314,4 +426,164 @@ export async function markNotificationRead(
       data.message || data.error || 'Failed to mark notification as read',
     );
   return data;
+}
+
+// ── Shared fetch helper (used by the export / forgotten / thoughtful-purchase
+// endpoints below). Older functions above keep their inline form. Reads both
+// error shapes: self-handled controllers return { message }, errorHandler { error }.
+async function apiFetch<T>(
+  path: string,
+  token: string,
+  options: { method?: string; body?: unknown } = {},
+): Promise<T> {
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}${path}`, {
+      method: options.method ?? 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        ...(options.body !== undefined
+          ? { 'Content-Type': 'application/json' }
+          : {}),
+      },
+      body:
+        options.body !== undefined ? JSON.stringify(options.body) : undefined,
+    });
+  } catch {
+    throw new Error('Unable to reach the server. Check your connection.');
+  }
+
+  const contentType = res.headers.get('content-type') ?? '';
+  const data = contentType.includes('application/json')
+    ? await res.json()
+    : { message: `Server error (${res.status})` };
+
+  if (!res.ok) throw new Error(data.message || data.error || 'Request failed');
+  return data as T;
+}
+
+// ── Partners (export destinations) ──────────────────────────────────────────
+export interface Partner {
+  _id: string;
+  name: string;
+  type: 'resale' | 'donation' | 'tailor' | 'upcycle';
+  website?: string;
+  description?: string;
+  isActive: boolean;
+}
+
+export function listPartners(
+  token: string,
+  type?: 'resale' | 'donation',
+): Promise<Partner[]> {
+  const query = type ? `?type=${type}` : '';
+  return apiFetch<Partner[]>(`/api/partners${query}`, token);
+}
+
+// ── Export clothing ─────────────────────────────────────────────────────────
+export interface ExportPayload {
+  clothingId: string;
+  partnerId: string;
+  checklistCompleted: boolean;
+  consent: boolean;
+  selectedFields: string[];
+  price?: number;
+  description?: string;
+}
+
+export interface ExportRecord {
+  _id: string;
+  type: string;
+  status: string;
+  price?: number;
+  createdAt: string;
+  clothingId: { _id: string; name: string; brand: string; imageUrl: string };
+  partnerId?: { _id: string; name: string; type: string };
+}
+
+export function exportResale(
+  token: string,
+  payload: ExportPayload,
+): Promise<ExportRecord> {
+  return apiFetch<ExportRecord>('/api/exports/resale', token, {
+    method: 'POST',
+    body: payload,
+  });
+}
+
+export function exportDonation(
+  token: string,
+  payload: ExportPayload,
+): Promise<ExportRecord> {
+  return apiFetch<ExportRecord>('/api/exports/donation', token, {
+    method: 'POST',
+    body: payload,
+  });
+}
+
+export function getExportHistory(token: string): Promise<ExportRecord[]> {
+  return apiFetch<ExportRecord[]>('/api/exports/history', token);
+}
+
+// ── Forgotten items ─────────────────────────────────────────────────────────
+export function getForgottenItems(token: string): Promise<Clothing[]> {
+  return apiFetch<Clothing[]>('/api/clothing/forgotten-items', token);
+}
+
+// ── Thoughtful purchasing ───────────────────────────────────────────────────
+export interface ThoughtfulPurchase {
+  _id: string;
+  itemName: string;
+  description?: string;
+  imageUrl?: string;
+  estimatedPrice?: number;
+  sourceUrl?: string;
+  cooldownEndsAt: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+}
+
+export interface PurchasePayload {
+  itemName: string;
+  cooldownMinutes: number;
+  description?: string;
+  imageUrl?: string;
+  estimatedPrice?: number;
+  sourceUrl?: string;
+}
+
+export function getPurchases(token: string): Promise<ThoughtfulPurchase[]> {
+  return apiFetch<ThoughtfulPurchase[]>('/api/thoughtful-purchase', token);
+}
+
+export function createPurchase(
+  token: string,
+  payload: PurchasePayload,
+): Promise<ThoughtfulPurchase> {
+  return apiFetch<ThoughtfulPurchase>('/api/thoughtful-purchase', token, {
+    method: 'POST',
+    body: payload,
+  });
+}
+
+export function approvePurchase(
+  token: string,
+  id: string,
+): Promise<ThoughtfulPurchase> {
+  return apiFetch<ThoughtfulPurchase>(
+    `/api/thoughtful-purchase/approve/${id}`,
+    token,
+    { method: 'PATCH' },
+  );
+}
+
+export function rejectPurchase(
+  token: string,
+  id: string,
+): Promise<ThoughtfulPurchase> {
+  return apiFetch<ThoughtfulPurchase>(
+    `/api/thoughtful-purchase/reject/${id}`,
+    token,
+    { method: 'PATCH' },
+  );
 }
