@@ -1,18 +1,18 @@
 const ThoughtfulPurchase = require('../models/ThoughtfulPurchase');
+const { COOLDOWN_MIN_MINUTES } = require('../config/constants');
 
 const createPurchase = async (req, res) => {
   try {
     const userId = req.user?.userId;
 
-    const today = new Date();
-    const cooldownEndsAt = new Date(req.body.cooldownDate);
-    cooldownEndsAt.setHours(0, 0, 0, 0);
-
-    if (cooldownEndsAt < today) {
+    // BR14: the cooling-off period must be at least 24h (1440 min) from now.
+    const cooldownMinutes = Number(req.body.cooldownMinutes);
+    if (!Number.isFinite(cooldownMinutes) || cooldownMinutes < COOLDOWN_MIN_MINUTES) {
       return res.status(400).json({
-        message: 'cooldownDate cannot be in the past',
+        message: `cooldownMinutes must be at least ${COOLDOWN_MIN_MINUTES}`,
       });
     }
+    const cooldownEndsAt = new Date(Date.now() + cooldownMinutes * 60 * 1000);
 
     const purchase = await ThoughtfulPurchase.create({
       userId,
