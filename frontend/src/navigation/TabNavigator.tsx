@@ -77,13 +77,17 @@ export default function TabNavigator() {
       })}
     >
       <Tab.Screen name="Home" component={MainScreen} />
-      <Tab.Screen 
-        name="ThoughtfulPurchasing" 
+      <Tab.Screen
+        name="ThoughtfulPurchasing"
         component={ThoughtfulPurchasing}
         options={{
-          tabBarLabel: 'ThoughtfulPurchasing',  // Keep as 'Explore' or change to 'AI Check'
+          tabBarLabel: 'ThoughtfulPurchasing', // Keep as 'Explore' or change to 'AI Check'
           tabBarIcon: ({ focused, color, size }) => (
-            <Icon name={focused ? 'compass' : 'compass-outline'} size={size} color={color} />
+            <Icon
+              name={focused ? 'compass' : 'compass-outline'}
+              size={size}
+              color={color}
+            />
           ),
         }}
       />

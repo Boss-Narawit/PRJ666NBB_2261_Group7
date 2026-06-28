@@ -1,20 +1,48 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Modal,
-  TouchableOpacity,
-} from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity } from 'react-native';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
 
 // Configure locale for English
-LocaleConfig.locales['en'] = {
-  monthNames: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
-  monthNamesShort: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-  dayNames: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+LocaleConfig.locales.en = {
+  monthNames: [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ],
+  monthNamesShort: [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ],
+  dayNames: [
+    'Sunday',
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+  ],
   dayNamesShort: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
   today: 'Today',
 };
@@ -29,10 +57,10 @@ type Props = {
   mode?: 'start' | 'end';
 };
 
-export default function CustomDatePicker({ 
-  visible, 
-  onClose, 
-  onConfirm, 
+export default function CustomDatePicker({
+  visible,
+  onClose,
+  onConfirm,
   initialDate = new Date(),
   startDate,
   mode = 'end',
@@ -128,10 +156,16 @@ export default function CustomDatePicker({
 
           {/* Buttons */}
           <View style={styles.footer}>
-            <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={onClose}>
+            <TouchableOpacity
+              style={[styles.button, styles.cancelButton]}
+              onPress={onClose}
+            >
               <Text style={styles.cancelButtonText}>CANCEL</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.button, styles.confirmButton]} onPress={handleConfirm}>
+            <TouchableOpacity
+              style={[styles.button, styles.confirmButton]}
+              onPress={handleConfirm}
+            >
               <Text style={styles.confirmButtonText}>OK</Text>
             </TouchableOpacity>
           </View>
