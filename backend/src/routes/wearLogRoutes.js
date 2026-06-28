@@ -1,21 +1,22 @@
 const express = require('express');
+const { authenticate } = require('../middlewares/auth');
+
+const {
+  createWearLog,
+  listWearLogs,
+  getWearLogById,
+  deleteWearLog,
+} = require('../controllers/wearLog.controller');
 
 const router = express.Router();
+router.use(authenticate);
 
-router.post('/', (req, res) => {
-  res.json({ message: 'Create wear log' });
-});
+router.post('/', createWearLog);
 
-router.get('/', (req, res) => {
-  res.json({ message: 'Get wear logs' });
-});
+router.get('/', listWearLogs);
 
-router.get('/:id', (req, res) => {
-  res.json({ message: 'Get wear log detail' });
-});
+router.get('/:id', getWearLogById);
 
-router.delete('/:id', (req, res) => {
-  res.json({ message: 'Delete wear log' });
-});
+router.delete('/:id', deleteWearLog);
 
 module.exports = router;

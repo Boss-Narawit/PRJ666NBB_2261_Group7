@@ -42,6 +42,7 @@ const DELETE_GRACE_PERIOD_DAYS = 30; // BR3
 const MAX_CLOTHING_BATCH = 50; // BR5
 const DASHBOARD_FORGOTTEN_PREVIEW_LIMIT = 5; // forgotten-items preview on main dashboard
 const NOTIFICATION_PAGE_SIZE = 20; // default + max page size for the notification list
+const WEARLOG_PAGE_SIZE = 20; // default + max page size for the wear-log history list
 
 module.exports = {
   CLOTHING_CATEGORIES,
@@ -66,4 +67,5 @@ module.exports = {
   MAX_CLOTHING_BATCH,
   DASHBOARD_FORGOTTEN_PREVIEW_LIMIT,
   NOTIFICATION_PAGE_SIZE,
+  WEARLOG_PAGE_SIZE,
 };
