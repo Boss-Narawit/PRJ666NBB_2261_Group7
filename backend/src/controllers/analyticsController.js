@@ -15,6 +15,7 @@ const getAnnualRecapAnalytics = async (req, res) => {
       0
     );
 
+    // Most and Least Worn Items
     let mostWornItem = null;
     let leastWornItem = null;
 
@@ -36,12 +37,51 @@ const getAnnualRecapAnalytics = async (req, res) => {
       };
     }
 
+    // Favorite Category
+    const categoryWearMap = {};
+
+    clothingItems.forEach((item) => {
+      const wearCount = item.analytics?.wearCount || 0;
+
+      categoryWearMap[item.category] = (categoryWearMap[item.category] || 0) + wearCount;
+    });
+
+    let favoriteCategory = null;
+
+    if (Object.keys(categoryWearMap).length > 0) {
+      favoriteCategory = Object.entries(categoryWearMap).sort((a, b) => b[1] - a[1])[0][0];
+    }
+
+    // Most Worn Brand
+    const brandWearMap = {};
+
+    clothingItems.forEach((item) => {
+      const wearCount = item.analytics?.wearCount || 0;
+
+      brandWearMap[item.brand] = (brandWearMap[item.brand] || 0) + wearCount;
+    });
+
+    let mostWornBrand = null;
+
+    if (Object.keys(brandWearMap).length > 0) {
+      mostWornBrand = Object.entries(brandWearMap).sort((a, b) => b[1] - a[1])[0][0];
+    }
+
+    // Wardrobe Utilization
+    const wornItems = clothingItems.filter((item) => (item.analytics?.wearCount || 0) > 0).length;
+
+    const utilizationRate =
+      totalClothingItems === 0 ? 0 : Number(((wornItems / totalClothingItems) * 100).toFixed(1));
+
     res.status(200).json({
       year: new Date().getFullYear(),
       totalClothingItems,
       totalWearCount,
       mostWornItem,
       leastWornItem,
+      favoriteCategory,
+      mostWornBrand,
+      utilizationRate,
     });
   } catch (error) {
     res.status(500).json({
