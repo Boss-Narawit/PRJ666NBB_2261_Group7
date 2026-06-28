@@ -1,17 +1,14 @@
 const express = require('express');
+const { authenticate } = require('../middlewares/auth');
+const { createResale, createDonation, getHistory } = require('../controllers/export.controller');
 
 const router = express.Router();
+router.use(authenticate);
 
-router.post('/resale', (req, res) => {
-  res.json({ message: 'Export for resale' });
-});
+router.post('/resale', createResale);
 
-router.post('/donation', (req, res) => {
-  res.json({ message: 'Export for donation' });
-});
+router.post('/donation', createDonation);
 
-router.get('/history', (req, res) => {
-  res.json({ message: 'Export history' });
-});
+router.get('/history', getHistory);
 
 module.exports = router;

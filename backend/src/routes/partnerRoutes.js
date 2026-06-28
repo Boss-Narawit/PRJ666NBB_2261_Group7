@@ -1,11 +1,13 @@
 const express = require('express');
+const { authenticate } = require('../middlewares/auth');
+const { listPartners } = require('../controllers/partner.controller');
 
 const router = express.Router();
 
-router.get('/', (req, res) => {
-  res.json({ message: 'Get partners' });
-});
+// Active partners feed the export destination picker (BR30).
+router.get('/', authenticate, listPartners);
 
+// Admin partner management (BR29) is deferred — left as stubs.
 router.post('/', (req, res) => {
   res.json({ message: 'Create partner' });
 });
