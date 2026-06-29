@@ -9,6 +9,8 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
+import { useAuth } from '../context/AuthContext';
+import { deleteWearLog } from '../services/api';
 
 type Props = {
   navigation: any;
@@ -27,11 +29,12 @@ type Props = {
 };
 
 export default function WearLogDetailScreen({ navigation, route }: Props) {
-  const { date, items } = route.params;
+  const { logId, date, items } = route.params;
+  const { token } = useAuth();
+  const [deleting, setDeleting] = React.useState(false);
 
   const handleEditLog = () => {
-    Alert.alert('Edit Log', 'Navigate to edit wear log screen');
-    // navigation.navigate('EditWearLog', { logId, date, items });
+    navigation.navigate('EditWearLog', { logId });
   };
 
   const handleDeleteLog = () => {
@@ -43,9 +46,16 @@ export default function WearLogDetailScreen({ navigation, route }: Props) {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => {
-            // navigation.goBack();
-            Alert.alert('Deleted', 'Wear log has been deleted');
+          onPress: async () => {
+            if (!token) return;
+            setDeleting(true);
+            try {
+              await deleteWearLog(token, logId);
+              navigation.goBack();
+            } catch (err: any) {
+              setDeleting(false);
+              Alert.alert('Error', err.message || 'Failed to delete wear log');
+            }
           },
         },
       ],
@@ -114,9 +124,15 @@ export default function WearLogDetailScreen({ navigation, route }: Props) {
           <Icon name="create-outline" size={20} color={colors.white} />
           <Text style={styles.editButtonText}>Edit Log</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteLog}>
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={handleDeleteLog}
+          disabled={deleting}
+        >
           <Icon name="trash-outline" size={20} color={colors.error} />
-          <Text style={styles.deleteButtonText}>Delete Log</Text>
+          <Text style={styles.deleteButtonText}>
+            {deleting ? 'Deleting…' : 'Delete Log'}
+          </Text>
         </TouchableOpacity>
       </View>
     </ScrollView>

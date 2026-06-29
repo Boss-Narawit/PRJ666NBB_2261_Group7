@@ -43,7 +43,10 @@ const uploadImage = async (req, res) => {
 
 const uploadClothing = async (req, res) => {
   try {
-    const clothing = await Clothing.create(req.body);
+    const clothing = await Clothing.create({
+      ...req.body,
+      userId: req.user.userId,
+    });
 
     res.status(201).json(clothing);
   } catch (error) {

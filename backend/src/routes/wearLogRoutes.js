@@ -5,6 +5,7 @@ const {
   createWearLog,
   listWearLogs,
   getWearLogById,
+  updateWearLog,
   deleteWearLog,
 } = require('../controllers/wearLog.controller');
 
@@ -16,6 +17,8 @@ router.post('/', createWearLog);
 router.get('/', listWearLogs);
 
 router.get('/:id', getWearLogById);
+
+router.patch('/:id', updateWearLog);
 
 router.delete('/:id', deleteWearLog);
 

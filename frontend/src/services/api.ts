@@ -301,6 +301,96 @@ export async function getClothingById(
   return data;
 }
 
+// Uploads a picked photo to Cloudinary via the backend and returns the hosted
+// secure_url. Uses an inline multipart fetch (NOT apiFetch, which forces a JSON
+// Content-Type) — the runtime must set the multipart boundary itself. The field
+// name 'image' matches the server's upload.single('image').
+export async function uploadClothingImage(
+  token: string,
+  photo: {
+    uri?: string | null;
+    type?: string | null;
+    fileName?: string | null;
+  },
+): Promise<string> {
+  if (!photo.uri) throw new Error('No photo selected');
+  const form = new FormData();
+  form.append('image', {
+    uri: photo.uri,
+    type: photo.type || 'image/jpeg',
+    name: photo.fileName || 'photo.jpg',
+  } as any);
+
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}/api/clothing/upload-image`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
+    });
+  } catch {
+    throw new Error('Unable to reach the server. Check your connection.');
+  }
+
+  const contentType = res.headers.get('content-type') ?? '';
+  const data = contentType.includes('application/json')
+    ? await res.json()
+    : { message: `Server error (${res.status})` };
+
+  if (!res.ok)
+    throw new Error(data.message || data.error || 'Image upload failed');
+  return data.imageUrl;
+}
+
+// Raw values straight from the Add form. createClothing reconciles them to the
+// Clothing model at the API boundary (same pattern as updateClothing).
+export interface NewClothingInput {
+  name: string;
+  brand: string;
+  category: string; // display label, e.g. 'Tops' / 'Activewear'
+  color: string; // comma-separated, e.g. 'Black, White'
+  size: string;
+  imageUrl: string; // hosted URL from uploadClothingImage
+  condition?: string; // defaults to 'Good'
+  notes?: string;
+}
+
+// Form category labels → Clothing enum (lowercase). The form offers 'Activewear',
+// which has no model enum, so it maps to 'other'.
+const CATEGORY_MAP: Record<string, string> = {
+  tops: 'tops',
+  bottoms: 'bottoms',
+  dresses: 'dresses',
+  outerwear: 'outerwear',
+  shoes: 'shoes',
+  accessories: 'accessories',
+  activewear: 'other',
+  other: 'other',
+};
+
+export function createClothing(
+  token: string,
+  input: NewClothingInput,
+): Promise<Clothing> {
+  const body = {
+    name: input.name.trim(),
+    brand: input.brand.trim(),
+    category: CATEGORY_MAP[input.category.toLowerCase()] ?? 'other',
+    colors: input.color
+      .split(',')
+      .map(c => c.trim())
+      .filter(Boolean),
+    size: input.size,
+    imageUrl: input.imageUrl,
+    condition: input.condition ?? 'Good',
+    notes: input.notes?.trim() || undefined,
+  };
+  return apiFetch<Clothing>('/api/clothing/upload', token, {
+    method: 'POST',
+    body,
+  });
+}
+
 // Editable fields the ItemDetail screen can PATCH. Values must already match the
 // Clothing model's enums (category lowercase, condition Excellent/Good/Fair/Damaged).
 export type ClothingUpdate = Partial<
@@ -349,10 +439,14 @@ export interface WearLogList {
 export async function getWearLogs(
   token: string,
   page = 1,
+  range?: { startDate?: string; endDate?: string },
 ): Promise<WearLogList> {
+  const params = new URLSearchParams({ page: String(page) });
+  if (range?.startDate) params.set('startDate', range.startDate);
+  if (range?.endDate) params.set('endDate', range.endDate);
   let res: Response;
   try {
-    res = await fetch(`${BASE_URL}/api/wear-logs?page=${page}`, {
+    res = await fetch(`${BASE_URL}/api/wear-logs?${params.toString()}`, {
       method: 'GET',
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -385,6 +479,39 @@ export function createWearLog(
   return apiFetch<{ _id: string }>('/api/wear-logs', token, {
     method: 'POST',
     body: payload,
+  });
+}
+
+export function getWearLogById(token: string, id: string): Promise<WearLog> {
+  return apiFetch<WearLog>(`/api/wear-logs/${id}`, token);
+}
+
+// Partial update (BR10). Throws an Error with `.status === 409` when logDate is
+// moved onto a day that already has a log (BR8).
+export interface UpdateWearLogPayload {
+  logDate?: string;
+  clothingWorn?: { itemId: string }[];
+  occasion?: string;
+  notes?: string;
+}
+
+export function updateWearLog(
+  token: string,
+  id: string,
+  payload: UpdateWearLogPayload,
+): Promise<WearLog> {
+  return apiFetch<WearLog>(`/api/wear-logs/${id}`, token, {
+    method: 'PATCH',
+    body: payload,
+  });
+}
+
+export function deleteWearLog(
+  token: string,
+  id: string,
+): Promise<{ deleted: boolean }> {
+  return apiFetch<{ deleted: boolean }>(`/api/wear-logs/${id}`, token, {
+    method: 'DELETE',
   });
 }
 

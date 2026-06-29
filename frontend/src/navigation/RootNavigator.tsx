@@ -14,6 +14,7 @@ import AddClothScreen from '../screens/AddClothScreen';
 import WardrobeScreen from '../screens/WardrobeScreen';
 import WearHistoryScreen from '../screens/WearHistoryScreen';
 import WearLogDetailScreen from '../screens/WearLogDetailScreen';
+import EditWearLogScreen from '../screens/EditWearLogScreen';
 import ExportScreen from '../screens/ExportScreen';
 import QualityChecklistScreen from '../screens/QualityChecklistScreen';
 import ForgottenItemsScreen from '../screens/ForgottenItemsScreen';
@@ -44,6 +45,9 @@ export type RootStackParamList = {
       wearCount: number;
       image?: string;
     }[];
+  };
+  EditWearLog: {
+    logId: string;
   };
   Export: { item?: Clothing } | undefined;
   QualityChecklist: {
@@ -172,6 +176,11 @@ function RootStacks() {
             <Stack.Screen
               name="WearLogDetail"
               component={WearLogDetailScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="EditWearLog"
+              component={EditWearLogScreen}
               options={{ headerShown: false }}
             />
             <Stack.Screen

@@ -32,20 +32,31 @@ const recomputeItemAnalytics = async (userId, itemIds, session) => {
   }
 };
 
-const listWearLogs = async (userId, { page, limit } = {}) => {
+const listWearLogs = async (userId, { page, limit, startDate, endDate } = {}) => {
   const safePage = Math.max(parseInt(page, 10) || 1, 1);
   const safeLimit = Math.min(
     Math.max(parseInt(limit, 10) || WEARLOG_PAGE_SIZE, 1),
     WEARLOG_PAGE_SIZE
   );
 
+  // Optional logDate range. logDate is stored at midnight UTC, so an inclusive
+  // endDate uses $lte on its own midnight. Invalid dates are ignored, not 400.
+  const filter = { userId };
+  const from = normalizeToMidnightUTC(startDate);
+  const to = normalizeToMidnightUTC(endDate);
+  if (from || to) {
+    filter.logDate = {};
+    if (from) filter.logDate.$gte = from;
+    if (to) filter.logDate.$lte = to;
+  }
+
   const [wearLogs, total] = await Promise.all([
-    WearLog.find({ userId })
+    WearLog.find(filter)
       .sort({ logDate: -1 })
       .skip((safePage - 1) * safeLimit)
       .limit(safeLimit)
       .populate('clothingWorn.itemId', 'name brand category imageUrl analytics.wearCount'),
-    WearLog.countDocuments({ userId }),
+    WearLog.countDocuments(filter),
   ]);
 
   return { wearLogs, total, page: safePage, limit: safeLimit };
@@ -101,6 +112,64 @@ const createWearLog = async (userId, data) => {
   });
 };
 
+// BR10: past wear logs are editable. Partial update of logDate/clothingWorn/
+// occasion/notes. Analytics are recomputed for the union of the items present
+// before and after — editing the date alone changes an item's lastWornAt, so
+// recompute always runs regardless of which fields changed.
+const updateWearLog = async (userId, id, data) => {
+  return withTransaction(async (session) => {
+    const log = await WearLog.findOne({ _id: id, userId }).session(session);
+    if (!log) {
+      const e = new Error('Wear log not found');
+      e.status = 404;
+      throw e;
+    }
+
+    const oldItemIds = log.clothingWorn.map((c) => String(c.itemId));
+
+    if (data.logDate !== undefined) {
+      const logDate = normalizeToMidnightUTC(data.logDate);
+      if (!logDate) {
+        const e = new Error('logDate must be a valid date');
+        e.status = 422;
+        throw e;
+      }
+      log.logDate = logDate;
+    }
+
+    if (data.clothingWorn !== undefined) {
+      if (!Array.isArray(data.clothingWorn) || data.clothingWorn.length === 0) {
+        const e = new Error('clothingWorn must be a non-empty array');
+        e.status = 422;
+        throw e;
+      }
+      const newItemIds = [...new Set(data.clothingWorn.map((c) => String(c.itemId)))];
+      const ownedCount = await Clothing.countDocuments(
+        { _id: { $in: newItemIds }, userId },
+        { session }
+      );
+      if (ownedCount !== newItemIds.length) {
+        const e = new Error('One or more clothing items not found in your wardrobe');
+        e.status = 422;
+        throw e;
+      }
+      log.clothingWorn = data.clothingWorn;
+    }
+
+    if (data.occasion !== undefined) log.occasion = data.occasion;
+    if (data.notes !== undefined) log.notes = data.notes;
+
+    // Duplicate-day (BR8) surfaces as a 11000 key error → errorHandler maps to 409.
+    await log.save({ session });
+
+    const finalItemIds = log.clothingWorn.map((c) => String(c.itemId));
+    const affected = [...new Set([...oldItemIds, ...finalItemIds])];
+    await recomputeItemAnalytics(userId, affected, session);
+
+    return log;
+  });
+};
+
 const deleteWearLog = async (userId, id) => {
   return withTransaction(async (session) => {
     const log = await WearLog.findOne({ _id: id, userId }).session(session);
@@ -121,5 +190,6 @@ module.exports = {
   listWearLogs,
   getWearLogById,
   createWearLog,
+  updateWearLog,
   deleteWearLog,
 };

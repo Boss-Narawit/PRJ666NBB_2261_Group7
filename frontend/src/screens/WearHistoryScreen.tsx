@@ -56,6 +56,30 @@ const categories = [
 ];
 const seasons = ['Summer', 'Winter', 'Fall', 'Spring'];
 
+type DateRange = { startDate?: string; endDate?: string };
+
+// Midnight-UTC calendar date `n` days before today, as YYYY-MM-DD — matches the
+// backend's logDate storage so range comparisons line up.
+function isoDaysAgo(n: number): string {
+  const d = new Date();
+  d.setUTCHours(0, 0, 0, 0);
+  d.setUTCDate(d.getUTCDate() - n);
+  return d.toISOString().slice(0, 10);
+}
+
+const isYmd = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v);
+
+// Translate the active filter chip into the date range sent to the API. Custom
+// only contributes the YYYY-MM-DD values the user actually entered.
+function rangeForFilter(filter: string, start: string, end: string): DateRange {
+  if (filter === 'Last 7 Days') return { startDate: isoDaysAgo(7) };
+  if (filter === 'Last 30 Days') return { startDate: isoDaysAgo(30) };
+  const r: DateRange = {};
+  if (isYmd(start)) r.startDate = start;
+  if (isYmd(end)) r.endDate = end;
+  return r;
+}
+
 type Props = {
   navigation: any;
 };
@@ -63,9 +87,15 @@ type Props = {
 export default function WearHistoryScreen({ navigation }: Props) {
   const { token } = useAuth();
   const [wearLogs, setWearLogs] = useState<WearLog[]>([]);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState('Last 7 Days');
+  const [appliedRange, setAppliedRange] = useState<DateRange>(() => ({
+    startDate: isoDaysAgo(7),
+  }));
   const [_selectedDate, _setSelectedDate] = useState<string | null>(null);
   const [selectedLog, _setSelectedLog] = useState<any>(null);
   const [showFilters, setShowFilters] = useState(false);
@@ -76,35 +106,65 @@ export default function WearHistoryScreen({ navigation }: Props) {
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
 
-  // Refetch on focus — history changes after logging a wear elsewhere.
-  useFocusEffect(
-    useCallback(() => {
+  const fetchLogs = useCallback(
+    async (range: DateRange) => {
       if (!token) return;
-      let cancelled = false;
-      getWearLogs(token)
-        .then(data => {
-          if (!cancelled) {
-            setWearLogs(data.wearLogs);
-            setError(null);
-          }
-        })
-        .catch(err => {
-          if (!cancelled)
-            setError(err.message || 'Failed to load wear history.');
-        })
-        .finally(() => {
-          if (!cancelled) setIsLoading(false);
-        });
-      return () => {
-        cancelled = true;
-      };
-    }, [token]),
+      setIsLoading(true);
+      try {
+        const data = await getWearLogs(token, 1, range);
+        setWearLogs(data.wearLogs);
+        setPage(data.page);
+        setTotal(data.total);
+        setError(null);
+      } catch (err: any) {
+        setError(err.message || 'Failed to load wear history.');
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [token],
   );
 
-  const logs = useMemo(() => wearLogs.map(toDisplayLog), [wearLogs]);
+  // Refetch on focus (history changes after logging a wear elsewhere) and
+  // whenever the applied date range changes — applying a filter just updates
+  // appliedRange, which re-runs this single fetch.
+  useFocusEffect(
+    useCallback(() => {
+      fetchLogs(appliedRange);
+    }, [fetchLogs, appliedRange]),
+  );
 
-  // Calculate stats
-  const totalLogs = logs.length;
+  const loadMore = async () => {
+    if (!token || isLoadingMore || isLoading) return;
+    if (wearLogs.length >= total) return;
+    setIsLoadingMore(true);
+    try {
+      const data = await getWearLogs(token, page + 1, appliedRange);
+      setWearLogs(prev => [...prev, ...data.wearLogs]);
+      setPage(data.page);
+      setTotal(data.total);
+    } catch {
+      // Keep the list as-is; changing the filter or re-focusing recovers.
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
+  // Category is filtered client-side over the loaded pages (case-insensitive —
+  // the API returns lowercase category enums against the title-case chips).
+  const logs = useMemo(() => {
+    const mapped = wearLogs.map(toDisplayLog);
+    if (selectedCategories.length === 0) return mapped;
+    const wanted = selectedCategories.map(c => c.toLowerCase());
+    return mapped.filter(log =>
+      log.items.some(i => wanted.includes(i.category.toLowerCase())),
+    );
+  }, [wearLogs, selectedCategories]);
+
+  // Total Logs reflects the server-side count for the active range. With a
+  // (client-side) category filter active there is no server count for it, so
+  // fall back to the visible matched count to avoid contradicting the list.
+  const totalLogs = selectedCategories.length > 0 ? logs.length : total;
   const mostWornItem = () => {
     let maxWear = 0;
     let mostWorn = '';
@@ -151,12 +211,29 @@ export default function WearHistoryScreen({ navigation }: Props) {
     }
   };
 
+  // Quick-chip tap: switch the active range and let appliedRange drive the refetch.
+  const applyFilter = (filter: string) => {
+    setActiveFilter(filter);
+    setAppliedRange(rangeForFilter(filter, customStartDate, customEndDate));
+  };
+
+  // Modal "Apply Filters": commit the active range (incl. custom dates) and close.
+  // Category is client-side, so it needs no refetch.
+  const applyModalFilters = () => {
+    setAppliedRange(
+      rangeForFilter(activeFilter, customStartDate, customEndDate),
+    );
+    setShowFilters(false);
+  };
+
   const resetFilters = () => {
     setSelectedCategories([]);
     setSelectedSeasons([]);
     setSelectedBrand('');
     setCustomStartDate('');
     setCustomEndDate('');
+    setActiveFilter('Last 7 Days');
+    setAppliedRange({ startDate: isoDaysAgo(7) });
   };
 
   const handleLogPress = (log: any) => {
@@ -240,7 +317,7 @@ export default function WearHistoryScreen({ navigation }: Props) {
             styles.chip,
             activeFilter === 'Last 7 Days' && styles.chipActive,
           ]}
-          onPress={() => setActiveFilter('Last 7 Days')}
+          onPress={() => applyFilter('Last 7 Days')}
         >
           <Text
             style={[
@@ -256,7 +333,7 @@ export default function WearHistoryScreen({ navigation }: Props) {
             styles.chip,
             activeFilter === 'Last 30 Days' && styles.chipActive,
           ]}
-          onPress={() => setActiveFilter('Last 30 Days')}
+          onPress={() => applyFilter('Last 30 Days')}
         >
           <Text
             style={[
@@ -269,7 +346,7 @@ export default function WearHistoryScreen({ navigation }: Props) {
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.chip, activeFilter === 'Custom' && styles.chipActive]}
-          onPress={() => setActiveFilter('Custom')}
+          onPress={() => applyFilter('Custom')}
         >
           <Text
             style={[
@@ -313,6 +390,21 @@ export default function WearHistoryScreen({ navigation }: Props) {
         keyExtractor={item => item.id}
         scrollEnabled={false}
         contentContainerStyle={styles.listContainer}
+        ListFooterComponent={
+          wearLogs.length < total ? (
+            <TouchableOpacity
+              style={styles.loadMoreButton}
+              onPress={loadMore}
+              disabled={isLoadingMore}
+            >
+              {isLoadingMore ? (
+                <ActivityIndicator color={colors.primary} />
+              ) : (
+                <Text style={styles.loadMoreText}>Load More</Text>
+              )}
+            </TouchableOpacity>
+          ) : null
+        }
         ListEmptyComponent={
           !isLoading && !error ? (
             <View style={styles.emptyContainer}>
@@ -321,7 +413,13 @@ export default function WearHistoryScreen({ navigation }: Props) {
                 size={48}
                 color={colors.textSecondary}
               />
-              <Text style={styles.emptyText}>No wear logs yet</Text>
+              <Text style={styles.emptyText}>
+                {selectedCategories.length > 0 && wearLogs.length > 0
+                  ? wearLogs.length < total
+                    ? 'No logs match this category on the loaded pages. Load more or clear the filter.'
+                    : 'No logs match this category. Clear the filter to see all.'
+                  : 'No wear logs yet'}
+              </Text>
             </View>
           ) : null
         }
@@ -482,7 +580,7 @@ export default function WearHistoryScreen({ navigation }: Props) {
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.applyButton}
-                onPress={() => setShowFilters(false)}
+                onPress={applyModalFilters}
               >
                 <Text style={styles.applyButtonText}>Apply Filters</Text>
               </TouchableOpacity>
@@ -822,6 +920,16 @@ const styles = StyleSheet.create({
   },
   loading: {
     marginVertical: 24,
+  },
+  loadMoreButton: {
+    alignItems: 'center',
+    paddingVertical: 14,
+    marginTop: 4,
+  },
+  loadMoreText: {
+    fontSize: 14,
+    color: colors.primary,
+    fontWeight: '500',
   },
   errorText: {
     fontSize: 13,

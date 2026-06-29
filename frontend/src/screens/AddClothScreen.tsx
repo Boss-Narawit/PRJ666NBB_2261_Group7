@@ -12,17 +12,21 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
-import { launchImageLibrary } from 'react-native-image-picker';
+import { launchImageLibrary, Asset } from 'react-native-image-picker';
+import { useAuth } from '../context/AuthContext';
+import { uploadClothingImage, createClothing } from '../services/api';
 
 type Props = {
   navigation: any;
 };
 
 export default function AddClothScreen({ navigation }: Props) {
+  const { token } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [photo, setPhoto] = useState<string | null>(null);
+  const [photo, setPhoto] = useState<Asset | null>(null);
 
   // Form fields
+  const [name, setName] = useState('');
   const [brand, setBrand] = useState('');
   const [material, setMaterial] = useState('');
   const [category, setCategory] = useState('');
@@ -51,7 +55,7 @@ export default function AddClothScreen({ navigation }: Props) {
       },
       response => {
         if (response.assets && response.assets[0]?.uri) {
-          setPhoto(response.assets[0].uri);
+          setPhoto(response.assets[0]);
         } else if (response.didCancel) {
           // user cancelled the picker — no action needed
         } else {
@@ -63,30 +67,35 @@ export default function AddClothScreen({ navigation }: Props) {
 
   const handleSave = async () => {
     // Validation (BR4 - required fields)
-    if (!brand || !category || !color || !size || !photo) {
+    if (!name || !brand || !category || !color || !size || !photo?.uri) {
       Alert.alert(
         'Error',
-        'Please fill all required fields (Brand, Category, Color, Size, and Photo)',
+        'Please fill all required fields (Name, Brand, Category, Color, Size, and Photo)',
       );
       return;
     }
+    if (!token) return;
 
     setLoading(true);
     try {
-      // TODO: Call API to save clothing
-      // const formData = new FormData();
-      // formData.append('brand', brand);
-      // formData.append('category', category);
-      // formData.append('color', color);
-      // formData.append('size', size);
-      // formData.append('photo', { uri: photo, type: 'image/jpeg', name: 'photo.jpg' });
-      // await clothingAPI.create(formData);
+      // Upload the picked photo to Cloudinary first, then create the item with
+      // the hosted URL (the wardrobe renders a blank frame for non-URL imageUrls).
+      const imageUrl = await uploadClothingImage(token, photo);
+      await createClothing(token, {
+        name,
+        brand,
+        category,
+        color,
+        size,
+        imageUrl,
+        notes: description,
+      });
 
       Alert.alert('Success', 'Clothing item added!', [
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
-    } catch {
-      Alert.alert('Error', 'Failed to save clothing item');
+    } catch (err: any) {
+      Alert.alert('Error', err?.message || 'Failed to save clothing item');
     } finally {
       setLoading(false);
     }
@@ -115,7 +124,7 @@ export default function AddClothScreen({ navigation }: Props) {
       {/* Photo Preview */}
       {photo && (
         <View style={styles.photoPreview}>
-          <Image source={{ uri: photo }} style={styles.previewImage} />
+          <Image source={{ uri: photo.uri }} style={styles.previewImage} />
           <TouchableOpacity
             style={styles.removePhoto}
             onPress={() => setPhoto(null)}
@@ -134,6 +143,19 @@ export default function AddClothScreen({ navigation }: Props) {
 
       {/* Form Fields */}
       <View style={styles.form}>
+        {/* Name */}
+        <View style={styles.field}>
+          <Text style={styles.label}>
+            Name <Text style={styles.requiredStar}>*</Text>
+          </Text>
+          <TextInput
+            style={styles.input}
+            placeholder="e.g., Blue Denim Jacket"
+            value={name}
+            onChangeText={setName}
+          />
+        </View>
+
         {/* Brand */}
         <View style={styles.field}>
           <Text style={styles.label}>
