@@ -10,6 +10,7 @@ const thoughtfulPurchaseSchema = new mongoose.Schema(
     estimatedPrice: { type: Number },
     sourceUrl: { type: String },
     cooldownEndsAt: { type: Date, required: true }, // BR14: must be ≥ 1440 min from createdAt
+    cooldownReminderSentAt: { type: Date, default: null }, // BR15: stamped once the expireTimers job notifies
     status: { type: String, enum: PURCHASE_STATUSES, default: 'pending' },
   },
   { timestamps: true }

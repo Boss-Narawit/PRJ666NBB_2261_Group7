@@ -139,4 +139,40 @@ describe('ItemDetailScreen Component', () => {
     expect(texts.some(t => t.includes('Clothing item not found'))).toBe(true);
     expect(texts.some(t => t.includes('Go Back'))).toBe(true);
   });
+
+  it('shows the exported banner and hides actions for an exported item', async () => {
+    (getClothingById as jest.Mock).mockResolvedValue({
+      _id: 'c1',
+      name: 'Blue Jacket',
+      brand: 'Levi',
+      category: 'outerwear',
+      colors: ['Blue'],
+      size: 'M',
+      imageUrl: 'http://example.com/j.jpg',
+      condition: 'Good',
+      status: 'Exported',
+      exportInfo: {
+        partnerName: 'Depop',
+        type: 'resale',
+        exportedAt: '2026-06-30T00:00:00.000Z',
+      },
+      analytics: { wearCount: 2 },
+    });
+
+    let tree: any;
+    await act(async () => {
+      tree = renderer.create(
+        <ItemDetailScreen navigation={mockNavigation} route={route} />,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const texts = textValues(tree);
+    expect(texts.some(t => t.includes('Exported'))).toBe(true);
+    expect(texts.some(t => t.includes('Depop'))).toBe(true);
+    // Read-only: the Log Wear action is not rendered for an exported item.
+    expect(texts.some(t => t.includes('Log Wear'))).toBe(false);
+  });
 });

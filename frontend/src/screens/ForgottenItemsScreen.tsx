@@ -16,7 +16,12 @@ import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
 import { useAuth } from '../context/AuthContext';
-import { getForgottenItems, Clothing } from '../services/api';
+import {
+  getForgottenItems,
+  createWearLog,
+  updateProfile,
+  Clothing,
+} from '../services/api';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -41,7 +46,6 @@ export default function ForgottenItemsScreen({ navigation }: Props) {
   const [items, setItems] = useState<Clothing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedFilter, setSelectedFilter] = useState('Last 30 Days');
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [thresholdDays, setThresholdDays] = useState('21');
   const [selectedItem, setSelectedItem] = useState<Clothing | null>(null);
@@ -66,18 +70,35 @@ export default function ForgottenItemsScreen({ navigation }: Props) {
     }, [load]),
   );
 
-  const handleFilterPress = (filter: string) => {
-    setSelectedFilter(filter);
-  };
-
   const handleItemPress = (item: Clothing) => {
     setSelectedItem(item);
     setShowItemDetail(true);
   };
 
   const handleLogWear = () => {
-    Alert.alert('Log Wear', 'This item has been logged as worn today!');
-    setShowItemDetail(false);
+    if (!selectedItem || !token) return;
+    const item = selectedItem;
+    Alert.alert('Log Wear', `Log "${item.name}" as worn today?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Log Wear',
+        onPress: async () => {
+          try {
+            await createWearLog(token, {
+              logDate: new Date().toISOString(),
+              clothingWorn: [{ itemId: item._id }],
+            });
+          } catch (err: any) {
+            Alert.alert('Log Wear', err.message || 'Could not log wear.');
+            return;
+          }
+          setShowItemDetail(false);
+          Alert.alert('Success', `${item.name} logged as worn today!`);
+          // Worn today → no longer forgotten; refetch drops it from the list.
+          load();
+        },
+      },
+    ]);
   };
 
   const handleExportDonate = () => {
@@ -85,10 +106,17 @@ export default function ForgottenItemsScreen({ navigation }: Props) {
     if (selectedItem) navigation.navigate('Export', { item: selectedItem });
   };
 
-  const handleSaveSettings = () => {
-    const days = parseInt(thresholdDays);
+  const handleSaveSettings = async () => {
+    const days = parseInt(thresholdDays, 10);
     if (isNaN(days) || days < 7) {
       Alert.alert('Error', 'Minimum threshold is 7 days (BR12)');
+      return;
+    }
+    if (!token) return;
+    try {
+      await updateProfile(token, { forgottenItemThresholdDays: days });
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Could not save settings.');
       return;
     }
     setShowSettingsModal(false);
@@ -96,6 +124,8 @@ export default function ForgottenItemsScreen({ navigation }: Props) {
       'Settings Saved',
       `Forgotten item threshold set to ${days} days`,
     );
+    // New threshold changes which items count as forgotten — refetch.
+    load();
   };
 
   const renderForgottenItem = ({ item }: { item: Clothing }) => (
@@ -143,33 +173,6 @@ export default function ForgottenItemsScreen({ navigation }: Props) {
           <Icon name="settings-outline" size={24} color={colors.primary} />
         </TouchableOpacity>
       </View>
-
-      {/* Filter Chips */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.filterChips}
-      >
-        {['Last 7 Days', 'Last 30 Days', 'Custom'].map(filter => (
-          <TouchableOpacity
-            key={filter}
-            style={[
-              styles.chip,
-              selectedFilter === filter && styles.chipActive,
-            ]}
-            onPress={() => handleFilterPress(filter)}
-          >
-            <Text
-              style={[
-                styles.chipText,
-                selectedFilter === filter && styles.chipTextActive,
-              ]}
-            >
-              {filter}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
 
       {/* Unworn Summary */}
       <View style={styles.summaryContainer}>
@@ -358,30 +361,6 @@ const styles = StyleSheet.create({
   },
   settingsButton: {
     padding: 8,
-  },
-  filterChips: {
-    paddingHorizontal: 16,
-    marginBottom: 16,
-  },
-  chip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: colors.white,
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: colors.inputBorder,
-  },
-  chipActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  chipText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  chipTextActive: {
-    color: colors.white,
   },
   summaryContainer: {
     marginHorizontal: 16,

@@ -138,6 +138,12 @@ export default function ProfileScreen({ navigation }: Props) {
         />
         <View style={styles.separator} />
         <MenuRow
+          icon="cube-outline"
+          label="Export History"
+          onPress={() => navigation.navigate('ExportHistory')}
+        />
+        <View style={styles.separator} />
+        <MenuRow
           icon="lock-closed-outline"
           label="Privacy Policy"
           onPress={comingSoon}

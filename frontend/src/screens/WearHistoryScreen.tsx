@@ -8,7 +8,6 @@ import {
   FlatList,
   Modal,
   TextInput,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -54,7 +53,6 @@ const categories = [
   'Shoes',
   'Accessories',
 ];
-const seasons = ['Summer', 'Winter', 'Fall', 'Spring'];
 
 type DateRange = { startDate?: string; endDate?: string };
 
@@ -96,12 +94,8 @@ export default function WearHistoryScreen({ navigation }: Props) {
   const [appliedRange, setAppliedRange] = useState<DateRange>(() => ({
     startDate: isoDaysAgo(7),
   }));
-  const [_selectedDate, _setSelectedDate] = useState<string | null>(null);
-  const [selectedLog, _setSelectedLog] = useState<any>(null);
   const [showFilters, setShowFilters] = useState(false);
-  const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedSeasons, setSelectedSeasons] = useState<string[]>([]);
   const [selectedBrand, setSelectedBrand] = useState('');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
@@ -150,21 +144,38 @@ export default function WearHistoryScreen({ navigation }: Props) {
     }
   };
 
-  // Category is filtered client-side over the loaded pages (case-insensitive —
-  // the API returns lowercase category enums against the title-case chips).
-  const logs = useMemo(() => {
-    const mapped = wearLogs.map(toDisplayLog);
-    if (selectedCategories.length === 0) return mapped;
-    const wanted = selectedCategories.map(c => c.toLowerCase());
-    return mapped.filter(log =>
-      log.items.some(i => wanted.includes(i.category.toLowerCase())),
+  // Brands present in the loaded pages — the brand filter only offers values
+  // that actually appear, derived from the same data the list renders.
+  const availableBrands = useMemo(() => {
+    const set = new Set<string>();
+    wearLogs.forEach(log =>
+      log.clothingWorn.forEach(c => {
+        if (c.itemId?.brand) set.add(c.itemId.brand);
+      }),
     );
-  }, [wearLogs, selectedCategories]);
+    return Array.from(set).sort();
+  }, [wearLogs]);
+
+  // Category and brand are filtered client-side over the loaded pages
+  // (case-insensitive — the API returns lowercase category enums against the
+  // title-case chips). Date range is server-side via appliedRange.
+  const logs = useMemo(() => {
+    const wanted = selectedCategories.map(c => c.toLowerCase());
+    return wearLogs.map(toDisplayLog).filter(log => {
+      const matchesCategory =
+        wanted.length === 0 ||
+        log.items.some(i => wanted.includes(i.category.toLowerCase()));
+      const matchesBrand =
+        !selectedBrand || log.items.some(i => i.brand === selectedBrand);
+      return matchesCategory && matchesBrand;
+    });
+  }, [wearLogs, selectedCategories, selectedBrand]);
 
   // Total Logs reflects the server-side count for the active range. With a
-  // (client-side) category filter active there is no server count for it, so
-  // fall back to the visible matched count to avoid contradicting the list.
-  const totalLogs = selectedCategories.length > 0 ? logs.length : total;
+  // (client-side) category or brand filter active there is no server count for
+  // it, so fall back to the visible matched count to avoid contradicting the list.
+  const totalLogs =
+    selectedCategories.length > 0 || selectedBrand ? logs.length : total;
   const mostWornItem = () => {
     let maxWear = 0;
     let mostWorn = '';
@@ -203,14 +214,6 @@ export default function WearHistoryScreen({ navigation }: Props) {
     }
   };
 
-  const toggleSeason = (season: string) => {
-    if (selectedSeasons.includes(season)) {
-      setSelectedSeasons(selectedSeasons.filter(s => s !== season));
-    } else {
-      setSelectedSeasons([...selectedSeasons, season]);
-    }
-  };
-
   // Quick-chip tap: switch the active range and let appliedRange drive the refetch.
   const applyFilter = (filter: string) => {
     setActiveFilter(filter);
@@ -228,7 +231,6 @@ export default function WearHistoryScreen({ navigation }: Props) {
 
   const resetFilters = () => {
     setSelectedCategories([]);
-    setSelectedSeasons([]);
     setSelectedBrand('');
     setCustomStartDate('');
     setCustomEndDate('');
@@ -244,26 +246,6 @@ export default function WearHistoryScreen({ navigation }: Props) {
     });
   };
 
-  const handleEditLog = () => {
-    setShowDetailModal(false);
-    Alert.alert('Edit Log', 'Navigate to edit log screen');
-  };
-
-  const handleDeleteLog = () => {
-    Alert.alert(
-      'Delete Log',
-      'Are you sure you want to delete this wear log?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => setShowDetailModal(false),
-        },
-      ],
-    );
-  };
-
   const renderWearLogItem = ({ item }: { item: DisplayLog }) => (
     <TouchableOpacity
       style={styles.logCard}
@@ -271,12 +253,18 @@ export default function WearHistoryScreen({ navigation }: Props) {
     >
       <Text style={styles.logDate}>{item.date}</Text>
       <View style={styles.logItems}>
-        {item.items.map((clothing, index) => (
-          <Text key={index} style={styles.logItem}>
-            {clothing.name}
-            {index < item.items.length - 1 ? ', ' : ''}
-          </Text>
-        ))}
+        {item.items.length === 0 ? (
+          // Every item on this log was deleted from the wardrobe (its populated
+          // refs came back null) — show a placeholder instead of a blank row.
+          <Text style={styles.logItemDeleted}>Item no longer in wardrobe</Text>
+        ) : (
+          item.items.map((clothing, index) => (
+            <Text key={index} style={styles.logItem}>
+              {clothing.name}
+              {index < item.items.length - 1 ? ', ' : ''}
+            </Text>
+          ))
+        )}
       </View>
       <TouchableOpacity
         style={styles.viewDetailsButton}
@@ -532,43 +520,38 @@ export default function WearHistoryScreen({ navigation }: Props) {
                 ))}
               </View>
 
-              {/* Brand Filter */}
+              {/* Brand Filter — derived from the brands present in loaded logs.
+                  Tapping the active brand again clears it (single-select). */}
               <Text style={styles.filterSectionTitle}>Brand:</Text>
-              <TouchableOpacity style={styles.brandSelector}>
-                <Text style={styles.brandSelectorText}>
-                  {selectedBrand || 'Select Brand...'}
+              {availableBrands.length === 0 ? (
+                <Text style={styles.brandEmptyText}>
+                  No brands in the loaded history.
                 </Text>
-                <Icon
-                  name="chevron-down"
-                  size={20}
-                  color={colors.textSecondary}
-                />
-              </TouchableOpacity>
-
-              {/* Season Filter */}
-              <Text style={styles.filterSectionTitle}>Season:</Text>
-              <View style={styles.filterRow}>
-                {seasons.map(season => (
-                  <TouchableOpacity
-                    key={season}
-                    style={[
-                      styles.filterChip,
-                      selectedSeasons.includes(season) && styles.chipActive,
-                    ]}
-                    onPress={() => toggleSeason(season)}
-                  >
-                    <Text
+              ) : (
+                <View style={styles.filterRow}>
+                  {availableBrands.map(brand => (
+                    <TouchableOpacity
+                      key={brand}
                       style={[
-                        styles.filterChipText,
-                        selectedSeasons.includes(season) &&
-                          styles.chipTextActive,
+                        styles.filterChip,
+                        selectedBrand === brand && styles.chipActive,
                       ]}
+                      onPress={() =>
+                        setSelectedBrand(prev => (prev === brand ? '' : brand))
+                      }
                     >
-                      {season}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+                      <Text
+                        style={[
+                          styles.filterChipText,
+                          selectedBrand === brand && styles.chipTextActive,
+                        ]}
+                      >
+                        {brand}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
             </ScrollView>
 
             <View style={styles.modalFooter}>
@@ -583,53 +566,6 @@ export default function WearHistoryScreen({ navigation }: Props) {
                 onPress={applyModalFilters}
               >
                 <Text style={styles.applyButtonText}>Apply Filters</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Detail Modal */}
-      <Modal visible={showDetailModal} animationType="slide" transparent={true}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.detailModalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{selectedLog?.date}</Text>
-              <TouchableOpacity onPress={() => setShowDetailModal(false)}>
-                <Icon name="close" size={24} color={colors.textPrimary} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {selectedLog?.items.map((item: any, index: number) => (
-                <View key={index} style={styles.detailItem}>
-                  <Text style={styles.detailItemName}>{item.name}</Text>
-                  {item.brand && (
-                    <Text style={styles.detailItemBrand}>
-                      Brand: {item.brand}
-                    </Text>
-                  )}
-                  <Text style={styles.detailItemWorn}>
-                    Worn: {item.wearCount} times
-                  </Text>
-                </View>
-              ))}
-            </ScrollView>
-
-            <View style={styles.detailFooter}>
-              <TouchableOpacity
-                style={styles.editButton}
-                onPress={handleEditLog}
-              >
-                <Icon name="create-outline" size={20} color={colors.white} />
-                <Text style={styles.editButtonText}>Edit Log</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.deleteButton}
-                onPress={handleDeleteLog}
-              >
-                <Icon name="trash-outline" size={20} color={colors.error} />
-                <Text style={styles.deleteButtonText}>Delete Log</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -741,6 +677,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
   },
+  logItemDeleted: {
+    fontSize: 14,
+    fontStyle: 'italic',
+    color: colors.textSecondary,
+  },
   viewDetailsButton: {
     alignItems: 'flex-end',
   },
@@ -759,13 +700,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: '80%',
-    padding: 20,
-  },
-  detailModalContent: {
-    backgroundColor: colors.white,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '70%',
     padding: 20,
   },
   modalHeader: {
@@ -812,17 +746,7 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 14,
   },
-  brandSelector: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.inputBorder,
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
-  },
-  brandSelectorText: {
+  brandEmptyText: {
     fontSize: 14,
     color: colors.textSecondary,
   },
@@ -857,65 +781,6 @@ const styles = StyleSheet.create({
   applyButtonText: {
     fontSize: 16,
     color: colors.white,
-    fontWeight: '500',
-  },
-  detailItem: {
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.inputBorder,
-  },
-  detailItemName: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: colors.textPrimary,
-  },
-  detailItemBrand: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  detailItemWorn: {
-    fontSize: 12,
-    color: colors.primary,
-    marginTop: 4,
-  },
-  detailFooter: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 20,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: colors.inputBorder,
-  },
-  editButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: colors.primary,
-  },
-  editButtonText: {
-    fontSize: 16,
-    color: colors.white,
-    fontWeight: '500',
-  },
-  deleteButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.error,
-  },
-  deleteButtonText: {
-    fontSize: 16,
-    color: colors.error,
     fontWeight: '500',
   },
   loading: {

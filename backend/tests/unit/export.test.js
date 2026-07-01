@@ -53,7 +53,7 @@ describe('Export API (/api/exports)', () => {
     expect(res.statusCode).toBe(401);
   });
 
-  test('creates a resale export and archives the item (BR22)', async () => {
+  test('creates a resale export and marks the item Exported with destination (BR22)', async () => {
     const item = await makeItem();
     const res = await request(app)
       .post('/api/exports/resale')
@@ -65,7 +65,27 @@ describe('Export API (/api/exports)', () => {
     expect(res.body.selectedFields).toEqual(['name', 'brand']);
 
     const refreshed = await Clothing.findById(item._id);
-    expect(refreshed.status).toBe('Archived');
+    expect(refreshed.status).toBe('Exported');
+    // Destination is denormalized onto the item for display.
+    expect(refreshed.exportInfo.partnerName).toBe('Resale Co');
+    expect(refreshed.exportInfo.type).toBe('resale');
+    expect(refreshed.exportInfo.exportedAt).toBeInstanceOf(Date);
+  });
+
+  test('rejects re-exporting an already-exported item (BR23)', async () => {
+    const item = await makeItem();
+    await request(app)
+      .post('/api/exports/resale')
+      .set('Authorization', `Bearer ${token}`)
+      .send(validBody(item));
+
+    const res = await request(app)
+      .post('/api/exports/resale')
+      .set('Authorization', `Bearer ${token}`)
+      .send(validBody(item));
+
+    expect(res.statusCode).toBe(422);
+    expect(await Export.countDocuments()).toBe(1);
   });
 
   test('rejects when checklist not completed (BR20)', async () => {

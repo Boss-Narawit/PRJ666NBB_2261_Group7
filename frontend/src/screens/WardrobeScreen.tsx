@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -9,24 +9,18 @@ import {
   TextInput,
   ActivityIndicator,
   Image,
+  Alert,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
 import { useAuth } from '../context/AuthContext';
-import { getClothing, Clothing } from '../services/api';
+import { getClothing, updateClothing, Clothing } from '../services/api';
+import { CLOTHING_CATEGORIES } from '../constants/categories';
 
 // Chip labels are capitalized for display; backend categories are lowercase,
 // so all category comparisons below are case-insensitive.
-const categories = [
-  'All',
-  'Tops',
-  'Bottoms',
-  'Dresses',
-  'Outerwear',
-  'Shoes',
-  'Accessories',
-];
+const categories = ['All', ...CLOTHING_CATEGORIES];
 
 function wearCountOf(item: Clothing) {
   return item.analytics?.wearCount ?? 0;
@@ -34,43 +28,112 @@ function wearCountOf(item: Clothing) {
 
 type Props = {
   navigation: any;
+  route?: any;
 };
 
-export default function WardrobeScreen({ navigation }: Props) {
+export default function WardrobeScreen({ navigation, route }: Props) {
   const { token } = useAuth();
   const [items, setItems] = useState<Clothing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedCategory, setSelectedCategory] = useState(
+    route?.params?.category ?? 'All',
+  );
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
+  // Apply the category passed from the home screen's category cards. Watching
+  // the param (not just initial state) handles navigating back here with a
+  // different category while this screen instance is already in the stack.
+  useEffect(() => {
+    if (route?.params?.category) {
+      setSelectedCategory(route.params.category);
+    }
+  }, [route?.params?.category]);
+
+  // Guard against setState after the screen unmounts mid-fetch (load runs on
+  // focus and after an archive action).
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  const load = useCallback(async () => {
+    if (!token) return;
+    try {
+      const data = await getClothing(token);
+      if (mountedRef.current) {
+        setItems(data);
+        setError(null);
+      }
+    } catch (err: any) {
+      if (mountedRef.current)
+        setError(err.message || 'Failed to load wardrobe.');
+    } finally {
+      if (mountedRef.current) setIsLoading(false);
+    }
+  }, [token]);
 
   // Refetch on focus — the wardrobe changes after adding/editing items elsewhere.
   useFocusEffect(
     useCallback(() => {
-      if (!token) return;
-      let cancelled = false;
-      getClothing(token)
-        .then(data => {
-          if (!cancelled) {
-            setItems(data);
-            setError(null);
-          }
-        })
-        .catch(err => {
-          if (!cancelled) setError(err.message || 'Failed to load wardrobe.');
-        })
-        .finally(() => {
-          if (!cancelled) setIsLoading(false);
-        });
-      return () => {
-        cancelled = true;
-      };
-    }, [token]),
+      load();
+    }, [load]),
   );
 
+  // Overflow "⋮" menu for a wardrobe item: view details or archive.
+  const openItemMenu = (item: Clothing) => {
+    Alert.alert(item.name, undefined, [
+      {
+        text: 'View Details',
+        onPress: () => navigation.navigate('ItemDetail', { itemId: item._id }),
+      },
+      {
+        text: 'Archive',
+        style: 'destructive',
+        onPress: () => confirmArchive(item),
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
+  // Archive (BR23) instead of deleting — preserves wear-log history. Archived
+  // items are hidden from the wardrobe below; refetch on success surfaces that.
+  const confirmArchive = (item: Clothing) => {
+    Alert.alert(
+      'Archive Item',
+      `Archive "${item.name}"? It will be hidden from your wardrobe but its history is kept.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Archive',
+          style: 'destructive',
+          onPress: async () => {
+            if (!token) return;
+            try {
+              await updateClothing(token, item._id, { status: 'Archived' });
+            } catch (err: any) {
+              Alert.alert(
+                'Archive Item',
+                err.message || 'Could not archive item.',
+              );
+              return;
+            }
+            load();
+          },
+        },
+      ],
+    );
+  };
+
+  // Only active-wardrobe items show here — Archived (BR23) and Exported items
+  // have left the wardrobe (exported items live under Export History).
+  const activeItems = items.filter(item => item.status === 'Available');
+
   // Filter items based on search and category (category compare is case-insensitive)
-  const filteredItems = items.filter(item => {
+  const filteredItems = activeItems.filter(item => {
     const matchesSearch =
       item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.brand.toLowerCase().includes(searchQuery.toLowerCase());
@@ -81,7 +144,7 @@ export default function WardrobeScreen({ navigation }: Props) {
   });
 
   // Recent items (first 5 returned)
-  const recentItems = items.slice(0, 5);
+  const recentItems = activeItems.slice(0, 5);
 
   // Only show the empty state once the fetch settles — otherwise it flashes
   // alongside the loading spinner on first paint.
@@ -139,14 +202,20 @@ export default function WardrobeScreen({ navigation }: Props) {
           times
         </Text>
       </View>
-      <TouchableOpacity style={styles.moreButton}>
+      <TouchableOpacity
+        style={styles.moreButton}
+        onPress={() => openItemMenu(item)}
+      >
         <Icon name="ellipsis-vertical" size={20} color={colors.textSecondary} />
       </TouchableOpacity>
     </TouchableOpacity>
   );
 
   const renderRecentItem = ({ item }: { item: Clothing }) => (
-    <TouchableOpacity style={styles.recentCard}>
+    <TouchableOpacity
+      style={styles.recentCard}
+      onPress={() => navigation.navigate('ItemDetail', { itemId: item._id })}
+    >
       <View style={styles.recentImage}>
         {item.imageUrl ? (
           <Image source={{ uri: item.imageUrl }} style={styles.thumbnail} />
@@ -243,9 +312,6 @@ export default function WardrobeScreen({ navigation }: Props) {
       <View style={styles.recentSection}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Recent Items</Text>
-          <TouchableOpacity>
-            <Text style={styles.seeAllText}>See All</Text>
-          </TouchableOpacity>
         </View>
         <FlatList
           data={recentItems}
@@ -391,10 +457,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: colors.textPrimary,
-  },
-  seeAllText: {
-    fontSize: 14,
-    color: colors.primary,
   },
   recentList: {
     paddingLeft: 16,

@@ -62,10 +62,6 @@ export default function WearLogDetailScreen({ navigation, route }: Props) {
     );
   };
 
-  const handleEditItem = (itemName: string) => {
-    Alert.alert('Edit Item', `Edit details for ${itemName}`);
-  };
-
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header */}
@@ -91,12 +87,7 @@ export default function WearLogDetailScreen({ navigation, route }: Props) {
         <Text style={styles.itemsTitle}>Items Worn</Text>
 
         {items.map((item, index) => (
-          <TouchableOpacity
-            key={index}
-            style={styles.itemCard}
-            onPress={() => handleEditItem(item.name)}
-            activeOpacity={0.7}
-          >
+          <View key={index} style={styles.itemCard}>
             <View style={styles.itemImage}>
               <Icon
                 name="shirt-outline"
@@ -111,10 +102,7 @@ export default function WearLogDetailScreen({ navigation, route }: Props) {
               )}
               <Text style={styles.itemWorn}>Worn: {item.wearCount} times</Text>
             </View>
-            <TouchableOpacity onPress={() => handleEditItem(item.name)}>
-              <Icon name="create-outline" size={20} color={colors.primary} />
-            </TouchableOpacity>
-          </TouchableOpacity>
+          </View>
         ))}
       </View>
 
@@ -265,24 +253,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.error,
     fontWeight: '600',
-  },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    marginHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.primary,
-    backgroundColor: colors.white,
-    marginBottom: 40,
-  },
-  addButtonText: {
-    fontSize: 14,
-    color: colors.primary,
-    fontWeight: '500',
   },
   headerRightSpacer: {
     width: 40,

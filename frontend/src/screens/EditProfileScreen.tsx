@@ -59,9 +59,9 @@ export default function EditProfileScreen({ navigation }: Props) {
 
     setIsSaving(true);
     try {
+      // Email is read-only (backend ignores it) — only send the name.
       const updatedData = await updateProfile(token, {
         name: name.trim(),
-        email: '',
       });
 
       // Update in AsyncStorage

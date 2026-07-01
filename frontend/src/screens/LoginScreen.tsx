@@ -168,20 +168,6 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingBottom: 30,
   },
-  header: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  logo: {
-    fontSize: 42,
-    fontWeight: 'bold',
-    color: '#FF84C8',
-    marginBottom: 8,
-  },
-  tagline: {
-    fontSize: 14,
-    color: '#666',
-  },
   title: {
     fontSize: 28,
     fontWeight: 'bold',

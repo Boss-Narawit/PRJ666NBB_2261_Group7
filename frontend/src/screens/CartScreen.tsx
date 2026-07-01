@@ -9,7 +9,7 @@ import {
   RefreshControl,
   Alert,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
 import { useAuth } from '../context/AuthContext';
@@ -36,6 +36,7 @@ function cooldownLabel(endsAt: string) {
 
 export default function CartScreen() {
   const { token } = useAuth();
+  const navigation = useNavigation<any>();
   const [purchases, setPurchases] = useState<ThoughtfulPurchase[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -66,6 +67,15 @@ export default function CartScreen() {
     try {
       const updated = await approvePurchase(token, item._id);
       setPurchases(prev => prev.map(p => (p._id === item._id ? updated : p)));
+      // Send the buyer to the wardrobe Add form, prefilled with what we already
+      // know; they fill in brand/category/size/color and a photo (BR4 requires
+      // one — AddCloth enforces it at save), then save it to the wardrobe.
+      navigation.navigate('AddCloth', {
+        prefill: {
+          name: item.itemName,
+          imageUrl: item.imageUrl,
+        },
+      });
     } catch (err: any) {
       Alert.alert('Could not approve', err.message || 'Something went wrong.');
     }

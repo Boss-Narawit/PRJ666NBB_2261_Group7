@@ -9,7 +9,7 @@ const CLOTHING_CATEGORIES = Object.freeze([
   'other',
 ]);
 const CLOTHING_CONDITIONS = Object.freeze(['Excellent', 'Good', 'Fair', 'Damaged']);
-const CLOTHING_STATUSES = Object.freeze(['Available', 'Archived']);
+const CLOTHING_STATUSES = Object.freeze(['Available', 'Archived', 'Exported']);
 
 const USER_ROLES = Object.freeze(['user', 'admin']);
 

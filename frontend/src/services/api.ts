@@ -122,7 +122,11 @@ export async function getProfile(token: string) {
 
 export async function updateProfile(
   token: string,
-  payload: { name: string; email?: string },
+  payload: {
+    name?: string;
+    email?: string;
+    forgottenItemThresholdDays?: number;
+  },
 ) {
   let res: Response;
   try {
@@ -252,6 +256,12 @@ export interface Clothing {
   analytics?: {
     wearCount?: number;
     lastWornAt?: string;
+  };
+  // Set when status is 'Exported' — where the item went (see export.service).
+  exportInfo?: {
+    partnerName?: string;
+    type?: string;
+    exportedAt?: string;
   };
   createdAt?: string;
 }
@@ -392,11 +402,19 @@ export function createClothing(
 }
 
 // Editable fields the ItemDetail screen can PATCH. Values must already match the
-// Clothing model's enums (category lowercase, condition Excellent/Good/Fair/Damaged).
+// Clothing model's enums (category lowercase, condition Excellent/Good/Fair/Damaged,
+// status Available/Archived).
 export type ClothingUpdate = Partial<
   Pick<
     Clothing,
-    'name' | 'brand' | 'category' | 'colors' | 'size' | 'condition' | 'notes'
+    | 'name'
+    | 'brand'
+    | 'category'
+    | 'colors'
+    | 'size'
+    | 'condition'
+    | 'notes'
+    | 'status'
   >
 >;
 

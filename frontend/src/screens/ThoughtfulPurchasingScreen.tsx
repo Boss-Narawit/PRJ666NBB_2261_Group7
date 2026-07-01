@@ -15,7 +15,7 @@ import { colors } from '../theme';
 import { launchImageLibrary } from 'react-native-image-picker';
 import CustomDatePicker from '../components/CustomDatePicker';
 import { useAuth } from '../context/AuthContext';
-import { createPurchase } from '../services/api';
+import { createPurchase, uploadClothingImage } from '../services/api';
 
 // BR14: the cooling-off period must be at least 24h (1440 min).
 const COOLDOWN_MIN_MINUTES = 1440;
@@ -81,6 +81,12 @@ export default function ThoughtfulPurchasingScreen({ navigation }: Props) {
       Alert.alert('Error', 'Please enter what you are considering buying');
       return;
     }
+    // Require a photo so it flows through to the cart and into the wardrobe on
+    // "Buy it" (BR4 needs an image for any wardrobe item).
+    if (!photo) {
+      Alert.alert('Error', 'Please upload an image first');
+      return;
+    }
     // The picker has day granularity (returns local midnight), so measure in whole
     // calendar days from start → end. This is independent of tap time, so the
     // default (tomorrow) is always exactly 1440 min and never trips BR14 by lingering.
@@ -100,9 +106,13 @@ export default function ThoughtfulPurchasingScreen({ navigation }: Props) {
 
     setSubmitting(true);
     try {
+      // Upload the picked photo to Cloudinary first; persist the hosted URL on the
+      // purchase so the cart and the wardrobe Add form can reuse it.
+      const imageUrl = await uploadClothingImage(token, { uri: photo });
       await createPurchase(token, {
         itemName: itemName.trim(),
         cooldownMinutes,
+        imageUrl,
       });
       setShowSimilarityResult(false);
       Alert.alert(
@@ -307,23 +317,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 60,
-    paddingBottom: 16,
-    backgroundColor: colors.background,
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.textPrimary,
   },
   section: {
     marginHorizontal: 16,

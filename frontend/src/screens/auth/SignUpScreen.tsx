@@ -188,16 +188,6 @@ const styles = StyleSheet.create({
     paddingBottom: 80,
     backgroundColor: colors.background,
   },
-  header: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  logo: {
-    fontSize: 42,
-    fontWeight: 'bold',
-    color: colors.primary,
-    marginBottom: 8,
-  },
   title: {
     fontSize: 28,
     fontWeight: 'bold',

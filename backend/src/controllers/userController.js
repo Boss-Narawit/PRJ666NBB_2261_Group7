@@ -20,7 +20,7 @@ const getMe = async (req, res) => {
 // @access  Private
 const updateMe = async (req, res) => {
   try {
-    const { name, avatar } = req.body;
+    const { name, avatar, forgottenItemThresholdDays } = req.body;
     const user = await User.findById(req.user.userId);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -28,6 +28,11 @@ const updateMe = async (req, res) => {
 
     if (name) user.name = name;
     if (avatar !== undefined) user.avatar = avatar;
+    // BR12 (min 7) enforced by the schema `min` on this field — an out-of-range
+    // value rejects via ValidationError on save.
+    if (forgottenItemThresholdDays !== undefined) {
+      user.preferences.forgottenItemThresholdDays = forgottenItemThresholdDays;
+    }
 
     const updatedUser = await user.save();
     res.status(200).json({
@@ -35,6 +40,7 @@ const updateMe = async (req, res) => {
       name: updatedUser.name,
       email: updatedUser.email,
       avatar: updatedUser.avatar,
+      preferences: updatedUser.preferences,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

@@ -9,20 +9,18 @@ import {
   ActivityIndicator,
   ImageBackground,
   Image,
+  Alert,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
 import { useAuth } from '../context/AuthContext';
-import { getDashboardSummary, DashboardSummary } from '../services/api';
-
-// Static navigation shortcuts — not data-driven
-const categories = [
-  { id: '1', name: 'Jacket', image: require('../assets/images/Jacket.png') },
-  { id: '2', name: 'Shirts', image: require('../assets/images/Shirts.png') },
-  { id: '3', name: 'Pants', image: require('../assets/images/Pants.png') },
-  { id: '4', name: 'Shoes', image: require('../assets/images/Shoes.png') },
-];
+import {
+  getDashboardSummary,
+  createWearLog,
+  DashboardSummary,
+} from '../services/api';
+import { FEATURED_CATEGORIES } from '../constants/categories';
 
 function formatLastWorn(lastWornAt?: string) {
   return lastWornAt ? lastWornAt.slice(0, 10) : 'Never';
@@ -34,32 +32,55 @@ export default function MainScreen({ navigation }: any) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const loadSummary = useCallback(async () => {
+    if (!token) return;
+    try {
+      const data = await getDashboardSummary(token);
+      setSummary(data);
+      setError(null);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load dashboard.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [token]);
+
   // Refetch whenever the dashboard tab regains focus — stats change after
   // adding items or logging wears elsewhere in the app.
   useFocusEffect(
     useCallback(() => {
-      if (!token) return;
-      let cancelled = false;
-      getDashboardSummary(token)
-        .then(data => {
-          if (!cancelled) {
-            setSummary(data);
-            setError(null);
-          }
-        })
-        .catch(err => {
-          if (!cancelled) setError(err.message || 'Failed to load dashboard.');
-        })
-        .finally(() => {
-          if (!cancelled) setIsLoading(false);
-        });
-      return () => {
-        cancelled = true;
-      };
-    }, [token]),
+      loadSummary();
+    }, [loadSummary]),
   );
+
+  const handleWear = (item: any) => {
+    if (!token) return;
+    Alert.alert('Log Wear', `Log "${item.name}" as worn today?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Log Wear',
+        onPress: async () => {
+          try {
+            await createWearLog(token, {
+              logDate: new Date().toISOString(),
+              clothingWorn: [{ itemId: item._id }],
+            });
+          } catch (err: any) {
+            Alert.alert('Log Wear', err.message || 'Could not log wear.');
+            return;
+          }
+          Alert.alert('Success', `${item.name} logged as worn today!`);
+          // Worn today → drops out of the forgotten preview on refetch.
+          loadSummary();
+        },
+      },
+    ]);
+  };
   const renderCategoryItem = ({ item }: any) => (
-    <TouchableOpacity style={styles.categoryCard}>
+    <TouchableOpacity
+      style={styles.categoryCard}
+      onPress={() => navigation.navigate('Wardrobe', { category: item.name })}
+    >
       <View
         style={[
           styles.categoryIcon,
@@ -68,12 +89,15 @@ export default function MainScreen({ navigation }: any) {
       >
         <Image source={item.image} style={styles.categoryImage} />
       </View>
-      <Text style={styles.categoryName}>{item.name}</Text>
+      <Text style={styles.categoryName}>{item.label}</Text>
     </TouchableOpacity>
   );
 
   const renderForgottenItem = ({ item }: any) => (
-    <TouchableOpacity style={styles.forgottenCard}>
+    <TouchableOpacity
+      style={styles.forgottenCard}
+      onPress={() => navigation.navigate('ItemDetail', { itemId: item._id })}
+    >
       <View style={styles.forgottenImagePlaceholder}>
         <Icon name="shirt-outline" size={30} color={colors.textSecondary} />
       </View>
@@ -86,6 +110,7 @@ export default function MainScreen({ navigation }: any) {
       </View>
       <TouchableOpacity
         style={[styles.wearButton, { backgroundColor: colors.primary }]}
+        onPress={() => handleWear(item)}
       >
         <Text style={styles.wearButtonText}>Wear</Text>
       </TouchableOpacity>
@@ -175,9 +200,9 @@ export default function MainScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
         <FlatList
-          data={categories}
+          data={FEATURED_CATEGORIES}
           renderItem={renderCategoryItem}
-          keyExtractor={item => item.id}
+          keyExtractor={item => item.name}
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.categoriesList}
@@ -198,6 +223,7 @@ export default function MainScreen({ navigation }: any) {
         </View>
         <TouchableOpacity
           style={[styles.historyCard, { backgroundColor: colors.white }]}
+          onPress={() => navigation.navigate('WearLog')}
         >
           <View
             style={[
@@ -427,20 +453,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 12,
     fontWeight: '500',
-  },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: 20,
-    marginTop: 24,
-    paddingVertical: 14,
-    borderRadius: 12,
-    gap: 8,
-  },
-  addButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
   },
   bottomPadding: {
     height: 40,

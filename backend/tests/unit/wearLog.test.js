@@ -59,16 +59,45 @@ describe('WearLog API (/api/wear-logs)', () => {
     expect(new Date(res.body.logDate).toISOString()).toBe('2026-06-15T00:00:00.000Z');
   });
 
-  test('rejects a second log on the same day with 409 (BR8)', async () => {
-    const payload = { logDate: '2026-06-15', clothingWorn: [{ itemId }] };
-    await request(app).post('/api/wear-logs').set('Authorization', `Bearer ${token}`).send(payload);
+  test('a same-day log appends items to that day’s single log, deduped (BR8)', async () => {
+    // First item logged for the day.
+    await request(app)
+      .post('/api/wear-logs')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ logDate: '2026-06-15', clothingWorn: [{ itemId }] });
 
+    const second = await Clothing.create({
+      userId,
+      name: 'Black Jeans',
+      brand: 'Levi',
+      category: 'bottoms',
+      colors: ['Black'],
+      size: '32',
+      imageUrl: 'http://example.com/jeans.jpg',
+      condition: 'Good',
+    });
+
+    // A different item the same day → merged into the one log, not a 409.
     const res = await request(app)
       .post('/api/wear-logs')
       .set('Authorization', `Bearer ${token}`)
-      .send(payload);
+      .send({ logDate: '2026-06-15', clothingWorn: [{ itemId: second._id }] });
 
-    expect(res.statusCode).toBe(409);
+    expect(res.statusCode).toBe(201);
+    expect(res.body.clothingWorn).toHaveLength(2);
+
+    // Still one log document for the day, and the new item counts as worn once.
+    const list = await request(app).get('/api/wear-logs').set('Authorization', `Bearer ${token}`);
+    expect(list.body.total).toBe(1);
+    expect((await Clothing.findById(second._id)).analytics.wearCount).toBe(1);
+
+    // Re-logging the same item that day is a no-op (deduped, no double count).
+    const dup = await request(app)
+      .post('/api/wear-logs')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ logDate: '2026-06-15', clothingWorn: [{ itemId }] });
+    expect(dup.body.clothingWorn).toHaveLength(2);
+    expect((await Clothing.findById(itemId)).analytics.wearCount).toBe(1);
   });
 
   test('lists own wear logs newest first with populated items', async () => {

@@ -77,6 +77,31 @@ describe('User Profile & Account API (/api/users & /api/auth)', () => {
       const res = await request(app).patch('/api/users/me').send({ name: 'Should Fail' });
       expect(res.statusCode).toBe(401);
     });
+
+    test('persists forgottenItemThresholdDays (BR11/BR12)', async () => {
+      const res = await request(app)
+        .patch('/api/users/me')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ forgottenItemThresholdDays: 21 });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.preferences.forgottenItemThresholdDays).toBe(21);
+
+      const user = await User.findById(userId);
+      expect(user.preferences.forgottenItemThresholdDays).toBe(21);
+    });
+
+    test('rejects a threshold below the BR12 minimum of 7 days', async () => {
+      const res = await request(app)
+        .patch('/api/users/me')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ forgottenItemThresholdDays: 3 });
+
+      expect(res.statusCode).toBeGreaterThanOrEqual(400);
+
+      const user = await User.findById(userId);
+      expect(user.preferences.forgottenItemThresholdDays).not.toBe(3);
+    });
   });
 
   describe('DELETE /api/auth/delete-account - Account deletion (BR3)', () => {

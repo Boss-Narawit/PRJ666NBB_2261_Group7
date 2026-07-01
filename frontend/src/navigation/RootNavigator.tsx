@@ -19,6 +19,7 @@ import ExportScreen from '../screens/ExportScreen';
 import QualityChecklistScreen from '../screens/QualityChecklistScreen';
 import ForgottenItemsScreen from '../screens/ForgottenItemsScreen';
 import ItemDetailScreen from '../screens/ItemDetailScreen';
+import ExportHistoryScreen from '../screens/ExportHistoryScreen';
 import { LoginScreen } from '../screens/LoginScreen';
 import SignUpScreen from '../screens/auth/SignUpScreen';
 import { AuthProvider, useAuth } from '../context/AuthContext';
@@ -33,8 +34,14 @@ export type RootStackParamList = {
   Settings: undefined;
   EditProfile: undefined;
   NotificationSettings: undefined;
-  Wardrobe: undefined;
-  AddCloth: undefined;
+  // Optional category preselects the wardrobe filter (home screen category cards).
+  Wardrobe: { category?: string } | undefined;
+  AddCloth:
+    | undefined
+    | {
+        // Prefill from an approved Thoughtful Purchase ("Buy it" → wardrobe).
+        prefill?: { name?: string; imageUrl?: string; notes?: string };
+      };
   WearLog: undefined;
   WearLogDetail: {
     logId: string;
@@ -59,6 +66,7 @@ export type RootStackParamList = {
   ItemDetail: {
     itemId?: string;
   };
+  ExportHistory: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -201,6 +209,11 @@ function RootStacks() {
             <Stack.Screen
               name="ItemDetail"
               component={ItemDetailScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="ExportHistory"
+              component={ExportHistoryScreen}
               options={{ headerShown: false }}
             />
           </>

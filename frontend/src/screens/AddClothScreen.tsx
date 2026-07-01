@@ -15,24 +15,30 @@ import { colors } from '../theme';
 import { launchImageLibrary, Asset } from 'react-native-image-picker';
 import { useAuth } from '../context/AuthContext';
 import { uploadClothingImage, createClothing } from '../services/api';
+import { getSizeOptions } from '../constants/categories';
 
 type Props = {
   navigation: any;
+  route?: any;
 };
 
-export default function AddClothScreen({ navigation }: Props) {
+export default function AddClothScreen({ navigation, route }: Props) {
   const { token } = useAuth();
+  // Prefill carried over from an approved Thoughtful Purchase ("Buy it").
+  const prefill = route?.params?.prefill;
   const [loading, setLoading] = useState(false);
   const [photo, setPhoto] = useState<Asset | null>(null);
+  // A hosted image URL from the prefill — already on Cloudinary, so it skips the
+  // upload step in handleSave (the picker yields a local Asset instead).
+  const [prefillImageUrl] = useState<string | null>(prefill?.imageUrl ?? null);
 
   // Form fields
-  const [name, setName] = useState('');
+  const [name, setName] = useState(prefill?.name ?? '');
   const [brand, setBrand] = useState('');
-  const [material, setMaterial] = useState('');
   const [category, setCategory] = useState('');
   const [color, setColor] = useState('');
   const [size, setSize] = useState('');
-  const [description, setDescription] = useState('');
+  const [description, setDescription] = useState(prefill?.notes ?? '');
 
   const categories = [
     'Tops',
@@ -44,7 +50,11 @@ export default function AddClothScreen({ navigation }: Props) {
     'Activewear',
   ];
 
-  const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+  // Size suggestions depend on the chosen category (alpha for tops, waist for
+  // pants, numeric for shoes). These are quick-fill chips only — `size` is a
+  // free-text field, so any printed label (e.g. "32x34", "EU 42", "8") can be
+  // entered even when it isn't one of the suggestions.
+  const sizes = getSizeOptions(category);
 
   const selectPhoto = () => {
     launchImageLibrary(
@@ -66,8 +76,16 @@ export default function AddClothScreen({ navigation }: Props) {
   };
 
   const handleSave = async () => {
-    // Validation (BR4 - required fields)
-    if (!name || !brand || !category || !color || !size || !photo?.uri) {
+    // Validation (BR4 - required fields). A prefilled hosted image satisfies the
+    // photo requirement without picking a new one.
+    if (
+      !name ||
+      !brand ||
+      !category ||
+      !color ||
+      !size ||
+      (!photo?.uri && !prefillImageUrl)
+    ) {
       Alert.alert(
         'Error',
         'Please fill all required fields (Name, Brand, Category, Color, Size, and Photo)',
@@ -78,9 +96,12 @@ export default function AddClothScreen({ navigation }: Props) {
 
     setLoading(true);
     try {
-      // Upload the picked photo to Cloudinary first, then create the item with
-      // the hosted URL (the wardrobe renders a blank frame for non-URL imageUrls).
-      const imageUrl = await uploadClothingImage(token, photo);
+      // A newly picked photo is uploaded to Cloudinary; a prefilled image is
+      // already hosted, so reuse its URL. The wardrobe renders a blank frame for
+      // non-URL imageUrls, so both paths must yield an absolute URL.
+      const imageUrl = photo?.uri
+        ? await uploadClothingImage(token, photo)
+        : prefillImageUrl!;
       await createClothing(token, {
         name,
         brand,
@@ -121,16 +142,21 @@ export default function AddClothScreen({ navigation }: Props) {
         <Text style={styles.addButtonText}>Add New Cloth</Text>
       </TouchableOpacity>
 
-      {/* Photo Preview */}
-      {photo && (
+      {/* Photo Preview — picked photo takes precedence over a prefilled image */}
+      {(photo || prefillImageUrl) && (
         <View style={styles.photoPreview}>
-          <Image source={{ uri: photo.uri }} style={styles.previewImage} />
-          <TouchableOpacity
-            style={styles.removePhoto}
-            onPress={() => setPhoto(null)}
-          >
-            <Icon name="close-circle" size={24} color={colors.error} />
-          </TouchableOpacity>
+          <Image
+            source={{ uri: photo?.uri ?? prefillImageUrl! }}
+            style={styles.previewImage}
+          />
+          {photo && (
+            <TouchableOpacity
+              style={styles.removePhoto}
+              onPress={() => setPhoto(null)}
+            >
+              <Icon name="close-circle" size={24} color={colors.error} />
+            </TouchableOpacity>
+          )}
         </View>
       )}
 
@@ -166,17 +192,6 @@ export default function AddClothScreen({ navigation }: Props) {
             placeholder="Enter brand name"
             value={brand}
             onChangeText={setBrand}
-          />
-        </View>
-
-        {/* Material */}
-        <View style={styles.field}>
-          <Text style={styles.label}>Material</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="e.g., Cotton, Denim, Polyester"
-            value={material}
-            onChangeText={setMaterial}
           />
         </View>
 
@@ -225,11 +240,19 @@ export default function AddClothScreen({ navigation }: Props) {
           />
         </View>
 
-        {/* Size */}
+        {/* Size — free text is the source of truth; chips are quick-fill
+            suggestions so any real printed size can still be entered. */}
         <View style={styles.field}>
           <Text style={styles.label}>
             Size <Text style={styles.requiredStar}>*</Text>
           </Text>
+          <TextInput
+            style={styles.input}
+            placeholder="e.g., M, 32x34, EU 42, 8"
+            value={size}
+            onChangeText={setSize}
+          />
+          <Text style={styles.sizeHint}>Suggestions</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -364,45 +387,6 @@ const styles = StyleSheet.create({
     color: colors.error,
     fontSize: 14,
   },
-  recentSection: {
-    marginTop: 8,
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.textPrimary,
-    marginHorizontal: 20,
-    marginBottom: 12,
-  },
-  recentList: {
-    paddingLeft: 16,
-  },
-  recentItem: {
-    alignItems: 'center',
-    marginRight: 16,
-    width: 100,
-  },
-  recentItemImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 12,
-    backgroundColor: '#F0F0F0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  recentItemName: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: colors.textPrimary,
-    textAlign: 'center',
-  },
-  recentItemWorn: {
-    fontSize: 10,
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
   form: {
     paddingHorizontal: 20,
   },
@@ -448,6 +432,12 @@ const styles = StyleSheet.create({
   },
   categoryChipTextActive: {
     color: colors.white,
+  },
+  sizeHint: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 12,
+    marginBottom: 8,
   },
   sizeList: {
     flexDirection: 'row',

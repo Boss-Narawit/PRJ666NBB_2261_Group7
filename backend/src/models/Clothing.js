@@ -26,6 +26,14 @@ const clothingSchema = new mongoose.Schema(
       lastWornAt: { type: Date },
       lastNotifiedAt: { type: Date }, // throttle forgotten-item re-notify (BR13)
     },
+    // Denormalized snapshot of where the item was exported — set by
+    // export.service when status flips to 'Exported'. Authoritative record is
+    // the Export collection; this is a display cache (like analytics.wearCount).
+    exportInfo: {
+      partnerName: { type: String },
+      type: { type: String }, // 'resale' | 'donation' — matches the Export type
+      exportedAt: { type: Date },
+    },
   },
   { timestamps: true }
 );

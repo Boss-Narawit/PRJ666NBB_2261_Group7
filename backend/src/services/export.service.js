@@ -62,8 +62,16 @@ const createExport = async (userId, data) => {
       { session }
     );
 
-    // The item leaves the active wardrobe once exported (keeps BR23 utilization honest).
-    clothing.status = 'Archived';
+    // The item leaves the active wardrobe once exported (keeps BR23 utilization
+    // honest). 'Exported' is distinct from 'Archived' so the UI can show where
+    // it went; exportInfo caches the destination for display (Export is the
+    // authoritative record).
+    clothing.status = 'Exported';
+    clothing.exportInfo = {
+      partnerName: partner.name,
+      type,
+      exportedAt: new Date(),
+    };
     await clothing.save({ session });
 
     return created;

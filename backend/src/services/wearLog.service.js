@@ -102,11 +102,27 @@ const createWearLog = async (userId, data) => {
     throw e;
   }
 
-  // Duplicate-day (BR8) surfaces as a 11000 key error → errorHandler maps to 409.
+  // BR8: one log document per day. A same-day create merges its items into that
+  // day's existing log (deduped by itemId) instead of erroring, so a user can log
+  // several items across the day. (Moving a log onto an occupied day via PATCH
+  // still 409s through the unique index — see updateWearLog.)
   return withTransaction(async (session) => {
-    const [log] = await WearLog.create([{ userId, logDate, clothingWorn, occasion, notes }], {
-      session,
-    });
+    const existing = await WearLog.findOne({ userId, logDate }).session(session);
+    let log;
+    if (existing) {
+      const present = new Set(existing.clothingWorn.map((c) => String(c.itemId)));
+      for (const c of clothingWorn) {
+        if (!present.has(String(c.itemId))) {
+          existing.clothingWorn.push(c);
+          present.add(String(c.itemId));
+        }
+      }
+      log = await existing.save({ session });
+    } else {
+      [log] = await WearLog.create([{ userId, logDate, clothingWorn, occasion, notes }], {
+        session,
+      });
+    }
     await recomputeItemAnalytics(userId, itemIds, session);
     return log;
   });
