@@ -44,11 +44,11 @@ describe('Auth API (/api/auth)', () => {
       expect(res.statusCode).toBe(400);
     });
 
-    test('missing name returns 500', async () => {
-      // 500 because the controller catches ValidationError instead of passing to errorHandler (should be 422)
+    test('missing name returns 400', async () => {
       const { name, ...noName } = validUser();
       const res = await request(app).post('/api/auth/register').send(noName);
-      expect(res.statusCode).toBe(500);
+      expect(res.statusCode).toBe(400);
+      expect(res.body.message).toBe('Name is required');
     });
   });
 

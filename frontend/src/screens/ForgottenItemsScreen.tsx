@@ -22,6 +22,7 @@ import {
   updateProfile,
   Clothing,
 } from '../services/api';
+import { localDateString } from '../utils/date';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -34,7 +35,9 @@ function unwornDaysOf(item: Clothing) {
 
 function lastWornLabel(item: Clothing) {
   const worn = item.analytics?.lastWornAt;
-  return worn ? new Date(worn).toLocaleDateString() : 'Never worn';
+  // Slice the UTC date string like every other screen — toLocaleDateString on a
+  // midnight-UTC date renders the previous day in UTC-negative timezones.
+  return worn ? worn.slice(0, 10) : 'Never worn';
 }
 
 type Props = {
@@ -85,7 +88,7 @@ export default function ForgottenItemsScreen({ navigation }: Props) {
         onPress: async () => {
           try {
             await createWearLog(token, {
-              logDate: new Date().toISOString(),
+              logDate: localDateString(),
               clothingWorn: [{ itemId: item._id }],
             });
           } catch (err: any) {

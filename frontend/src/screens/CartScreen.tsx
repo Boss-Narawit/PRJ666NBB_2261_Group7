@@ -41,6 +41,9 @@ export default function CartScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Purchase currently being decided — blocks double-taps ("Buy it" also
+  // navigates, so a second tap used to fire the whole flow twice).
+  const [decidingId, setDecidingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -63,7 +66,8 @@ export default function CartScreen() {
   );
 
   const handleApprove = async (item: ThoughtfulPurchase) => {
-    if (!token) return;
+    if (!token || decidingId) return;
+    setDecidingId(item._id);
     try {
       const updated = await approvePurchase(token, item._id);
       setPurchases(prev => prev.map(p => (p._id === item._id ? updated : p)));
@@ -78,16 +82,21 @@ export default function CartScreen() {
       });
     } catch (err: any) {
       Alert.alert('Could not approve', err.message || 'Something went wrong.');
+    } finally {
+      setDecidingId(null);
     }
   };
 
   const handleReject = async (item: ThoughtfulPurchase) => {
-    if (!token) return;
+    if (!token || decidingId) return;
+    setDecidingId(item._id);
     try {
       const updated = await rejectPurchase(token, item._id);
       setPurchases(prev => prev.map(p => (p._id === item._id ? updated : p)));
     } catch (err: any) {
       Alert.alert('Could not reject', err.message || 'Something went wrong.');
+    } finally {
+      setDecidingId(null);
     }
   };
 
@@ -132,9 +141,10 @@ export default function CartScreen() {
               style={[
                 styles.actionBtn,
                 styles.approveBtn,
-                !cooldownDone && styles.actionBtnDisabled,
+                (!cooldownDone || decidingId !== null) &&
+                  styles.actionBtnDisabled,
               ]}
-              disabled={!cooldownDone}
+              disabled={!cooldownDone || decidingId !== null}
               onPress={() => handleApprove(item)}
             >
               <Text style={styles.approveText}>
@@ -142,7 +152,12 @@ export default function CartScreen() {
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.actionBtn, styles.rejectBtn]}
+              style={[
+                styles.actionBtn,
+                styles.rejectBtn,
+                decidingId !== null && styles.actionBtnDisabled,
+              ]}
+              disabled={decidingId !== null}
               onPress={() => handleReject(item)}
             >
               <Text style={styles.rejectText}>Skip it</Text>

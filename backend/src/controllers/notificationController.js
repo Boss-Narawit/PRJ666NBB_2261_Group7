@@ -87,6 +87,10 @@ const updatePreferences = async (req, res) => {
       forgottenItemAlertEnabled: user.preferences.forgottenItemAlertEnabled,
     });
   } catch (error) {
+    // An out-of-enum frequency is bad input, not a server fault.
+    if (error.name === 'ValidationError') {
+      return res.status(422).json({ message: error.message });
+    }
     res.status(500).json({ message: error.message });
   }
 };

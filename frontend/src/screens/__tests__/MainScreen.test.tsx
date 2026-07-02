@@ -40,12 +40,12 @@ describe('MainScreen Component', () => {
   it('renders loading indicator initially', async () => {
     (getDashboardSummary as jest.Mock).mockReturnValue(new Promise(() => {})); // Never resolves to keep loading state
 
-    let tree;
+    let tree!: renderer.ReactTestRenderer;
     await act(async () => {
       tree = renderer.create(<MainScreen navigation={mockNavigation} />);
     });
 
-    const loadingIndicator = tree.root.findByType('ActivityIndicator');
+    const loadingIndicator = tree.root.findByType('ActivityIndicator' as any);
     expect(loadingIndicator).toBeTruthy();
   });
 
@@ -67,7 +67,7 @@ describe('MainScreen Component', () => {
 
     (getDashboardSummary as jest.Mock).mockResolvedValue(mockSummary);
 
-    let tree;
+    let tree!: renderer.ReactTestRenderer;
     await act(async () => {
       tree = renderer.create(<MainScreen navigation={mockNavigation} />);
     });
@@ -77,8 +77,8 @@ describe('MainScreen Component', () => {
       await Promise.resolve();
     });
 
-    const textElements = tree.root.findAllByType('Text');
-    const textValues = textElements.map((el: any) => {
+    const textElements = tree.root.findAllByType('Text' as any);
+    const textValues: string[] = textElements.map((el: any) => {
       const children = el.props.children;
       return Array.isArray(children)
         ? children.join('')

@@ -36,12 +36,12 @@ describe('NotificationScreen Component', () => {
   it('renders loading state initially', async () => {
     (getNotifications as jest.Mock).mockReturnValue(new Promise(() => {}));
 
-    let tree;
+    let tree!: renderer.ReactTestRenderer;
     await act(async () => {
       tree = renderer.create(<NotificationScreen />);
     });
 
-    const loadingIndicator = tree.root.findByType('ActivityIndicator');
+    const loadingIndicator = tree.root.findByType('ActivityIndicator' as any);
     expect(loadingIndicator).toBeTruthy();
   });
 
@@ -69,7 +69,7 @@ describe('NotificationScreen Component', () => {
 
     (getNotifications as jest.Mock).mockResolvedValue(mockNotifications);
 
-    let tree;
+    let tree!: renderer.ReactTestRenderer;
     await act(async () => {
       tree = renderer.create(<NotificationScreen />);
     });
@@ -79,8 +79,8 @@ describe('NotificationScreen Component', () => {
       await Promise.resolve();
     });
 
-    const textElements = tree.root.findAllByType('Text');
-    const textValues = textElements.map((el: any) => {
+    const textElements = tree.root.findAllByType('Text' as any);
+    const textValues: string[] = textElements.map((el: any) => {
       const children = el.props.children;
       return Array.isArray(children)
         ? children.join('')
@@ -119,7 +119,7 @@ describe('NotificationScreen Component', () => {
     (getNotifications as jest.Mock).mockResolvedValue(mockNotifications);
     (markNotificationRead as jest.Mock).mockResolvedValue({});
 
-    let tree;
+    let tree!: renderer.ReactTestRenderer;
     await act(async () => {
       tree = renderer.create(<NotificationScreen />);
     });
@@ -142,9 +142,9 @@ describe('NotificationScreen Component', () => {
 
     expect(card).toBeTruthy();
 
-    // Trigger press
+    // Trigger press (card is asserted truthy above)
     await act(async () => {
-      card.props.onPress();
+      card!.props.onPress();
     });
 
     // Verify API called with token and notification id

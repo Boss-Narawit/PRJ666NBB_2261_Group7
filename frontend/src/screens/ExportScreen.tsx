@@ -33,22 +33,34 @@ export default function ExportScreen({ navigation, route }: Props) {
   const [selectedPartnerId, setSelectedPartnerId] = useState<string | null>(
     null,
   );
+  // Fetch failures must be distinguishable from genuinely-empty lists — a dead
+  // backend used to render as "No items available to export."
+  const [itemsError, setItemsError] = useState<string | null>(null);
+  const [partnersError, setPartnersError] = useState<string | null>(null);
 
   // Only Available items can be exported (BR23 keeps archived out).
   useEffect(() => {
     if (!token) return;
+    setItemsError(null);
     getClothing(token)
       .then(data => setClothing(data.filter(c => c.status === 'Available')))
-      .catch(() => setClothing([]));
+      .catch(err => {
+        setClothing([]);
+        setItemsError(err.message || 'Could not load your wardrobe.');
+      });
   }, [token]);
 
   // Partners are filtered by destination type; reset the pick when the tab flips.
   useEffect(() => {
     if (!token) return;
     setSelectedPartnerId(null);
+    setPartnersError(null);
     listPartners(token, selectedTab)
       .then(setPartners)
-      .catch(() => setPartners([]));
+      .catch(err => {
+        setPartners([]);
+        setPartnersError(err.message || 'Could not load partners.');
+      });
   }, [token, selectedTab]);
 
   const toggleItemSelection = (itemId: string) => {
@@ -157,7 +169,9 @@ export default function ExportScreen({ navigation, route }: Props) {
           keyExtractor={item => item._id}
           scrollEnabled={false}
           ListEmptyComponent={
-            <Text style={styles.emptyText}>No items available to export.</Text>
+            <Text style={[styles.emptyText, !!itemsError && styles.errorText]}>
+              {itemsError ?? 'No items available to export.'}
+            </Text>
           }
         />
       </View>
@@ -173,8 +187,10 @@ export default function ExportScreen({ navigation, route }: Props) {
           keyExtractor={item => item._id}
           scrollEnabled={false}
           ListEmptyComponent={
-            <Text style={styles.emptyText}>
-              No {selectedTab} partners available.
+            <Text
+              style={[styles.emptyText, !!partnersError && styles.errorText]}
+            >
+              {partnersError ?? `No ${selectedTab} partners available.`}
             </Text>
           }
         />
@@ -364,5 +380,8 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     paddingVertical: 12,
+  },
+  errorText: {
+    color: '#e53e3e',
   },
 });

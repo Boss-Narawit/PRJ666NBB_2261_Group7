@@ -3,6 +3,16 @@ import { Platform } from 'react-native';
 const BASE_URL =
   Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://127.0.0.1:3000';
 
+// Registered by AuthProvider. Called when an authenticated request comes back
+// 401 — the stored token is expired or invalid, so the app signs out and
+// returns to Login instead of leaving every screen in a permanent error state.
+// Auth endpoints (login/register/reactivate) never call this: their 401s mean
+// bad credentials, not a dead session.
+let onUnauthorized: (() => void) | null = null;
+export function setOnUnauthorized(handler: (() => void) | null) {
+  onUnauthorized = handler;
+}
+
 export async function register(payload: {
   name: string;
   email: string;
@@ -56,7 +66,7 @@ export async function login(payload: { email: string; password: string }) {
     if (data.code) err.code = data.code;
     throw err;
   }
-  return data; // Returns { token, user }
+  return data; // Returns flat { _id, name, email, token }
 }
 
 export async function reactivate(payload: { email: string; password: string }) {
@@ -96,6 +106,7 @@ export async function deleteAccount(token: string) {
     ? await res.json()
     : { message: `Server error (${res.status})` };
 
+  if (res.status === 401) onUnauthorized?.();
   if (!res.ok) throw new Error(data.message || 'Failed to delete account');
   return data;
 }
@@ -116,6 +127,7 @@ export async function getProfile(token: string) {
     ? await res.json()
     : { message: `Server error (${res.status})` };
 
+  if (res.status === 401) onUnauthorized?.();
   if (!res.ok) throw new Error(data.message || 'Failed to fetch profile');
   return data;
 }
@@ -147,6 +159,7 @@ export async function updateProfile(
     ? await res.json()
     : { message: `Server error (${res.status})` };
 
+  if (res.status === 401) onUnauthorized?.();
   if (!res.ok) throw new Error(data.message || 'Failed to update profile');
   return data;
 }
@@ -176,6 +189,7 @@ export async function getNotificationPreferences(
     ? await res.json()
     : { message: `Server error (${res.status})` };
 
+  if (res.status === 401) onUnauthorized?.();
   if (!res.ok)
     throw new Error(data.message || 'Failed to fetch notification preferences');
   return data;
@@ -204,6 +218,7 @@ export async function updateNotificationPreferences(
     ? await res.json()
     : { message: `Server error (${res.status})` };
 
+  if (res.status === 401) onUnauthorized?.();
   if (!res.ok)
     throw new Error(
       data.message || 'Failed to update notification preferences',
@@ -282,6 +297,7 @@ export async function getClothing(token: string): Promise<Clothing[]> {
     ? await res.json()
     : { message: `Server error (${res.status})` };
 
+  if (res.status === 401) onUnauthorized?.();
   if (!res.ok)
     throw new Error(data.message || data.error || 'Failed to fetch wardrobe');
   return data;
@@ -306,6 +322,7 @@ export async function getClothingById(
     ? await res.json()
     : { message: `Server error (${res.status})` };
 
+  if (res.status === 401) onUnauthorized?.();
   if (!res.ok)
     throw new Error(data.message || data.error || 'Failed to fetch item');
   return data;
@@ -347,6 +364,7 @@ export async function uploadClothingImage(
     ? await res.json()
     : { message: `Server error (${res.status})` };
 
+  if (res.status === 401) onUnauthorized?.();
   if (!res.ok)
     throw new Error(data.message || data.error || 'Image upload failed');
   return data.imageUrl;
@@ -477,6 +495,7 @@ export async function getWearLogs(
     ? await res.json()
     : { message: `Server error (${res.status})` };
 
+  if (res.status === 401) onUnauthorized?.();
   if (!res.ok)
     throw new Error(data.message || data.error || 'Failed to fetch wear logs');
   return data;
@@ -551,6 +570,7 @@ export async function getDashboardSummary(
     ? await res.json()
     : { message: `Server error (${res.status})` };
 
+  if (res.status === 401) onUnauthorized?.();
   // errorHandler-mapped errors arrive as { error }, not { message }
   if (!res.ok)
     throw new Error(
@@ -578,6 +598,7 @@ export async function getNotifications(
     ? await res.json()
     : { message: `Server error (${res.status})` };
 
+  if (res.status === 401) onUnauthorized?.();
   if (!res.ok)
     throw new Error(
       data.message || data.error || 'Failed to fetch notifications',
@@ -604,6 +625,7 @@ export async function markNotificationRead(
     ? await res.json()
     : { message: `Server error (${res.status})` };
 
+  if (res.status === 401) onUnauthorized?.();
   if (!res.ok)
     throw new Error(
       data.message || data.error || 'Failed to mark notification as read',
@@ -642,6 +664,7 @@ async function apiFetch<T>(
     : { message: `Server error (${res.status})` };
 
   if (!res.ok) {
+    if (res.status === 401) onUnauthorized?.();
     const err: any = new Error(data.message || data.error || 'Request failed');
     err.status = res.status; // lets callers branch on the HTTP code (e.g. 409 BR8)
     throw err;

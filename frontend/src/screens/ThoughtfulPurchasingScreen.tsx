@@ -115,10 +115,17 @@ export default function ThoughtfulPurchasingScreen({ navigation }: Props) {
         imageUrl,
       });
       setShowSimilarityResult(false);
+      // This screen is a tab, so goBack() is a no-op — it used to leave the
+      // filled form in place, making an accidental duplicate purchase one tap
+      // away. Reset the form and take the user to the Cart, where the timer lives.
+      const untilLabel = formatDate(endDate);
+      setPhoto(null);
+      setItemName('');
+      setEndDate(tomorrow);
       Alert.alert(
         'Cooling-off Timer Started',
-        `Your cooling-off period runs until ${formatDate(endDate)}. You'll be able to confirm the purchase in your cart once it ends.`,
-        [{ text: 'OK', onPress: () => navigation.goBack() }],
+        `Your cooling-off period runs until ${untilLabel}. You'll be able to confirm the purchase in your cart once it ends.`,
+        [{ text: 'OK', onPress: () => navigation.navigate('Cart') }],
       );
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Could not start the timer.');

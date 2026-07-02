@@ -10,6 +10,7 @@ import {
   Modal,
   Pressable,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -77,7 +78,10 @@ export default function NotificationScreen() {
       setPage(data.page);
       setTotal(data.total);
     } catch {
-      // Keep the list as-is; pull-to-refresh recovers.
+      Alert.alert(
+        'Notifications',
+        'Could not load more notifications. Please try again.',
+      );
     } finally {
       setIsLoadingMore(false);
     }

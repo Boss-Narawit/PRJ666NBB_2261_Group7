@@ -1,6 +1,8 @@
 # Docker Setup Guide
 
-ReDrobe uses **MongoDB Atlas** as its database. Docker is used for running the backend and AI service containers — no local MongoDB required.
+ReDrobe uses **MongoDB Atlas** as its database. Docker will be used for running the backend and AI service containers — no local MongoDB required.
+
+> **Note:** `docker-compose.yml` is currently a placeholder with no services defined — the backend runs directly via `npm run dev` (see README). The compose commands below apply once the backend/AI-service containers are added.
 
 ---
 

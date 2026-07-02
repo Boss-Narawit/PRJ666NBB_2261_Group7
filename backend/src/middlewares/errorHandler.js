@@ -9,6 +9,11 @@ module.exports = (err, req, res, next) => {
   if (err.code === 11000) {
     return res.status(409).json({ error: 'Duplicate entry' });
   }
+  if (err.name === 'MulterError') {
+    // LIMIT_FILE_SIZE → payload too large; other multer errors are bad input.
+    const status = err.code === 'LIMIT_FILE_SIZE' ? 413 : 400;
+    return res.status(status).json({ error: err.message });
+  }
 
   const status = err.status || 500;
   if (status === 500) {

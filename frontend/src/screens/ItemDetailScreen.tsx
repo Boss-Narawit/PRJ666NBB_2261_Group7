@@ -23,6 +23,7 @@ import {
   Clothing,
 } from '../services/api';
 import { getSizeOptions } from '../constants/categories';
+import { localDateString } from '../utils/date';
 
 type Props = {
   navigation: any;
@@ -244,7 +245,7 @@ export default function ItemDetailScreen({ navigation, route }: Props) {
         onPress: async () => {
           try {
             await createWearLog(token, {
-              logDate: new Date().toISOString(),
+              logDate: localDateString(),
               clothingWorn: [{ itemId: item.id }],
             });
           } catch (err: any) {

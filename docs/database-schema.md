@@ -2,7 +2,7 @@
 
 **Database:** MongoDB Atlas  
 **ODM:** Mongoose 9  
-**Last updated:** 2026-05-16
+**Last updated:** 2026-07-01
 
 ---
 
@@ -111,28 +111,34 @@ Stores account credentials, role, notification preferences, and personalization 
 
 #### Fields
 
-| Field                                    | Type     | Required | Default  | Description                                                                                     |
-| ---------------------------------------- | -------- | -------- | -------- | ----------------------------------------------------------------------------------------------- |
-| `_id`                                    | ObjectId | Auto     | —        | Unique document ID (MongoDB)                                                                    |
-| `name`                                   | String   | ✅       | —        | Full display name                                                                               |
-| `email`                                  | String   | ✅       | —        | Unique, lowercased. Used for login                                                              |
-| `password`                               | String   | ✅       | —        | bcrypt hash. **Never store plaintext**                                                          |
-| `role`                                   | String   | —        | `'user'` | `'user'` or `'admin'`. Admins can manage Partners                                               |
-| `avatar`                                 | String   | —        | —        | URL to profile picture                                                                          |
-| `notificationEnabled`                    | Boolean  | —        | `true`   | Master switch for all notifications                                                             |
-| `notificationSlots`                      | [String] | —        | `[]`     | Scheduled times for notifications (e.g. `["09:00", "18:00"]`). Max 3, enforced in service layer |
-| `scheduledDeletionAt`                    | Date     | —        | —        | Set when user requests account deletion. A background job wipes the account on this date        |
-| `preferences.favoriteColors`             | [String] | —        | `[]`     | Used to personalize outfit suggestions                                                          |
-| `preferences.favoriteCategories`         | [String] | —        | `[]`     | Used to personalize outfit suggestions                                                          |
-| `preferences.forgottenItemThresholdDays` | Number   | —        | `30`     | Days without wearing before an item is considered "forgotten". Min: 7                           |
-| `createdAt`                              | Date     | Auto     | —        | Managed by Mongoose `timestamps`                                                                |
-| `updatedAt`                              | Date     | Auto     | —        | Managed by Mongoose `timestamps`                                                                |
+| Field                                    | Type          | Required | Default   | Description                                                                                     |
+| ---------------------------------------- | ------------- | -------- | --------- | ----------------------------------------------------------------------------------------------- |
+| `_id`                                    | ObjectId      | Auto     | —         | Unique document ID (MongoDB)                                                                    |
+| `name`                                   | String        | ✅       | —         | Full display name                                                                               |
+| `email`                                  | String        | ✅       | —         | Unique, lowercased. Used for login                                                              |
+| `password`                               | String        | ✅       | —         | bcrypt hash. **Never store plaintext**                                                          |
+| `role`                                   | String        | —        | `'user'`  | `'user'` or `'admin'`. Admins can manage Partners                                               |
+| `avatar`                                 | String        | —        | —         | URL to profile picture                                                                          |
+| `notificationEnabled`                    | Boolean       | —        | `true`    | Master switch for all notifications                                                             |
+| `notificationSlots`                      | [String]      | —        | `[]`      | Scheduled times for notifications (e.g. `["09:00", "18:00"]`). Max 3, enforced in service layer |
+| `scheduledDeletionAt`                    | Date          | —        | —         | Set when user requests account deletion. A background job wipes the account on this date        |
+| `preferences.favoriteColors`             | [String]      | —        | `[]`      | Used to personalize outfit suggestions                                                          |
+| `preferences.favoriteCategories`         | [String]      | —        | `[]`      | Used to personalize outfit suggestions                                                          |
+| `preferences.forgottenItemThresholdDays` | Number        | —        | `30`      | Days without wearing before an item is considered "forgotten". Min: 7                           |
+| `preferences.notificationFrequency`      | String (enum) | —        | `'Daily'` | `Daily` · `Weekly` · `Bi-Weekly` · `Monthly`                                                    |
+| `preferences.itemStatusChangeEnabled`    | Boolean       | —        | `true`    | Per-type opt-out for item status change notifications                                           |
+| `preferences.forgottenItemAlertEnabled`  | Boolean       | —        | `true`    | Per-type opt-out checked by the forgotten-items job                                             |
+| `createdAt`                              | Date          | Auto     | —         | Managed by Mongoose `timestamps`                                                                |
+| `updatedAt`                              | Date          | Auto     | —         | Managed by Mongoose `timestamps`                                                                |
+
+> Passwords are hashed by a `pre('save')` bcrypt hook on the schema; `comparePassword(candidate)` is a schema method used at login.
 
 #### Indexes
 
-| Index   | Type   | Purpose                                        |
-| ------- | ------ | ---------------------------------------------- |
-| `email` | Unique | Fast login lookup; prevents duplicate accounts |
+| Index                 | Type            | Purpose                                               |
+| --------------------- | --------------- | ----------------------------------------------------- |
+| `email`               | Unique          | Fast login lookup; prevents duplicate accounts        |
+| `scheduledDeletionAt` | Single (sparse) | Purge job scan — sparse since most users never set it |
 
 #### Example Document
 
@@ -148,7 +154,10 @@ Stores account credentials, role, notification preferences, and personalization 
   "preferences": {
     "favoriteColors": ["black", "white", "navy"],
     "favoriteCategories": ["tops", "dresses"],
-    "forgottenItemThresholdDays": 45
+    "forgottenItemThresholdDays": 45,
+    "notificationFrequency": "Daily",
+    "itemStatusChangeEnabled": true,
+    "forgottenItemAlertEnabled": true
   },
   "createdAt": "2025-01-15T10:00:00.000Z",
   "updatedAt": "2025-05-01T08:30:00.000Z"
@@ -166,28 +175,31 @@ The core of the wardrobe catalog. Each document represents one physical clothing
 
 #### Fields
 
-| Field                      | Type          | Required | Default       | Description                                                                                     |
-| -------------------------- | ------------- | -------- | ------------- | ----------------------------------------------------------------------------------------------- |
-| `_id`                      | ObjectId      | Auto     | —             | Unique document ID                                                                              |
-| `userId`                   | ObjectId      | ✅       | —             | Reference to `User` who owns this item                                                          |
-| `name`                     | String        | ✅       | —             | Item name (e.g. `"Black Slim Jeans"`)                                                           |
-| `brand`                    | String        | ✅       | —             | Brand name (e.g. `"Levi's"`)                                                                    |
-| `category`                 | String (enum) | ✅       | —             | See valid values below                                                                          |
-| `colors`                   | [String]      | ✅       | —             | Array of color labels (e.g. `["black", "white"]`)                                               |
-| `size`                     | String        | ✅       | —             | Size label (e.g. `"M"`, `"28"`, `"7"`)                                                          |
-| `imageUrl`                 | String        | ✅       | —             | URL to the item's photo                                                                         |
-| `condition`                | String (enum) | ✅       | —             | Physical condition. See valid values below                                                      |
-| `status`                   | String (enum) | —        | `'Available'` | Wardrobe status. See valid values below                                                         |
-| `purchasePrice`            | Number        | —        | —             | Original purchase price                                                                         |
-| `purchaseDate`             | Date          | —        | —             | Date the item was purchased                                                                     |
-| `tags`                     | [String]      | —        | `[]`          | Free-text labels (e.g. `["summer", "work", "vintage"]`)                                         |
-| `aiEmbedding`              | [Number]      | —        | `[]`          | 512-dimensional vector from the `fashion-clip` AI service. Used for similarity matching         |
-| `notes`                    | String        | —        | —             | Free-text notes from the user                                                                   |
-| `analytics.wearCount`      | Number        | —        | `0`           | Total times this item has been worn. Incremented by the service layer when a WearLog is created |
-| `analytics.lastWornAt`     | Date          | —        | —             | Date of most recent wear                                                                        |
-| `analytics.lastNotifiedAt` | Date          | —        | —             | Date a "forgotten item" notification was last sent. Prevents repeated notifications             |
-| `createdAt`                | Date          | Auto     | —             | Managed by Mongoose `timestamps`                                                                |
-| `updatedAt`                | Date          | Auto     | —             | Managed by Mongoose `timestamps`                                                                |
+| Field                      | Type          | Required | Default       | Description                                                                                                                         |
+| -------------------------- | ------------- | -------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `_id`                      | ObjectId      | Auto     | —             | Unique document ID                                                                                                                  |
+| `userId`                   | ObjectId      | ✅       | —             | Reference to `User` who owns this item                                                                                              |
+| `name`                     | String        | ✅       | —             | Item name (e.g. `"Black Slim Jeans"`)                                                                                               |
+| `brand`                    | String        | ✅       | —             | Brand name (e.g. `"Levi's"`)                                                                                                        |
+| `category`                 | String (enum) | ✅       | —             | See valid values below                                                                                                              |
+| `colors`                   | [String]      | ✅       | —             | Array of color labels (e.g. `["black", "white"]`)                                                                                   |
+| `size`                     | String        | ✅       | —             | Size label (e.g. `"M"`, `"28"`, `"7"`)                                                                                              |
+| `imageUrl`                 | String        | ✅       | —             | URL to the item's photo                                                                                                             |
+| `condition`                | String (enum) | ✅       | —             | Physical condition. See valid values below                                                                                          |
+| `status`                   | String (enum) | —        | `'Available'` | Wardrobe status. See valid values below                                                                                             |
+| `purchasePrice`            | Number        | —        | —             | Original purchase price                                                                                                             |
+| `purchaseDate`             | Date          | —        | —             | Date the item was purchased                                                                                                         |
+| `tags`                     | [String]      | —        | `[]`          | Free-text labels (e.g. `["summer", "work", "vintage"]`)                                                                             |
+| `aiEmbedding`              | [Number]      | —        | `[]`          | 512-dimensional vector from the `fashion-clip` AI service. Used for similarity matching                                             |
+| `notes`                    | String        | —        | —             | Free-text notes from the user                                                                                                       |
+| `analytics.wearCount`      | Number        | —        | `0`           | Total times this item has been worn. Incremented by the service layer when a WearLog is created                                     |
+| `analytics.lastWornAt`     | Date          | —        | —             | Date of most recent wear                                                                                                            |
+| `analytics.lastNotifiedAt` | Date          | —        | —             | Date a "forgotten item" notification was last sent. Prevents repeated notifications                                                 |
+| `exportInfo.partnerName`   | String        | —        | —             | Denormalized display cache set by `export.service` when status flips to `Exported`. Authoritative record is the `Export` collection |
+| `exportInfo.type`          | String        | —        | —             | `resale` \| `donation` — matches the `Export` type                                                                                  |
+| `exportInfo.exportedAt`    | Date          | —        | —             | When the item was exported                                                                                                          |
+| `createdAt`                | Date          | Auto     | —             | Managed by Mongoose `timestamps`                                                                                                    |
+| `updatedAt`                | Date          | Auto     | —             | Managed by Mongoose `timestamps`                                                                                                    |
 
 #### Enum Values
 
@@ -195,9 +207,9 @@ The core of the wardrobe catalog. Each document represents one physical clothing
 | ----------- | -------------------------------------------------------------------------------- |
 | `category`  | `tops` · `bottoms` · `dresses` · `outerwear` · `shoes` · `accessories` · `other` |
 | `condition` | `Excellent` · `Good` · `Fair` · `Damaged`                                        |
-| `status`    | `Available` · `Archived`                                                         |
+| `status`    | `Available` · `Archived` · `Exported`                                            |
 
-> **Note:** Items with `condition: 'Damaged'` cannot be sent to resale partners (BR21). Items with `status: 'Archived'` are excluded from outfit suggestions and similarity checks (BR23).
+> **Note:** Items with `condition: 'Damaged'` cannot be sent to resale partners (BR21). Items with `status: 'Archived'` are excluded from outfit suggestions and similarity checks (BR23). Active-wardrobe queries filter **positively** on `status: 'Available'`, so `Archived` and `Exported` are both excluded automatically. `Exported` is set by `export.service` (along with `exportInfo`) and makes the item read-only in the app.
 
 #### Indexes
 
@@ -356,25 +368,27 @@ Implements the "cooling-off" feature. When a user wants to buy something new, th
 
 #### Fields
 
-| Field            | Type          | Required | Default     | Description                                                                                              |
-| ---------------- | ------------- | -------- | ----------- | -------------------------------------------------------------------------------------------------------- |
-| `_id`            | ObjectId      | Auto     | —           | Unique document ID                                                                                       |
-| `userId`         | ObjectId      | ✅       | —           | Reference to `User`                                                                                      |
-| `itemName`       | String        | ✅       | —           | Name of the item they want to buy                                                                        |
-| `description`    | String        | —        | —           | Why they want it / description                                                                           |
-| `imageUrl`       | String        | —        | —           | Photo of the item. Required for AI similarity check                                                      |
-| `estimatedPrice` | Number        | —        | —           | Expected purchase price                                                                                  |
-| `sourceUrl`      | String        | —        | —           | Link to where they saw it (e.g. online store URL)                                                        |
-| `cooldownEndsAt` | Date          | ✅       | —           | When the cooling-off period ends. Must be ≥ 24 hours from `createdAt` (BR14). Validated in service layer |
-| `status`         | String (enum) | —        | `'pending'` | `pending` → user is in cooldown · `approved` → they decided to buy · `rejected` → they decided not to    |
-| `createdAt`      | Date          | Auto     | —           | Managed by Mongoose `timestamps`                                                                         |
-| `updatedAt`      | Date          | Auto     | —           | Managed by Mongoose `timestamps`                                                                         |
+| Field                    | Type          | Required | Default     | Description                                                                                              |
+| ------------------------ | ------------- | -------- | ----------- | -------------------------------------------------------------------------------------------------------- |
+| `_id`                    | ObjectId      | Auto     | —           | Unique document ID                                                                                       |
+| `userId`                 | ObjectId      | ✅       | —           | Reference to `User`                                                                                      |
+| `itemName`               | String        | ✅       | —           | Name of the item they want to buy                                                                        |
+| `description`            | String        | —        | —           | Why they want it / description                                                                           |
+| `imageUrl`               | String        | —        | —           | Photo of the item. Required for AI similarity check                                                      |
+| `estimatedPrice`         | Number        | —        | —           | Expected purchase price                                                                                  |
+| `sourceUrl`              | String        | —        | —           | Link to where they saw it (e.g. online store URL)                                                        |
+| `cooldownEndsAt`         | Date          | ✅       | —           | When the cooling-off period ends. Must be ≥ 24 hours from `createdAt` (BR14). Validated in service layer |
+| `cooldownReminderSentAt` | Date          | —        | `null`      | Stamped once the `expireTimers` job sends the cooldown-ended reminder (BR15) — guards re-notify          |
+| `status`                 | String (enum) | —        | `'pending'` | `pending` → user is in cooldown · `approved` → they decided to buy · `rejected` → they decided not to    |
+| `createdAt`              | Date          | Auto     | —           | Managed by Mongoose `timestamps`                                                                         |
+| `updatedAt`              | Date          | Auto     | —           | Managed by Mongoose `timestamps`                                                                         |
 
 #### Indexes
 
-| Index             | Type     | Purpose                                               |
-| ----------------- | -------- | ----------------------------------------------------- |
-| `userId + status` | Compound | Fetch active (`pending`) holds for a user efficiently |
+| Index                     | Type     | Purpose                                                  |
+| ------------------------- | -------- | -------------------------------------------------------- |
+| `userId + status`         | Compound | Fetch active (`pending`) holds for a user efficiently    |
+| `status + cooldownEndsAt` | Compound | `expireTimers` job scan for expired pending holds (BR15) |
 
 #### Example Document
 
@@ -388,6 +402,7 @@ Implements the "cooling-off" feature. When a user wants to buy something new, th
   "estimatedPrice": 250.0,
   "sourceUrl": "https://www.zara.com/camel-coat",
   "cooldownEndsAt": "2025-05-18T10:00:00.000Z",
+  "cooldownReminderSentAt": null,
   "status": "pending",
   "createdAt": "2025-05-16T10:00:00.000Z",
   "updatedAt": "2025-05-16T10:00:00.000Z"
@@ -612,23 +627,25 @@ Stores in-app notifications delivered to users. Notifications are created by the
 
 Complete index list across all collections.
 
-| Collection            | Fields                     | Type            | Reason                                                                |
-| --------------------- | -------------------------- | --------------- | --------------------------------------------------------------------- |
-| `users`               | `email`                    | Unique          | Login lookup, prevent duplicate accounts                              |
-| `clothings`           | `userId`                   | Single          | Fetch user's wardrobe                                                 |
-| `clothings`           | `userId, category`         | Compound        | Filter by category                                                    |
-| `clothings`           | `userId, status`           | Compound        | Exclude archived items (BR23)                                         |
-| `outfits`             | `userId`                   | Single          | Fetch user's outfits                                                  |
-| `outfits`             | `clothingItems`            | Multikey        | Reverse lookup: outfits containing item X                             |
-| `wearlogs`            | `userId, logDate`          | Unique compound | One log per user per day (BR8)                                        |
-| `wearlogs`            | `clothingWorn.itemId`      | Multikey        | Per-item wear frequency                                               |
-| `thoughtfulpurchases` | `userId, status`           | Compound        | Fetch pending holds                                                   |
-| `similaritychecks`    | `purchaseId, clothingId`   | Unique compound | Prevent duplicate checks (BR18); prefix serves `{purchaseId}` queries |
-| `exports`             | `status`                   | Single          | Admin / active listings feed                                          |
-| `exports`             | `userId, status`           | Compound        | User's export history filtered by status                              |
-| `notifications`       | `userId, isRead`           | Compound        | Unread count badge                                                    |
-| `notifications`       | `userId, createdAt` (desc) | Compound        | Notification feed                                                     |
-| `partners`            | `isActive`                 | Single          | Active partner filter (BR30)                                          |
+| Collection            | Fields                                 | Type            | Reason                                                                   |
+| --------------------- | -------------------------------------- | --------------- | ------------------------------------------------------------------------ |
+| `users`               | `email`                                | Unique          | Login lookup, prevent duplicate accounts                                 |
+| `users`               | `scheduledDeletionAt`                  | Single (sparse) | Purge job scan (BR3)                                                     |
+| `clothings`           | `userId`                               | Single          | Fetch user's wardrobe                                                    |
+| `clothings`           | `userId, category`                     | Compound        | Filter by category                                                       |
+| `clothings`           | `userId, status, analytics.lastWornAt` | Compound        | Forgotten items job (BR11/BR13); prefix covers `{userId, status}` (BR23) |
+| `outfits`             | `userId`                               | Single          | Fetch user's outfits                                                     |
+| `outfits`             | `clothingItems`                        | Multikey        | Reverse lookup: outfits containing item X                                |
+| `wearlogs`            | `userId, logDate`                      | Unique compound | One log per user per day (BR8)                                           |
+| `wearlogs`            | `clothingWorn.itemId`                  | Multikey        | Per-item wear frequency                                                  |
+| `thoughtfulpurchases` | `userId, status`                       | Compound        | Fetch pending holds                                                      |
+| `thoughtfulpurchases` | `status, cooldownEndsAt`               | Compound        | `expireTimers` job scan for expired holds (BR15)                         |
+| `similaritychecks`    | `purchaseId, clothingId`               | Unique compound | Prevent duplicate checks (BR18); prefix serves `{purchaseId}` queries    |
+| `exports`             | `status`                               | Single          | Admin / active listings feed                                             |
+| `exports`             | `userId, status`                       | Compound        | User's export history filtered by status                                 |
+| `notifications`       | `userId, isRead`                       | Compound        | Unread count badge                                                       |
+| `notifications`       | `userId, createdAt` (desc)             | Compound        | Notification feed                                                        |
+| `partners`            | `isActive`                             | Single          | Active partner filter (BR30)                                             |
 
 ---
 

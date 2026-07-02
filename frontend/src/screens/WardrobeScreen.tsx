@@ -43,13 +43,14 @@ export default function WardrobeScreen({ navigation, route }: Props) {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   // Apply the category passed from the home screen's category cards. Watching
-  // the param (not just initial state) handles navigating back here with a
-  // different category while this screen instance is already in the stack.
+  // the params *object* (a new reference on every navigate) rather than the
+  // category value handles re-tapping the same card after the user changed the
+  // filter locally — the value alone wouldn't re-fire the effect.
   useEffect(() => {
     if (route?.params?.category) {
       setSelectedCategory(route.params.category);
     }
-  }, [route?.params?.category]);
+  }, [route?.params]);
 
   // Guard against setState after the screen unmounts mid-fetch (load runs on
   // focus and after an archive action).
@@ -231,133 +232,143 @@ export default function WardrobeScreen({ navigation, route }: Props) {
   );
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        >
-          <Icon name="arrow-back" size={24} color={colors.textPrimary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Wardrobe</Text>
-        <TouchableOpacity
-          onPress={() => navigation.navigate('AddCloth')}
-          style={styles.addButton}
-        >
-          <Icon name="add-circle-outline" size={28} color={colors.primary} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <Icon
-          name="search-outline"
-          size={20}
-          color={colors.textSecondary}
-          style={styles.searchIcon}
-        />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search by name or brand..."
-          placeholderTextColor={colors.textSecondary}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-        {searchQuery !== '' && (
-          <TouchableOpacity onPress={() => setSearchQuery('')}>
-            <Icon name="close-circle" size={20} color={colors.textSecondary} />
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* Category Filters */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.categoriesContainer}
-        contentContainerStyle={styles.categoriesContent}
-      >
-        {categories.map(cat => (
+    // The FAB lives outside the ScrollView — inside it, absolute positioning
+    // anchors to the scrolled content, so the button scrolled with the page.
+    <View style={styles.container}>
+      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={styles.header}>
           <TouchableOpacity
-            key={cat}
-            style={[
-              styles.categoryChip,
-              selectedCategory === cat && styles.categoryChipActive,
-            ]}
-            onPress={() => setSelectedCategory(cat)}
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
           >
-            <Text
-              style={[
-                styles.categoryChipText,
-                selectedCategory === cat && styles.categoryChipTextActive,
-              ]}
-            >
-              {cat}
-            </Text>
+            <Icon name="arrow-back" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      {isLoading && (
-        <ActivityIndicator
-          size="large"
-          color={colors.primary}
-          style={styles.loading}
-        />
-      )}
-      {error && !isLoading && <Text style={styles.errorText}>{error}</Text>}
-
-      {/* Recent Items Section */}
-      <View style={styles.recentSection}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Recent Items</Text>
+          <Text style={styles.headerTitle}>My Wardrobe</Text>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('AddCloth')}
+            style={styles.addButton}
+          >
+            <Icon name="add-circle-outline" size={28} color={colors.primary} />
+          </TouchableOpacity>
         </View>
-        <FlatList
-          data={recentItems}
-          renderItem={renderRecentItem}
-          keyExtractor={item => item._id}
+
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <Icon
+            name="search-outline"
+            size={20}
+            color={colors.textSecondary}
+            style={styles.searchIcon}
+          />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search by name or brand..."
+            placeholderTextColor={colors.textSecondary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery !== '' && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Icon
+                name="close-circle"
+                size={20}
+                color={colors.textSecondary}
+              />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Category Filters */}
+        <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.recentList}
-        />
-      </View>
+          style={styles.categoriesContainer}
+          contentContainerStyle={styles.categoriesContent}
+        >
+          {categories.map(cat => (
+            <TouchableOpacity
+              key={cat}
+              style={[
+                styles.categoryChip,
+                selectedCategory === cat && styles.categoryChipActive,
+              ]}
+              onPress={() => setSelectedCategory(cat)}
+            >
+              <Text
+                style={[
+                  styles.categoryChipText,
+                  selectedCategory === cat && styles.categoryChipTextActive,
+                ]}
+              >
+                {cat}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
 
-      {/* All Items Section */}
-      <View style={styles.allItemsSection}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>All Items</Text>
-          <TouchableOpacity
-            onPress={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
-          >
-            <Icon
-              name={viewMode === 'grid' ? 'list-outline' : 'grid-outline'}
-              size={24}
-              color={colors.primary}
-            />
-          </TouchableOpacity>
-        </View>
-
-        {viewMode === 'grid' ? (
-          <FlatList
-            data={filteredItems}
-            renderItem={renderGridItem}
-            keyExtractor={item => item._id}
-            numColumns={2}
-            columnWrapperStyle={styles.gridRow}
-            scrollEnabled={false}
-            ListEmptyComponent={emptyState}
-          />
-        ) : (
-          <FlatList
-            data={filteredItems}
-            renderItem={renderListItem}
-            keyExtractor={item => item._id}
-            scrollEnabled={false}
-            ListEmptyComponent={emptyState}
+        {isLoading && (
+          <ActivityIndicator
+            size="large"
+            color={colors.primary}
+            style={styles.loading}
           />
         )}
-      </View>
+        {error && !isLoading && <Text style={styles.errorText}>{error}</Text>}
+
+        {/* Recent Items Section */}
+        <View style={styles.recentSection}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Recent Items</Text>
+          </View>
+          <FlatList
+            data={recentItems}
+            renderItem={renderRecentItem}
+            keyExtractor={item => item._id}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.recentList}
+          />
+        </View>
+
+        {/* All Items Section */}
+        <View style={styles.allItemsSection}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>All Items</Text>
+            <TouchableOpacity
+              onPress={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+            >
+              <Icon
+                name={viewMode === 'grid' ? 'list-outline' : 'grid-outline'}
+                size={24}
+                color={colors.primary}
+              />
+            </TouchableOpacity>
+          </View>
+
+          {viewMode === 'grid' ? (
+            <FlatList
+              data={filteredItems}
+              renderItem={renderGridItem}
+              keyExtractor={item => item._id}
+              numColumns={2}
+              columnWrapperStyle={styles.gridRow}
+              scrollEnabled={false}
+              ListEmptyComponent={emptyState}
+            />
+          ) : (
+            <FlatList
+              data={filteredItems}
+              renderItem={renderListItem}
+              keyExtractor={item => item._id}
+              scrollEnabled={false}
+              ListEmptyComponent={emptyState}
+            />
+          )}
+        </View>
+
+        <View style={styles.bottomPadding} />
+      </ScrollView>
 
       {/* Add New Cloth Button */}
       <TouchableOpacity
@@ -366,9 +377,7 @@ export default function WardrobeScreen({ navigation, route }: Props) {
       >
         <Icon name="add" size={28} color={colors.white} />
       </TouchableOpacity>
-
-      <View style={styles.bottomPadding} />
-    </ScrollView>
+    </View>
   );
 }
 
@@ -376,6 +385,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  scroll: {
+    flex: 1,
   },
   header: {
     flexDirection: 'row',

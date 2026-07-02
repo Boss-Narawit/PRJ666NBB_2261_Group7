@@ -11,7 +11,15 @@ const clothingSchema = new mongoose.Schema(
     name: { type: String, required: true, trim: true },
     brand: { type: String, required: true, trim: true },
     category: { type: String, required: true, enum: CLOTHING_CATEGORIES },
-    colors: { type: [String], required: true },
+    colors: {
+      type: [String],
+      required: true,
+      validate: {
+        // BR4: `required` alone accepts an empty array on array paths.
+        validator: (v) => Array.isArray(v) && v.length > 0,
+        message: 'colors must contain at least one color',
+      },
+    },
     size: { type: String, required: true },
     imageUrl: { type: String, required: true },
     condition: { type: String, required: true, enum: CLOTHING_CONDITIONS },

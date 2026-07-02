@@ -10,17 +10,16 @@ const connectDB = async () => {
   }
 };
 
-// Requires a replica set or Atlas — standalone mongod will throw on startTransaction
+// Requires a replica set or Atlas — standalone mongod will throw on startTransaction.
+// Delegates to the driver's withTransaction so transient errors (e.g. a
+// WriteConflict when two concurrent transactions write the same document) retry
+// the callback against fresh state instead of surfacing as a 500 — a losing
+// double-submit re-reads the new state and fails with the service's own error.
+// Non-transient errors (thrown `.status` errors, validation) are not retried.
 const withTransaction = async (callback) => {
   const session = await mongoose.startSession();
   try {
-    session.startTransaction();
-    const result = await callback(session);
-    await session.commitTransaction();
-    return result;
-  } catch (err) {
-    await session.abortTransaction();
-    throw err;
+    return await session.withTransaction(() => callback(session));
   } finally {
     session.endSession();
   }

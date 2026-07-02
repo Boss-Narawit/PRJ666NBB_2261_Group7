@@ -37,7 +37,9 @@ const getSummary = async (userId) => {
   const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 
   const [totalItems, forgottenCount, forgottenItems, wornAgg] = await Promise.all([
-    Clothing.countDocuments({ userId }),
+    // Must agree with the wardrobe view, which shows only Available items —
+    // archived/exported items would otherwise inflate the home stat.
+    Clothing.countDocuments({ userId, status: 'Available' }),
     Clothing.countDocuments(forgottenFilter(userId, cutoff)),
     Clothing.find(forgottenFilter(userId, cutoff))
       .sort({ 'analytics.lastWornAt': 1 })

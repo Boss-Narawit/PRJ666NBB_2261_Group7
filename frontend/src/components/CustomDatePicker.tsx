@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity } from 'react-native';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -66,6 +66,15 @@ export default function CustomDatePicker({
   mode = 'end',
 }: Props) {
   const [selectedDate, setSelectedDate] = useState(initialDate);
+
+  // Re-seed the selection each time the picker opens — the component stays
+  // mounted, so a cancelled pick would otherwise still be highlighted on the
+  // next open. Depends on `visible` only: the initialDate default (new Date())
+  // is a fresh object every render and would loop the effect.
+  useEffect(() => {
+    if (visible) setSelectedDate(initialDate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
 
   // Format date to YYYY-MM-DD without timezone issues
   const formatDateKey = (date: Date) => {

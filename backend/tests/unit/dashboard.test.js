@@ -57,7 +57,8 @@ describe('Dashboard API (/api/dashboard/summary)', () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.body.userName).toBe('Test User');
-    expect(res.body.totalItems).toBe(4);
+    // Archived/Exported items are excluded — the stat must match the wardrobe view
+    expect(res.body.totalItems).toBe(3);
     // Default threshold 30 days: worn 40d ago + never worn (created 40d ago)
     expect(res.body.forgottenCount).toBe(2);
     const names = res.body.forgottenItems.map((i) => i.name).sort();
@@ -89,7 +90,8 @@ describe('Dashboard API (/api/dashboard/summary)', () => {
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.statusCode).toBe(200);
-    expect(res.body.totalItems).toBe(1);
+    // Archived items count neither toward totalItems nor forgotten
+    expect(res.body.totalItems).toBe(0);
     expect(res.body.forgottenCount).toBe(0);
     expect(res.body.forgottenItems).toEqual([]);
   });

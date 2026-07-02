@@ -1,11 +1,24 @@
 const Clothing = require('../models/Clothing');
+const WearLog = require('../models/WearLog');
+const { ANNUAL_RECAP_MIN_LOGS } = require('../config/constants');
 
 const getAnnualRecapAnalytics = async (req, res) => {
   try {
     const userId = req.user?.userId;
 
+    // BR25: the recap needs a minimum body of wear-log data to be meaningful.
+    const logCount = await WearLog.countDocuments({ userId });
+    if (logCount < ANNUAL_RECAP_MIN_LOGS) {
+      return res.status(422).json({
+        message: `Annual recap requires at least ${ANNUAL_RECAP_MIN_LOGS} wear logs`,
+        code: 'RECAP_NOT_ENOUGH_LOGS',
+      });
+    }
+
+    // BR23: archived/exported items are excluded from utilization and stats.
     const clothingItems = await Clothing.find({
       userId,
+      status: 'Available',
     });
 
     const totalClothingItems = clothingItems.length;

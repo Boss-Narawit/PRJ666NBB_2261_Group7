@@ -21,7 +21,9 @@ const run = async () => {
   const userIds = [...new Set(duePurchases.map((p) => p.userId.toString()))];
   const enabledUsers = await User.find({
     _id: { $in: userIds },
-    notificationEnabled: true,
+    // $ne:false (not :true) so legacy docs predating the field still match —
+    // mirrors the preferences API, which treats a missing field as enabled.
+    notificationEnabled: { $ne: false },
     scheduledDeletionAt: null,
   }).select('_id');
   const enabled = new Set(enabledUsers.map((u) => u._id.toString()));
@@ -29,17 +31,32 @@ const run = async () => {
   let notificationsCreated = 0;
 
   for (const purchase of duePurchases) {
-    if (!enabled.has(purchase.userId.toString())) continue;
+    try {
+      // Stamp first, and with a targeted update: a full-document save would
+      // re-validate every path (one legacy doc aborts the sweep), and stamping
+      // *after* the create would re-send the reminder every 15 minutes if the
+      // stamp failed. Worst case now is one missed reminder, never spam.
+      await ThoughtfulPurchase.updateOne(
+        { _id: purchase._id },
+        { $set: { cooldownReminderSentAt: now } }
+      );
 
-    await Notification.create({
-      userId: purchase.userId,
-      type: 'cooldown_reminder',
-      message: `Your cooling-off period for "${purchase.itemName}" is over. Still want it?`,
-      relatedId: purchase._id,
-    });
-    purchase.cooldownReminderSentAt = now;
-    await purchase.save();
-    notificationsCreated += 1;
+      // BR28: notification-disabled users get no reminder — but the stamp
+      // above still takes the purchase out of the working set, so it isn't
+      // rescanned forever (or stale-reminded if they re-enable much later).
+      if (!enabled.has(purchase.userId.toString())) continue;
+
+      await Notification.create({
+        userId: purchase.userId,
+        type: 'cooldown_reminder',
+        message: `Your cooling-off period for "${purchase.itemName}" is over. Still want it?`,
+        relatedId: purchase._id,
+      });
+      notificationsCreated += 1;
+    } catch (err) {
+      // One purchase's failure must not starve the rest of the sweep.
+      console.error(`expireTimers: purchase ${purchase._id} failed:`, err);
+    }
   }
 
   return { purchasesProcessed: duePurchases.length, notificationsCreated };

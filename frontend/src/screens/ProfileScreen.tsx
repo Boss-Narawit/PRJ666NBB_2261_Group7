@@ -70,7 +70,9 @@ export default function ProfileScreen({ navigation }: Props) {
   const handleDeleteAccount = () =>
     Alert.alert(
       'Delete Account',
-      'This will permanently delete your account. This action cannot be undone.',
+      // BR3: deletion is a 30-day soft delete — the dialog must not claim
+      // irreversibility the login screen's reactivation flow contradicts.
+      'Your account will be deactivated now and permanently deleted after 30 days. You can reactivate it by logging in during that period.',
       [
         { text: 'Cancel', style: 'cancel' },
         {

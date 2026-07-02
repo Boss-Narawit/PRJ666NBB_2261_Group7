@@ -76,20 +76,6 @@ export default function SettingsScreen({ navigation }: Props) {
         <Text style={styles.buttonText}>Notification</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.settingButton}
-        onPress={() => navigation.navigate('Export')}
-        activeOpacity={0.8}
-      >
-        <Icon
-          name="people-outline"
-          size={24}
-          color="#000000"
-          style={styles.buttonIcon}
-        />
-        <Text style={styles.buttonText}>Partner</Text>
-      </TouchableOpacity>
-
       {/* App info Section */}
       <Text style={styles.sectionTitle}>App info</Text>
 

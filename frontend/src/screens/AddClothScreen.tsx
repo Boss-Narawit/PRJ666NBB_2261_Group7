@@ -76,13 +76,20 @@ export default function AddClothScreen({ navigation, route }: Props) {
   };
 
   const handleSave = async () => {
-    // Validation (BR4 - required fields). A prefilled hosted image satisfies the
-    // photo requirement without picking a new one.
+    // Validation (BR4 - required fields). Validate the *trimmed/parsed* values —
+    // whitespace-only text or a comma-only color would pass a truthiness check,
+    // upload the photo, then fail server validation (orphaning the Cloudinary
+    // asset on every retry). A prefilled hosted image satisfies the photo
+    // requirement without picking a new one.
+    const hasColor = color
+      .split(',')
+      .map(c => c.trim())
+      .some(Boolean);
     if (
-      !name ||
-      !brand ||
+      !name.trim() ||
+      !brand.trim() ||
       !category ||
-      !color ||
+      !hasColor ||
       !size ||
       (!photo?.uri && !prefillImageUrl)
     ) {
@@ -113,7 +120,14 @@ export default function AddClothScreen({ navigation, route }: Props) {
       });
 
       Alert.alert('Success', 'Clothing item added!', [
-        { text: 'OK', onPress: () => navigation.goBack() },
+        {
+          text: 'OK',
+          // The back button is locked while saving, but an iOS swipe-back can
+          // still pop this screen mid-save — don't goBack from a stale screen.
+          onPress: () => {
+            if (navigation.isFocused()) navigation.goBack();
+          },
+        },
       ]);
     } catch (err: any) {
       Alert.alert('Error', err?.message || 'Failed to save clothing item');
@@ -126,9 +140,12 @@ export default function AddClothScreen({ navigation, route }: Props) {
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header */}
       <View style={styles.header}>
+        {/* Backing out mid-save would let the success alert's goBack pop
+            whatever screen is on top by then — lock it while saving. */}
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
+          disabled={loading}
         >
           <Icon name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>

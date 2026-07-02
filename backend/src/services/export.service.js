@@ -44,6 +44,31 @@ const createExport = async (userId, data) => {
   }
 
   return withTransaction(async (session) => {
+    // Re-claim the item inside the transaction: two concurrent submits (e.g. a
+    // double-tap) both pass the pre-checks above, so this conditional update is
+    // the authoritative guard — the loser finds no Available doc and fails
+    // without creating a second Export.
+    //
+    // The item leaves the active wardrobe once exported (keeps BR23 utilization
+    // honest). 'Exported' is distinct from 'Archived' so the UI can show where
+    // it went; exportInfo caches the destination for display (Export is the
+    // authoritative record).
+    const claimed = await Clothing.findOneAndUpdate(
+      { _id: clothingId, userId, status: 'Available' },
+      {
+        $set: {
+          status: 'Exported',
+          exportInfo: {
+            partnerName: partner.name,
+            type,
+            exportedAt: new Date(),
+          },
+        },
+      },
+      { session, new: true }
+    );
+    if (!claimed) fail('Item is not available for export', 422);
+
     const [created] = await Export.create(
       [
         {
@@ -61,18 +86,6 @@ const createExport = async (userId, data) => {
       ],
       { session }
     );
-
-    // The item leaves the active wardrobe once exported (keeps BR23 utilization
-    // honest). 'Exported' is distinct from 'Archived' so the UI can show where
-    // it went; exportInfo caches the destination for display (Export is the
-    // authoritative record).
-    clothing.status = 'Exported';
-    clothing.exportInfo = {
-      partnerName: partner.name,
-      type,
-      exportedAt: new Date(),
-    };
-    await clothing.save({ session });
 
     return created;
   });

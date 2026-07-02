@@ -4,7 +4,13 @@ const validateAuthentication = (req, res, next) => {
     return res.status(400).json({ message: 'Request body is missing' });
   }
 
-  const { email, password } = req.body;
+  const { name, email, password } = req.body;
+
+  // User.name is schema-required — reject here so a missing name is a 400,
+  // not a ValidationError the controller maps to 500.
+  if (!name || !String(name).trim()) {
+    return res.status(400).json({ message: 'Name is required' });
+  }
 
   // Check if email is valid
   if (!email) {

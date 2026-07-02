@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -28,6 +28,7 @@ export default function NotificationSettingsScreen({ navigation }: Props) {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // States for preferences
   const [allowNotifications, setAllowNotifications] = useState(true);
@@ -35,29 +36,31 @@ export default function NotificationSettingsScreen({ navigation }: Props) {
   const [itemStatusChange, setItemStatusChange] = useState(true);
   const [forgottenItemAlert, setForgottenItemAlert] = useState(true);
 
-  useEffect(() => {
-    async function loadPreferences() {
-      try {
-        const userToken = await getToken();
-        if (userToken) {
-          setToken(userToken);
-          const prefs = await getNotificationPreferences(userToken);
-          setAllowNotifications(prefs.notificationEnabled);
-          setFrequency(prefs.notificationFrequency);
-          setItemStatusChange(prefs.itemStatusChangeEnabled);
-          setForgottenItemAlert(prefs.forgottenItemAlertEnabled);
-        }
-      } catch (err: any) {
-        Alert.alert(
-          'Error',
-          err.message || 'Failed to load notification preferences.',
-        );
-      } finally {
-        setIsLoading(false);
+  const loadPreferences = useCallback(async () => {
+    setIsLoading(true);
+    setLoadError(null);
+    try {
+      const userToken = await getToken();
+      if (userToken) {
+        setToken(userToken);
+        const prefs = await getNotificationPreferences(userToken);
+        setAllowNotifications(prefs.notificationEnabled);
+        setFrequency(prefs.notificationFrequency);
+        setItemStatusChange(prefs.itemStatusChangeEnabled);
+        setForgottenItemAlert(prefs.forgottenItemAlertEnabled);
       }
+    } catch (err: any) {
+      // Block the form instead of alerting over it — otherwise the hardcoded
+      // defaults render live and a Save would overwrite the real server prefs.
+      setLoadError(err.message || 'Failed to load notification preferences.');
+    } finally {
+      setIsLoading(false);
     }
-    loadPreferences();
   }, []);
+
+  useEffect(() => {
+    loadPreferences();
+  }, [loadPreferences]);
 
   const handleSave = async () => {
     if (!token) {
@@ -94,6 +97,17 @@ export default function NotificationSettingsScreen({ navigation }: Props) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadErrorText}>{loadError}</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={loadPreferences}>
+          <Text style={styles.retryButtonText}>Retry</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -216,6 +230,24 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  loadErrorText: {
+    fontSize: 14,
+    color: '#C0392B',
+    textAlign: 'center',
+    paddingHorizontal: 32,
+    marginBottom: 16,
+  },
+  retryButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    backgroundColor: colors.primary,
+    borderRadius: 20,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
   switchRow: {
     flexDirection: 'row',

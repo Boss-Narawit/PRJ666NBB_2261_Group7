@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  Image,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
@@ -89,11 +90,15 @@ export default function WearLogDetailScreen({ navigation, route }: Props) {
         {items.map((item, index) => (
           <View key={index} style={styles.itemCard}>
             <View style={styles.itemImage}>
-              <Icon
-                name="shirt-outline"
-                size={30}
-                color={colors.textSecondary}
-              />
+              {item.image ? (
+                <Image source={{ uri: item.image }} style={styles.thumbnail} />
+              ) : (
+                <Icon
+                  name="shirt-outline"
+                  size={30}
+                  color={colors.textSecondary}
+                />
+              )}
             </View>
             <View style={styles.itemInfo}>
               <Text style={styles.itemName}>{item.name}</Text>
@@ -196,6 +201,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
+  },
+  thumbnail: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 8,
+    resizeMode: 'cover',
   },
   itemInfo: {
     flex: 1,

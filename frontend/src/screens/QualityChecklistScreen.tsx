@@ -23,8 +23,10 @@ type Props = {
   };
 };
 
-// Fields shared with the partner (BR22) once the checklist confirms intent.
+// Fields shared with the partner (BR22). The list is fixed, but it is shown to
+// the user and consent must be explicitly given — never fabricated by the UI.
 const SHARED_FIELDS = ['name', 'brand', 'category', 'condition', 'imageUrl'];
+const SHARED_FIELDS_LABEL = 'name, brand, category, condition, photo';
 
 export default function QualityChecklistScreen({ navigation, route }: Props) {
   const { items, type, destination } = route.params;
@@ -38,6 +40,8 @@ export default function QualityChecklistScreen({ navigation, route }: Props) {
     description: false,
   });
   const [submitting, setSubmitting] = useState(false);
+  // BR17: consent is the user's own action, separate from the quality checks.
+  const [consent, setConsent] = useState(false);
 
   const toggleChecklist = (key: keyof typeof checklist) => {
     setChecklist(prev => ({ ...prev, [key]: !prev[key] }));
@@ -48,6 +52,10 @@ export default function QualityChecklistScreen({ navigation, route }: Props) {
   const handleConfirmExport = async () => {
     if (!allChecked) {
       Alert.alert('Error', 'Please complete all checklist items');
+      return;
+    }
+    if (!consent) {
+      Alert.alert('Error', 'Please consent to sharing your item data');
       return;
     }
     if (!token) return;
@@ -63,8 +71,8 @@ export default function QualityChecklistScreen({ navigation, route }: Props) {
       const payload: ExportPayload = {
         clothingId,
         partnerId: destination,
-        checklistCompleted: true,
-        consent: true,
+        checklistCompleted: allChecked,
+        consent,
         selectedFields: SHARED_FIELDS,
       };
       try {
@@ -80,7 +88,9 @@ export default function QualityChecklistScreen({ navigation, route }: Props) {
     const summary =
       failures.length === 0
         ? `Your ${succeeded} item(s) have been exported for ${type}!`
-        : `${succeeded} exported, ${failures.length} failed:\n${failures.join('\n')}`;
+        : `${succeeded} exported, ${failures.length} failed:\n${failures.join(
+            '\n',
+          )}`;
     Alert.alert('Export Result', summary, [
       { text: 'OK', onPress: () => navigation.navigate('Main') },
     ]);
@@ -193,15 +203,36 @@ export default function QualityChecklistScreen({ navigation, route }: Props) {
         </TouchableOpacity>
       </View>
 
+      {/* Data-sharing consent (BR17/BR22) */}
+      <View style={styles.consentContainer}>
+        <TouchableOpacity
+          style={styles.checklistItem}
+          onPress={() => setConsent(prev => !prev)}
+        >
+          <View style={[styles.checkbox, consent && styles.checkboxChecked]}>
+            {consent && (
+              <Icon name="checkmark" size={18} color={colors.white} />
+            )}
+          </View>
+          <Text style={styles.checklistText}>
+            I consent to sharing this item's details with the partner
+          </Text>
+        </TouchableOpacity>
+        <Text style={styles.sharedFieldsText}>
+          Shared with the partner: {SHARED_FIELDS_LABEL}
+        </Text>
+      </View>
+
       {/* Action Buttons */}
       <View style={styles.actionContainer}>
         <TouchableOpacity
           style={[
             styles.confirmButton,
-            (!allChecked || submitting) && styles.confirmButtonDisabled,
+            (!allChecked || !consent || submitting) &&
+              styles.confirmButtonDisabled,
           ]}
           onPress={handleConfirmExport}
-          disabled={!allChecked || submitting}
+          disabled={!allChecked || !consent || submitting}
         >
           <Text style={styles.confirmButtonText}>
             {submitting ? 'Exporting…' : 'Confirm & Export'}
@@ -289,6 +320,21 @@ const styles = StyleSheet.create({
   checklistText: {
     fontSize: 16,
     color: colors.textPrimary,
+    flexShrink: 1,
+  },
+  consentContainer: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: colors.inputBorder,
+  },
+  sharedFieldsText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginTop: 10,
   },
   actionContainer: {
     marginHorizontal: 16,

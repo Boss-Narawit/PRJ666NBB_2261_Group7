@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -9,12 +9,14 @@ import {
   Modal,
   TextInput,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { getWearLogs, WearLog } from '../services/api';
+import { CLOTHING_CATEGORIES } from '../constants/categories';
 
 // Display shape the list/stats/detail UI consumes, mapped from the API's
 // populated WearLog documents.
@@ -23,6 +25,7 @@ type DisplayItem = {
   brand: string;
   wearCount: number;
   category: string;
+  image?: string;
 };
 type DisplayLog = {
   id: string;
@@ -41,18 +44,14 @@ function toDisplayLog(log: WearLog): DisplayLog {
         brand: c.itemId!.brand,
         category: c.itemId!.category,
         wearCount: c.itemId!.analytics?.wearCount ?? 0,
+        image: c.itemId!.imageUrl,
       })),
   };
 }
 
-const categories = [
-  'Tops',
-  'Bottoms',
-  'Dresses',
-  'Outerwear',
-  'Shoes',
-  'Accessories',
-];
+// Shared list (includes 'Other') so every category stored on the backend is
+// filterable here.
+const categories = [...CLOTHING_CATEGORIES];
 
 type DateRange = { startDate?: string; endDate?: string };
 
@@ -100,9 +99,16 @@ export default function WearHistoryScreen({ navigation }: Props) {
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
 
+  // Bumped on every fresh (page-1) fetch. An in-flight loadMore compares its
+  // captured value on resolve and discards its page if the list was replaced
+  // meanwhile — otherwise a slow "load more" appends a page of the *previous*
+  // range onto the new list.
+  const fetchVersionRef = useRef(0);
+
   const fetchLogs = useCallback(
     async (range: DateRange) => {
       if (!token) return;
+      fetchVersionRef.current += 1;
       setIsLoading(true);
       try {
         const data = await getWearLogs(token, 1, range);
@@ -131,14 +137,25 @@ export default function WearHistoryScreen({ navigation }: Props) {
   const loadMore = async () => {
     if (!token || isLoadingMore || isLoading) return;
     if (wearLogs.length >= total) return;
+    const version = fetchVersionRef.current;
     setIsLoadingMore(true);
     try {
       const data = await getWearLogs(token, page + 1, appliedRange);
+      // The range changed (or the list was refetched) while this page was in
+      // flight — appending it would mix ranges and corrupt page/total.
+      if (version !== fetchVersionRef.current) return;
       setWearLogs(prev => [...prev, ...data.wearLogs]);
       setPage(data.page);
       setTotal(data.total);
     } catch {
-      // Keep the list as-is; changing the filter or re-focusing recovers.
+      // Stay quiet if the range changed mid-flight — a success would have been
+      // discarded too, so the failure is equally irrelevant to the user.
+      if (version === fetchVersionRef.current) {
+        Alert.alert(
+          'Wear History',
+          'Could not load more logs. Please try again.',
+        );
+      }
     } finally {
       setIsLoadingMore(false);
     }
@@ -214,9 +231,15 @@ export default function WearHistoryScreen({ navigation }: Props) {
     }
   };
 
-  // Quick-chip tap: switch the active range and let appliedRange drive the refetch.
+  // Quick-chip tap: switch the active range and let appliedRange drive the
+  // refetch. The Custom chip opens the filter modal instead — its date inputs
+  // live there, and applying an empty custom range would mean "all time".
   const applyFilter = (filter: string) => {
     setActiveFilter(filter);
+    if (filter === 'Custom') {
+      setShowFilters(true);
+      return;
+    }
     setAppliedRange(rangeForFilter(filter, customStartDate, customEndDate));
   };
 

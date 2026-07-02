@@ -21,6 +21,7 @@ import {
   DashboardSummary,
 } from '../services/api';
 import { FEATURED_CATEGORIES } from '../constants/categories';
+import { localDateString } from '../utils/date';
 
 function formatLastWorn(lastWornAt?: string) {
   return lastWornAt ? lastWornAt.slice(0, 10) : 'Never';
@@ -62,7 +63,7 @@ export default function MainScreen({ navigation }: any) {
         onPress: async () => {
           try {
             await createWearLog(token, {
-              logDate: new Date().toISOString(),
+              logDate: localDateString(),
               clothingWorn: [{ itemId: item._id }],
             });
           } catch (err: any) {
@@ -99,7 +100,14 @@ export default function MainScreen({ navigation }: any) {
       onPress={() => navigation.navigate('ItemDetail', { itemId: item._id })}
     >
       <View style={styles.forgottenImagePlaceholder}>
-        <Icon name="shirt-outline" size={30} color={colors.textSecondary} />
+        {item.imageUrl ? (
+          <Image
+            source={{ uri: item.imageUrl }}
+            style={styles.forgottenThumbnail}
+          />
+        ) : (
+          <Icon name="shirt-outline" size={30} color={colors.textSecondary} />
+        )}
       </View>
       <View style={styles.forgottenInfo}>
         <Text style={styles.forgottenName}>{item.name}</Text>
@@ -425,6 +433,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
+  },
+  forgottenThumbnail: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 8,
+    resizeMode: 'cover',
   },
   forgottenInfo: {
     flex: 1,

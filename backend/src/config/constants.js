@@ -43,6 +43,8 @@ const MAX_CLOTHING_BATCH = 50; // BR5
 const DASHBOARD_FORGOTTEN_PREVIEW_LIMIT = 5; // forgotten-items preview on main dashboard
 const NOTIFICATION_PAGE_SIZE = 20; // default + max page size for the notification list
 const WEARLOG_PAGE_SIZE = 20; // default + max page size for the wear-log history list
+const UPLOAD_MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // image upload cap — file buffers in memory before Cloudinary
+const CRON_TIMEZONE = 'America/Toronto'; // node-cron defaults to the host TZ — pin BR11's "daily 08:00" to local time
 
 module.exports = {
   CLOTHING_CATEGORIES,
@@ -68,4 +70,6 @@ module.exports = {
   DASHBOARD_FORGOTTEN_PREVIEW_LIMIT,
   NOTIFICATION_PAGE_SIZE,
   WEARLOG_PAGE_SIZE,
+  UPLOAD_MAX_FILE_SIZE_BYTES,
+  CRON_TIMEZONE,
 };

@@ -117,6 +117,10 @@ const createWearLog = async (userId, data) => {
           present.add(String(c.itemId));
         }
       }
+      // A merge only fills occasion/notes the day's log doesn't have yet —
+      // never overwrites, but no longer silently drops them either.
+      if (occasion !== undefined && !existing.occasion) existing.occasion = occasion;
+      if (notes !== undefined && !existing.notes) existing.notes = notes;
       log = await existing.save({ session });
     } else {
       [log] = await WearLog.create([{ userId, logDate, clothingWorn, occasion, notes }], {

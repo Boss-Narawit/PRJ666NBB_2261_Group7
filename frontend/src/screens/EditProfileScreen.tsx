@@ -73,7 +73,11 @@ export default function EditProfileScreen({ navigation }: Props) {
       Alert.alert('Success', 'Profile updated successfully!', [
         {
           text: 'OK',
-          onPress: () => navigation.goBack(),
+          // If the user already backed out mid-save, a bare goBack would pop
+          // whatever screen is on top by now — only pop while still focused.
+          onPress: () => {
+            if (navigation.isFocused()) navigation.goBack();
+          },
         },
       ]);
     } catch (err: any) {

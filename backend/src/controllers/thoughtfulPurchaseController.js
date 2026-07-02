@@ -89,6 +89,14 @@ const approvePurchase = async (req, res) => {
       });
     }
 
+    // Only a pending purchase can be decided — a rejected purchase must not
+    // flip to approved (or vice versa).
+    if (purchase.status !== 'pending') {
+      return res.status(422).json({
+        message: 'Purchase has already been decided',
+      });
+    }
+
     if (purchase.cooldownEndsAt > new Date()) {
       return res.status(400).json({
         message: 'Cooling-off period has not ended yet',
@@ -119,6 +127,12 @@ const rejectPurchase = async (req, res) => {
     if (!purchase) {
       return res.status(404).json({
         message: 'Purchase not found',
+      });
+    }
+
+    if (purchase.status !== 'pending') {
+      return res.status(422).json({
+        message: 'Purchase has already been decided',
       });
     }
 

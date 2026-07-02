@@ -6,6 +6,7 @@ import React, {
   ReactNode,
 } from 'react';
 import { getToken, saveSession, clearSession } from '../services/session';
+import { setOnUnauthorized } from '../services/api';
 
 type SignInData = { token: string; name: string; email: string };
 
@@ -28,6 +29,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then(setToken)
       .catch(() => setToken(null))
       .finally(() => setIsLoading(false));
+  }, []);
+
+  // A 401 on any authenticated request means the stored token is expired or
+  // invalid — sign out so RootNavigator swaps back to the Login stack instead
+  // of every screen erroring forever.
+  useEffect(() => {
+    setOnUnauthorized(() => {
+      clearSession().finally(() => setToken(null));
+    });
+    return () => setOnUnauthorized(null);
   }, []);
 
   const signIn = async (data: SignInData) => {
