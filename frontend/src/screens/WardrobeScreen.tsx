@@ -235,24 +235,24 @@ export default function WardrobeScreen({ navigation, route }: Props) {
     // The FAB lives outside the ScrollView — inside it, absolute positioning
     // anchors to the scrolled content, so the button scrolled with the page.
     <View style={styles.container}>
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-          >
-            <Icon name="arrow-back" size={24} color={colors.textPrimary} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>My Wardrobe</Text>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('AddCloth')}
-            style={styles.addButton}
-          >
-            <Icon name="add-circle-outline" size={28} color={colors.primary} />
-          </TouchableOpacity>
-        </View>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
+          <Icon name="arrow-back" size={24} color={colors.textPrimary} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>My Wardrobe</Text>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('AddCloth')}
+          style={styles.addButton}
+        >
+          <Icon name="add-circle-outline" size={28} color={colors.primary} />
+        </TouchableOpacity>
+      </View>
 
+      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Search Bar */}
         <View style={styles.searchContainer}>
           <Icon
@@ -348,6 +348,7 @@ export default function WardrobeScreen({ navigation, route }: Props) {
 
           {viewMode === 'grid' ? (
             <FlatList
+              key="grid"
               data={filteredItems}
               renderItem={renderGridItem}
               keyExtractor={item => item._id}
@@ -358,6 +359,7 @@ export default function WardrobeScreen({ navigation, route }: Props) {
             />
           ) : (
             <FlatList
+              key="list"
               data={filteredItems}
               renderItem={renderListItem}
               keyExtractor={item => item._id}

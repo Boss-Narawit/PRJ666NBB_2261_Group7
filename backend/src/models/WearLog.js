@@ -10,13 +10,16 @@ const wearLogSchema = new mongoose.Schema(
         outfitId: { type: mongoose.Schema.Types.ObjectId, ref: 'Outfit' },
       },
     ],
+    outfitName: { type: String, trim: true },
     occasion: { type: String },
     notes: { type: String },
   },
   { timestamps: { createdAt: true, updatedAt: false } }
 );
 
-wearLogSchema.index({ userId: 1, logDate: 1 }, { unique: true }); // BR8: one log per user per day
+// BR8: multiple outfit logs per user per day are allowed. Non-unique index kept
+// for date-range queries (listWearLogs filters/sorts by logDate).
+wearLogSchema.index({ userId: 1, logDate: 1 });
 wearLogSchema.index({ 'clothingWorn.itemId': 1 }); // multikey — per-item wear frequency queries
 
 module.exports = mongoose.model('WearLog', wearLogSchema);

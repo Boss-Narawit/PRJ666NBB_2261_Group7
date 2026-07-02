@@ -450,6 +450,7 @@ export function updateClothing(
 export interface WearLog {
   _id: string;
   logDate: string;
+  outfitName?: string;
   occasion?: string;
   notes?: string;
   clothingWorn: {
@@ -504,11 +505,13 @@ export async function getWearLogs(
 export interface CreateWearLogPayload {
   logDate: string;
   clothingWorn: { itemId: string }[];
+  outfitName?: string;
   occasion?: string;
   notes?: string;
 }
 
-// Throws an Error with `.status === 409` when a log already exists for the day (BR8).
+// Creates a new wear log. Multiple logs per day are allowed (BR8), so this no
+// longer 409s on a same-day log.
 export function createWearLog(
   token: string,
   payload: CreateWearLogPayload,
@@ -523,11 +526,12 @@ export function getWearLogById(token: string, id: string): Promise<WearLog> {
   return apiFetch<WearLog>(`/api/wear-logs/${id}`, token);
 }
 
-// Partial update (BR10). Throws an Error with `.status === 409` when logDate is
-// moved onto a day that already has a log (BR8).
+// Partial update (BR10). Multiple logs per day are allowed (BR8), so moving a
+// log onto an already-occupied day no longer 409s.
 export interface UpdateWearLogPayload {
   logDate?: string;
   clothingWorn?: { itemId: string }[];
+  outfitName?: string;
   occasion?: string;
   notes?: string;
 }

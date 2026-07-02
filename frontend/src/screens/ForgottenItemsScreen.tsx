@@ -159,7 +159,7 @@ export default function ForgottenItemsScreen({ navigation }: Props) {
   );
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -177,41 +177,43 @@ export default function ForgottenItemsScreen({ navigation }: Props) {
         </TouchableOpacity>
       </View>
 
-      {/* Unworn Summary */}
-      <View style={styles.summaryContainer}>
-        <Text style={styles.summaryText}>{items.length} items forgotten</Text>
-      </View>
+      <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
+        {/* Unworn Summary */}
+        <View style={styles.summaryContainer}>
+          <Text style={styles.summaryText}>{items.length} items forgotten</Text>
+        </View>
 
-      {error && <Text style={styles.errorText}>{error}</Text>}
+        {error && <Text style={styles.errorText}>{error}</Text>}
 
-      {/* Forgotten Items List */}
-      {isLoading ? (
-        <ActivityIndicator
-          size="large"
-          color={colors.primary}
-          style={styles.loading}
-        />
-      ) : (
-        <FlatList
-          data={items}
-          renderItem={renderForgottenItem}
-          keyExtractor={item => item._id}
-          scrollEnabled={false}
-          contentContainerStyle={styles.listContainer}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Icon
-                name="checkmark-circle-outline"
-                size={60}
-                color={colors.primary}
-              />
-              <Text style={styles.emptyText}>
-                No forgotten items — well done!
-              </Text>
-            </View>
-          }
-        />
-      )}
+        {/* Forgotten Items List */}
+        {isLoading ? (
+          <ActivityIndicator
+            size="large"
+            color={colors.primary}
+            style={styles.loading}
+          />
+        ) : (
+          <FlatList
+            data={items}
+            renderItem={renderForgottenItem}
+            keyExtractor={item => item._id}
+            scrollEnabled={false}
+            contentContainerStyle={styles.listContainer}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Icon
+                  name="checkmark-circle-outline"
+                  size={60}
+                  color={colors.primary}
+                />
+                <Text style={styles.emptyText}>
+                  No forgotten items — well done!
+                </Text>
+              </View>
+            }
+          />
+        )}
+      </ScrollView>
 
       {/* Item Detail Modal */}
       <Modal visible={showItemDetail} animationType="slide" transparent={true}>
@@ -336,7 +338,7 @@ export default function ForgottenItemsScreen({ navigation }: Props) {
           </View>
         </View>
       </Modal>
-    </ScrollView>
+    </View>
   );
 }
 
@@ -364,6 +366,9 @@ const styles = StyleSheet.create({
   },
   settingsButton: {
     padding: 8,
+  },
+  body: {
+    flex: 1,
   },
   summaryContainer: {
     marginHorizontal: 16,

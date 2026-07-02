@@ -117,7 +117,7 @@ export default function ExportScreen({ navigation, route }: Props) {
   );
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -130,96 +130,103 @@ export default function ExportScreen({ navigation, route }: Props) {
         <View style={{ width: 40 }} />
       </View>
 
-      {/* Tabs */}
-      <View style={styles.tabContainer}>
-        <TouchableOpacity
-          style={[styles.tab, selectedTab === 'resale' && styles.tabActive]}
-          onPress={() => setSelectedTab('resale')}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              selectedTab === 'resale' && styles.tabTextActive,
-            ]}
+      <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
+        {/* Tabs */}
+        <View style={styles.tabContainer}>
+          <TouchableOpacity
+            style={[styles.tab, selectedTab === 'resale' && styles.tabActive]}
+            onPress={() => setSelectedTab('resale')}
           >
-            Resale
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, selectedTab === 'donation' && styles.tabActive]}
-          onPress={() => setSelectedTab('donation')}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              selectedTab === 'donation' && styles.tabTextActive,
-            ]}
-          >
-            Donation
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Select Items Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Select Items to Export</Text>
-        <FlatList
-          data={clothing}
-          renderItem={renderItem}
-          keyExtractor={item => item._id}
-          scrollEnabled={false}
-          ListEmptyComponent={
-            <Text style={[styles.emptyText, !!itemsError && styles.errorText]}>
-              {itemsError ?? 'No items available to export.'}
-            </Text>
-          }
-        />
-      </View>
-
-      {/* Choose Destination Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>
-          Choose {selectedTab === 'resale' ? 'Platform' : 'Donation Center'}
-        </Text>
-        <FlatList
-          data={partners}
-          renderItem={renderPlatform}
-          keyExtractor={item => item._id}
-          scrollEnabled={false}
-          ListEmptyComponent={
             <Text
-              style={[styles.emptyText, !!partnersError && styles.errorText]}
+              style={[
+                styles.tabText,
+                selectedTab === 'resale' && styles.tabTextActive,
+              ]}
             >
-              {partnersError ?? `No ${selectedTab} partners available.`}
+              Resale
             </Text>
-          }
-        />
-      </View>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, selectedTab === 'donation' && styles.tabActive]}
+            onPress={() => setSelectedTab('donation')}
+          >
+            <Text
+              style={[
+                styles.tabText,
+                selectedTab === 'donation' && styles.tabTextActive,
+              ]}
+            >
+              Donation
+            </Text>
+          </TouchableOpacity>
+        </View>
 
-      {/* Next Button */}
-      <TouchableOpacity
-        style={styles.nextButton}
-        onPress={() => {
-          if (selectedItems.length === 0) {
-            Alert.alert('Error', 'Please select at least one item');
-            return;
-          }
-          if (!selectedPartnerId) {
-            Alert.alert('Error', `Please select a ${selectedTab} destination`);
-            return;
-          }
-          navigation.navigate('QualityChecklist', {
-            items: selectedItems,
-            type: selectedTab,
-            destination: selectedPartnerId,
-          });
-        }}
-      >
-        <Text style={styles.nextButtonText}>Next</Text>
-      </TouchableOpacity>
+        {/* Select Items Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Select Items to Export</Text>
+          <FlatList
+            data={clothing}
+            renderItem={renderItem}
+            keyExtractor={item => item._id}
+            scrollEnabled={false}
+            ListEmptyComponent={
+              <Text
+                style={[styles.emptyText, !!itemsError && styles.errorText]}
+              >
+                {itemsError ?? 'No items available to export.'}
+              </Text>
+            }
+          />
+        </View>
 
-      <View style={styles.bottomPadding} />
-    </ScrollView>
+        {/* Choose Destination Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            Choose {selectedTab === 'resale' ? 'Platform' : 'Donation Center'}
+          </Text>
+          <FlatList
+            data={partners}
+            renderItem={renderPlatform}
+            keyExtractor={item => item._id}
+            scrollEnabled={false}
+            ListEmptyComponent={
+              <Text
+                style={[styles.emptyText, !!partnersError && styles.errorText]}
+              >
+                {partnersError ?? `No ${selectedTab} partners available.`}
+              </Text>
+            }
+          />
+        </View>
+
+        {/* Next Button */}
+        <TouchableOpacity
+          style={styles.nextButton}
+          onPress={() => {
+            if (selectedItems.length === 0) {
+              Alert.alert('Error', 'Please select at least one item');
+              return;
+            }
+            if (!selectedPartnerId) {
+              Alert.alert(
+                'Error',
+                `Please select a ${selectedTab} destination`,
+              );
+              return;
+            }
+            navigation.navigate('QualityChecklist', {
+              items: selectedItems,
+              type: selectedTab,
+              destination: selectedPartnerId,
+            });
+          }}
+        >
+          <Text style={styles.nextButtonText}>Next</Text>
+        </TouchableOpacity>
+
+        <View style={styles.bottomPadding} />
+      </ScrollView>
+    </View>
   );
 }
 
@@ -244,6 +251,9 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: colors.textPrimary,
+  },
+  body: {
+    flex: 1,
   },
   tabContainer: {
     flexDirection: 'row',

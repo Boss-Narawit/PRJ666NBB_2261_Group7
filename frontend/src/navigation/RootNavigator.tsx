@@ -10,23 +10,16 @@ import TabNavigator from './TabNavigator';
 import SettingsScreen from '../screens/SettingsScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
 import NotificationSettingsScreen from '../screens/NotificationSettingsScreen';
-import AddClothScreen from '../screens/AddClothScreen';
-import WardrobeScreen from '../screens/WardrobeScreen';
-import WearHistoryScreen from '../screens/WearHistoryScreen';
-import WearLogDetailScreen from '../screens/WearLogDetailScreen';
-import EditWearLogScreen from '../screens/EditWearLogScreen';
-import ExportScreen from '../screens/ExportScreen';
-import QualityChecklistScreen from '../screens/QualityChecklistScreen';
-import ForgottenItemsScreen from '../screens/ForgottenItemsScreen';
-import ItemDetailScreen from '../screens/ItemDetailScreen';
-import ExportHistoryScreen from '../screens/ExportHistoryScreen';
 import { LoginScreen } from '../screens/LoginScreen';
 import SignUpScreen from '../screens/auth/SignUpScreen';
 import { AuthProvider, useAuth } from '../context/AuthContext';
-import { Clothing } from '../services/api';
 import { colors } from '../theme';
 import Icon from 'react-native-vector-icons/Ionicons';
 
+// Content screens (Wardrobe, ItemDetail, Export, …) now live inside the Home
+// tab's stack (see HomeStackNavigator) so the tab bar stays visible in deep
+// flows. The root stack only hosts auth + the tab shell + the settings screens
+// that intentionally cover the whole app (no tab bar).
 export type RootStackParamList = {
   Login: undefined;
   Register: undefined;
@@ -34,39 +27,6 @@ export type RootStackParamList = {
   Settings: undefined;
   EditProfile: undefined;
   NotificationSettings: undefined;
-  // Optional category preselects the wardrobe filter (home screen category cards).
-  Wardrobe: { category?: string } | undefined;
-  AddCloth:
-    | undefined
-    | {
-        // Prefill from an approved Thoughtful Purchase ("Buy it" → wardrobe).
-        prefill?: { name?: string; imageUrl?: string; notes?: string };
-      };
-  WearLog: undefined;
-  WearLogDetail: {
-    logId: string;
-    date: string;
-    items: {
-      name: string;
-      brand?: string;
-      wearCount: number;
-      image?: string;
-    }[];
-  };
-  EditWearLog: {
-    logId: string;
-  };
-  Export: { item?: Clothing } | undefined;
-  QualityChecklist: {
-    items: string[];
-    type: 'resale' | 'donation';
-    destination: string;
-  };
-  ForgottenItems: undefined;
-  ItemDetail: {
-    itemId?: string;
-  };
-  ExportHistory: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -165,56 +125,6 @@ function RootStacks() {
                   </TouchableOpacity>
                 ),
               })}
-            />
-            <Stack.Screen
-              name="Wardrobe"
-              component={WardrobeScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="AddCloth"
-              component={AddClothScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="WearLog"
-              component={WearHistoryScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="WearLogDetail"
-              component={WearLogDetailScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="EditWearLog"
-              component={EditWearLogScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="Export"
-              component={ExportScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="QualityChecklist"
-              component={QualityChecklistScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="ForgottenItems"
-              component={ForgottenItemsScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="ItemDetail"
-              component={ItemDetailScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="ExportHistory"
-              component={ExportHistoryScreen}
-              options={{ headerShown: false }}
             />
           </>
         ) : (

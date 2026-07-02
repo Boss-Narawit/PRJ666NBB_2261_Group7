@@ -49,22 +49,23 @@ export function getSizeOptions(category: string): string[] {
 }
 
 // Subset featured as quick-filter cards on the home screen, each with an image.
-// `label` is the friendly display text; `name` must be one of
-// CLOTHING_CATEGORIES — it's the filter value the card navigates to, so a card
-// always opens the matching wardrobe chip even when the label differs.
+// `label` is the display text shown on the card; `name` must be one of
+// CLOTHING_CATEGORIES — it's the filter value the card navigates to. `label`
+// now intentionally matches `name` so the card text matches the wardrobe
+// filter chip it opens.
 export const FEATURED_CATEGORIES = [
   {
-    label: 'Jacket',
+    label: 'Outerwear',
     name: 'Outerwear',
     image: require('../assets/images/Jacket.png'),
   },
   {
-    label: 'Shirts',
+    label: 'Tops',
     name: 'Tops',
     image: require('../assets/images/Shirts.png'),
   },
   {
-    label: 'Pants',
+    label: 'Bottoms',
     name: 'Bottoms',
     image: require('../assets/images/Pants.png'),
   },

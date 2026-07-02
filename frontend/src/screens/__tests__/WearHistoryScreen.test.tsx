@@ -55,12 +55,13 @@ describe('WearHistoryScreen Component', () => {
     expect(tree.root.findByType('ActivityIndicator')).toBeTruthy();
   });
 
-  it('renders mapped wear logs when loaded', async () => {
+  it('renders the outfit name as the title with the date beneath it', async () => {
     (getWearLogs as jest.Mock).mockResolvedValue({
       wearLogs: [
         {
           _id: 'log1',
           logDate: '2026-06-15T00:00:00.000Z',
+          outfitName: 'Weekend Look',
           clothingWorn: [
             {
               _id: 'cw1',
@@ -90,8 +91,49 @@ describe('WearHistoryScreen Component', () => {
     });
 
     const texts = textValues(tree);
+    // Named outfit: the name is the title, and the date still renders as a subline.
+    expect(texts.some(t => t.includes('Weekend Look'))).toBe(true);
     expect(texts.some(t => t.includes('2026-06-15'))).toBe(true);
     expect(texts.some(t => t.includes('Blue Shirt'))).toBe(true);
+  });
+
+  it('falls back to the date as the title when there is no outfit name', async () => {
+    (getWearLogs as jest.Mock).mockResolvedValue({
+      wearLogs: [
+        {
+          _id: 'log2',
+          logDate: '2026-06-10T00:00:00.000Z',
+          clothingWorn: [
+            {
+              _id: 'cw2',
+              itemId: {
+                _id: 'c2',
+                name: 'Black Jeans',
+                brand: 'Levis',
+                category: 'bottoms',
+                imageUrl: 'http://example.com/j.jpg',
+                analytics: { wearCount: 3 },
+              },
+            },
+          ],
+        },
+      ],
+      total: 1,
+      page: 1,
+      limit: 20,
+    });
+
+    let tree: any;
+    await act(async () => {
+      tree = renderer.create(<WearHistoryScreen navigation={mockNavigation} />);
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const texts = textValues(tree);
+    expect(texts.some(t => t.includes('2026-06-10'))).toBe(true);
+    expect(texts.some(t => t.includes('Black Jeans'))).toBe(true);
   });
 
   it('shows empty state when no logs returned', async () => {

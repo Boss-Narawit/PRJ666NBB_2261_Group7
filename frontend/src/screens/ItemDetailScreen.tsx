@@ -120,6 +120,12 @@ export default function ItemDetailScreen({ navigation, route }: Props) {
   const [pickerOptions, setPickerOptions] = useState<string[]>([]);
   const [pickerField, setPickerField] = useState<string>('');
 
+  // An item that has left the wardrobe (archived or exported) is fully
+  // locked — no edits, no header menu, no wear/export actions. Exported
+  // items additionally get a "where it went" banner (rendered below).
+  const isLocked = item?.status !== 'Available';
+  const isExported = item?.status === 'Exported';
+
   useFocusEffect(
     useCallback(() => {
       if (!token || !itemId) {
@@ -249,11 +255,7 @@ export default function ItemDetailScreen({ navigation, route }: Props) {
               clothingWorn: [{ itemId: item.id }],
             });
           } catch (err: any) {
-            const msg =
-              err.status === 409
-                ? 'You already logged a wear for today.'
-                : err.message || 'Could not log wear.';
-            Alert.alert('Log Wear', msg);
+            Alert.alert('Log Wear', err.message || 'Could not log wear.');
             return;
           }
           // Log is committed. Wear count / last-worn are derived server-side
@@ -300,8 +302,9 @@ export default function ItemDetailScreen({ navigation, route }: Props) {
         : field === 'size'
           ? 'Select Size'
           : 'Not set');
-    // Exported items are read-only — no edit affordance, no tap-to-edit.
-    const readOnly = item?.status === 'Exported';
+    // Items that have left the wardrobe are read-only — no edit affordance,
+    // no tap-to-edit.
+    const readOnly = isLocked;
 
     const inner = (
       <>
@@ -347,39 +350,8 @@ export default function ItemDetailScreen({ navigation, route }: Props) {
     );
   };
 
-  if (isLoading) {
-    return (
-      <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
-  }
-
-  if (error || !item) {
-    return (
-      <View style={[styles.container, styles.centered]}>
-        <Icon
-          name="alert-circle-outline"
-          size={48}
-          color={colors.textSecondary}
-        />
-        <Text style={styles.errorText}>{error || 'Item not found.'}</Text>
-        <TouchableOpacity
-          style={styles.backLink}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.backLinkText}>Go Back</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
-  // An exported item has left the wardrobe — the screen is read-only and shows
-  // where it went instead of the edit/log/archive/export actions.
-  const isExported = item.status === 'Exported';
-
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -388,8 +360,10 @@ export default function ItemDetailScreen({ navigation, route }: Props) {
         >
           <Icon name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Item Detail</Text>
-        {isExported ? (
+        <Text style={styles.headerTitle} numberOfLines={1}>
+          {item?.name ?? 'Item Detail'}
+        </Text>
+        {isLocked ? (
           <View style={styles.moreButton} />
         ) : (
           <TouchableOpacity onPress={handleOpenMenu} style={styles.moreButton}>
@@ -402,278 +376,345 @@ export default function ItemDetailScreen({ navigation, route }: Props) {
         )}
       </View>
 
-      {/* Item Image */}
-      <View style={styles.imageContainer}>
-        {item.image ? (
-          <Image source={{ uri: item.image }} style={styles.itemImage} />
-        ) : (
-          <View style={styles.imagePlaceholder}>
-            <Icon name="shirt-outline" size={80} color={colors.textSecondary} />
-          </View>
-        )}
-      </View>
-
-      {/* Item Name */}
-      <Text style={styles.itemName}>{item.name}</Text>
-
-      {/* Exported banner — shows where the item went (read-only screen) */}
-      {isExported && (
-        <View style={styles.exportedBanner}>
-          <Icon name="checkmark-circle" size={22} color={colors.primary} />
-          <View style={styles.exportedBannerText}>
-            <Text style={styles.exportedBannerTitle}>Exported</Text>
-            <Text style={styles.exportedBannerSub}>
-              {`→ ${item.exportInfo?.partnerName ?? 'Partner'}`}
-              {item.exportInfo?.exportedAt
-                ? ` · ${item.exportInfo.exportedAt.slice(0, 10)}`
-                : ''}
-            </Text>
-          </View>
+      {isLoading ? (
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
-      )}
-
-      {/* Details Card */}
-      <View style={styles.card}>
-        {renderField('Brand', item.brand, 'brand')}
-        {renderField('Category', item.category, 'category')}
-        {renderField('Color', item.color, 'color')}
-        {renderField('Size', item.size, 'size')}
-
-        {/* Description - separate because it's multiline */}
-        <View style={styles.fieldRow}>
-          <Text style={styles.fieldLabel}>Description</Text>
-          {isExported ? (
-            <View style={styles.fieldValueContainer}>
-              <Text
-                style={[styles.fieldValue, styles.descriptionText]}
-                numberOfLines={2}
-              >
-                {item.description || 'No description'}
-              </Text>
-            </View>
-          ) : (
-            <TouchableOpacity
-              style={styles.fieldValueContainer}
-              onPress={() => handleEditField('description', item.description)}
-            >
-              <Text
-                style={[styles.fieldValue, styles.descriptionText]}
-                numberOfLines={2}
-              >
-                {item.description || 'No description'}
-              </Text>
-              <Icon name="create-outline" size={18} color={colors.primary} />
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-
-      {/* Condition Section */}
-      <View style={styles.conditionSection}>
-        <Text style={styles.conditionLabel}>Condition</Text>
-        {isExported ? (
-          <View
-            style={[
-              styles.conditionBadge,
-              { backgroundColor: getConditionColor(item.condition) + '20' },
-            ]}
-          >
-            <Text
-              style={[
-                styles.conditionText,
-                { color: getConditionColor(item.condition) },
-              ]}
-            >
-              {item.condition}
-            </Text>
-          </View>
-        ) : (
+      ) : error || !item ? (
+        <View style={styles.centered}>
+          <Icon
+            name="alert-circle-outline"
+            size={48}
+            color={colors.textSecondary}
+          />
+          <Text style={styles.errorText}>{error || 'Item not found.'}</Text>
           <TouchableOpacity
-            style={[
-              styles.conditionBadge,
-              { backgroundColor: getConditionColor(item.condition) + '20' },
-            ]}
-            onPress={() => {
-              setPickerOptions(conditions);
-              setPickerField('condition');
-              setShowPickerModal(true);
-            }}
+            style={styles.backLink}
+            onPress={() => navigation.goBack()}
           >
-            <Text
-              style={[
-                styles.conditionText,
-                { color: getConditionColor(item.condition) },
-              ]}
-            >
-              {item.condition}
-            </Text>
-            <Icon
-              name="chevron-down"
-              size={20}
-              color={getConditionColor(item.condition)}
-            />
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* Wear Count */}
-      <View style={styles.statsRow}>
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{item.wearCount}</Text>
-          <Text style={styles.statLabel}>Times Worn</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{item.lastWorn}</Text>
-          <Text style={styles.statLabel}>Last Worn</Text>
-        </View>
-      </View>
-
-      {/* Action Buttons — hidden for exported items (they've left the wardrobe) */}
-      {!isExported && (
-        <View style={styles.actionButtons}>
-          <TouchableOpacity
-            style={styles.logWearButton}
-            onPress={handleLogWear}
-          >
-            <Icon
-              name="checkmark-circle-outline"
-              size={20}
-              color={colors.white}
-            />
-            <Text style={styles.logWearButtonText}>Log Wear</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.exportButton}
-            onPress={handleExportDonate}
-          >
-            <Icon name="send-outline" size={20} color={colors.primary} />
-            <Text style={styles.exportButtonText}>Export/Donate</Text>
+            <Text style={styles.backLinkText}>Go Back</Text>
           </TouchableOpacity>
         </View>
-      )}
-
-      {/* Edit Modal (free-text fields: Brand, Color, Size, Description) */}
-      <Modal visible={showEditModal} transparent={true} animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Edit {editingField}</Text>
-              <TouchableOpacity onPress={() => setShowEditModal(false)}>
-                <Icon name="close" size={24} color={colors.textPrimary} />
-              </TouchableOpacity>
-            </View>
-
-            <TextInput
-              style={styles.modalInput}
-              value={editValue}
-              onChangeText={setEditValue}
-              placeholder={
-                editingField === 'size'
-                  ? 'e.g., M, 32x34, EU 42, 8'
-                  : `Enter ${editingField}`
-              }
-              multiline={editingField === 'description'}
-              numberOfLines={editingField === 'description' ? 4 : 1}
-            />
-
-            {/* Quick-fill size suggestions — tapping fills the input above. */}
-            {editingField === 'size' && (
-              <>
-                <Text style={styles.sizeHint}>Suggestions</Text>
-                <View style={styles.suggestionRow}>
-                  {getSizeOptions(item.category).map(s => (
-                    <TouchableOpacity
-                      key={s}
-                      style={[
-                        styles.suggestionChip,
-                        editValue === s && styles.suggestionChipActive,
-                      ]}
-                      onPress={() => setEditValue(s)}
-                    >
-                      <Text
-                        style={[
-                          styles.suggestionChipText,
-                          editValue === s && styles.suggestionChipTextActive,
-                        ]}
-                      >
-                        {s}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+      ) : (
+        <>
+          <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
+            {/* Item Image */}
+            <View style={styles.imageContainer}>
+              {item.image ? (
+                <Image source={{ uri: item.image }} style={styles.itemImage} />
+              ) : (
+                <View style={styles.imagePlaceholder}>
+                  <Icon
+                    name="shirt-outline"
+                    size={80}
+                    color={colors.textSecondary}
+                  />
                 </View>
-              </>
+              )}
+            </View>
+
+            {/* Exported banner — shows where the item went (read-only screen) */}
+            {isExported && (
+              <View style={styles.exportedBanner}>
+                <Icon
+                  name="checkmark-circle"
+                  size={22}
+                  color={colors.primary}
+                />
+                <View style={styles.exportedBannerText}>
+                  <Text style={styles.exportedBannerTitle}>Exported</Text>
+                  <Text style={styles.exportedBannerSub}>
+                    {`→ ${item.exportInfo?.partnerName ?? 'Partner'}`}
+                    {item.exportInfo?.exportedAt
+                      ? ` · ${item.exportInfo.exportedAt.slice(0, 10)}`
+                      : ''}
+                  </Text>
+                </View>
+              </View>
             )}
 
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelModalButton]}
-                onPress={() => setShowEditModal(false)}
-              >
-                <Text style={styles.cancelModalText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.confirmModalButton]}
-                onPress={handleSaveEdit}
-              >
-                <Text style={styles.confirmModalText}>Confirm</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+            {/* Archived banner — hidden from the wardrobe, history preserved */}
+            {item.status === 'Archived' && (
+              <View style={styles.archivedBanner}>
+                <Icon
+                  name="archive-outline"
+                  size={22}
+                  color={colors.textSecondary}
+                />
+                <View style={styles.archivedBannerText}>
+                  <Text style={styles.archivedBannerTitle}>Archived</Text>
+                  <Text style={styles.archivedBannerSub}>
+                    Hidden from your wardrobe
+                  </Text>
+                </View>
+              </View>
+            )}
 
-      {/* Picker Modal (for Category and Condition) */}
-      <Modal visible={showPickerModal} transparent={true} animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                Select{' '}
-                {pickerField.charAt(0).toUpperCase() + pickerField.slice(1)}
-              </Text>
-              <TouchableOpacity onPress={() => setShowPickerModal(false)}>
-                <Icon name="close" size={24} color={colors.textPrimary} />
-              </TouchableOpacity>
+            {/* Details Card */}
+            <View style={styles.card}>
+              {renderField('Name', item.name, 'name')}
+              {renderField('Brand', item.brand, 'brand')}
+              {renderField('Category', item.category, 'category')}
+              {renderField('Color', item.color, 'color')}
+              {renderField('Size', item.size, 'size')}
+
+              {/* Description - separate because it's multiline */}
+              <View style={styles.fieldRow}>
+                <Text style={styles.fieldLabel}>Description</Text>
+                {isLocked ? (
+                  <View style={styles.fieldValueContainer}>
+                    <Text
+                      style={[styles.fieldValue, styles.descriptionText]}
+                      numberOfLines={2}
+                    >
+                      {item.description || 'No description'}
+                    </Text>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.fieldValueContainer}
+                    onPress={() =>
+                      handleEditField('description', item.description)
+                    }
+                  >
+                    <Text
+                      style={[styles.fieldValue, styles.descriptionText]}
+                      numberOfLines={2}
+                    >
+                      {item.description || 'No description'}
+                    </Text>
+                    <Icon
+                      name="create-outline"
+                      size={18}
+                      color={colors.primary}
+                    />
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
 
-            {pickerOptions.map(option => (
-              <TouchableOpacity
-                key={option}
-                style={[
-                  styles.optionRow,
-                  item[pickerField as keyof typeof item] === option &&
-                    styles.optionRowSelected,
-                ]}
-                onPress={() => handlePickerSelect(option)}
-              >
-                <Text
+            {/* Condition Section */}
+            <View style={styles.conditionSection}>
+              <Text style={styles.conditionLabel}>Condition</Text>
+              {isLocked ? (
+                <View
                   style={[
-                    styles.optionText,
-                    item[pickerField as keyof typeof item] === option &&
-                      styles.optionTextSelected,
+                    styles.conditionBadge,
+                    {
+                      backgroundColor: getConditionColor(item.condition) + '20',
+                    },
                   ]}
                 >
-                  {option}
-                </Text>
-                {item[pickerField as keyof typeof item] === option && (
-                  <Icon name="checkmark" size={20} color={colors.primary} />
+                  <Text
+                    style={[
+                      styles.conditionText,
+                      { color: getConditionColor(item.condition) },
+                    ]}
+                  >
+                    {item.condition}
+                  </Text>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={[
+                    styles.conditionBadge,
+                    {
+                      backgroundColor: getConditionColor(item.condition) + '20',
+                    },
+                  ]}
+                  onPress={() => {
+                    setPickerOptions(conditions);
+                    setPickerField('condition');
+                    setShowPickerModal(true);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.conditionText,
+                      { color: getConditionColor(item.condition) },
+                    ]}
+                  >
+                    {item.condition}
+                  </Text>
+                  <Icon
+                    name="chevron-down"
+                    size={20}
+                    color={getConditionColor(item.condition)}
+                  />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Wear Count */}
+            <View style={styles.statsRow}>
+              <View style={styles.statItem}>
+                <Text style={styles.statNumber}>{item.wearCount}</Text>
+                <Text style={styles.statLabel}>Times Worn</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.statItem}>
+                <Text style={styles.statNumber}>{item.lastWorn}</Text>
+                <Text style={styles.statLabel}>Last Worn</Text>
+              </View>
+            </View>
+
+            {/* Action Buttons — hidden once the item has left the wardrobe */}
+            {!isLocked && (
+              <View style={styles.actionButtons}>
+                <TouchableOpacity
+                  style={styles.logWearButton}
+                  onPress={handleLogWear}
+                >
+                  <Icon
+                    name="checkmark-circle-outline"
+                    size={20}
+                    color={colors.white}
+                  />
+                  <Text style={styles.logWearButtonText}>Log Wear</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.exportButton}
+                  onPress={handleExportDonate}
+                >
+                  <Icon name="send-outline" size={20} color={colors.primary} />
+                  <Text style={styles.exportButtonText}>Export/Donate</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            <View style={styles.bottomPadding} />
+          </ScrollView>
+
+          {/* Edit Modal (free-text fields: Brand, Color, Size, Description) */}
+          <Modal
+            visible={showEditModal}
+            transparent={true}
+            animationType="slide"
+          >
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContent}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Edit {editingField}</Text>
+                  <TouchableOpacity onPress={() => setShowEditModal(false)}>
+                    <Icon name="close" size={24} color={colors.textPrimary} />
+                  </TouchableOpacity>
+                </View>
+
+                <TextInput
+                  style={styles.modalInput}
+                  value={editValue}
+                  onChangeText={setEditValue}
+                  placeholder={
+                    editingField === 'size'
+                      ? 'e.g., M, 32x34, EU 42, 8'
+                      : `Enter ${editingField}`
+                  }
+                  multiline={editingField === 'description'}
+                  numberOfLines={editingField === 'description' ? 4 : 1}
+                />
+
+                {/* Quick-fill size suggestions — tapping fills the input above. */}
+                {editingField === 'size' && (
+                  <>
+                    <Text style={styles.sizeHint}>Suggestions</Text>
+                    <View style={styles.suggestionRow}>
+                      {getSizeOptions(item.category).map(s => (
+                        <TouchableOpacity
+                          key={s}
+                          style={[
+                            styles.suggestionChip,
+                            editValue === s && styles.suggestionChipActive,
+                          ]}
+                          onPress={() => setEditValue(s)}
+                        >
+                          <Text
+                            style={[
+                              styles.suggestionChipText,
+                              editValue === s &&
+                                styles.suggestionChipTextActive,
+                            ]}
+                          >
+                            {s}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </>
                 )}
-              </TouchableOpacity>
-            ))}
 
-            <TouchableOpacity
-              style={styles.confirmButton}
-              onPress={() => setShowPickerModal(false)}
-            >
-              <Text style={styles.confirmButtonText}>Confirm</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+                <View style={styles.modalActions}>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.cancelModalButton]}
+                    onPress={() => setShowEditModal(false)}
+                  >
+                    <Text style={styles.cancelModalText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.confirmModalButton]}
+                    onPress={handleSaveEdit}
+                  >
+                    <Text style={styles.confirmModalText}>Confirm</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
 
-      <View style={styles.bottomPadding} />
-    </ScrollView>
+          {/* Picker Modal (for Category and Condition) */}
+          <Modal
+            visible={showPickerModal}
+            transparent={true}
+            animationType="slide"
+          >
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContent}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>
+                    Select{' '}
+                    {pickerField.charAt(0).toUpperCase() + pickerField.slice(1)}
+                  </Text>
+                  <TouchableOpacity onPress={() => setShowPickerModal(false)}>
+                    <Icon name="close" size={24} color={colors.textPrimary} />
+                  </TouchableOpacity>
+                </View>
+
+                {pickerOptions.map(option => (
+                  <TouchableOpacity
+                    key={option}
+                    style={[
+                      styles.optionRow,
+                      item[pickerField as keyof typeof item] === option &&
+                        styles.optionRowSelected,
+                    ]}
+                    onPress={() => handlePickerSelect(option)}
+                  >
+                    <Text
+                      style={[
+                        styles.optionText,
+                        item[pickerField as keyof typeof item] === option &&
+                          styles.optionTextSelected,
+                      ]}
+                    >
+                      {option}
+                    </Text>
+                    {item[pickerField as keyof typeof item] === option && (
+                      <Icon name="checkmark" size={20} color={colors.primary} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+
+                <TouchableOpacity
+                  style={styles.confirmButton}
+                  onPress={() => setShowPickerModal(false)}
+                >
+                  <Text style={styles.confirmButtonText}>Confirm</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
+        </>
+      )}
+    </View>
   );
 }
 
@@ -695,12 +736,18 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   headerTitle: {
+    flex: 1,
     fontSize: 20,
     fontWeight: 'bold',
     color: colors.textPrimary,
+    textAlign: 'center',
+    marginHorizontal: 8,
   },
   moreButton: {
     padding: 8,
+  },
+  body: {
+    flex: 1,
   },
   imageContainer: {
     alignItems: 'center',
@@ -718,13 +765,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0F0F0',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  itemName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.textPrimary,
-    textAlign: 'center',
-    marginBottom: 20,
   },
   exportedBanner: {
     flexDirection: 'row',
@@ -747,6 +787,31 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   exportedBannerSub: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  archivedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    padding: 14,
+    borderRadius: 12,
+    backgroundColor: colors.textSecondary + '12',
+    borderWidth: 1,
+    borderColor: colors.textSecondary + '40',
+  },
+  archivedBannerText: {
+    flex: 1,
+  },
+  archivedBannerTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.textSecondary,
+  },
+  archivedBannerSub: {
     fontSize: 14,
     color: colors.textSecondary,
     marginTop: 2,
@@ -1022,6 +1087,7 @@ const styles = StyleSheet.create({
     height: 40,
   },
   centered: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 32,

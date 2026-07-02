@@ -30,6 +30,8 @@ type DisplayItem = {
 type DisplayLog = {
   id: string;
   date: string;
+  outfitName?: string;
+  occasion?: string;
   items: DisplayItem[];
 };
 
@@ -37,6 +39,8 @@ function toDisplayLog(log: WearLog): DisplayLog {
   return {
     id: log._id,
     date: log.logDate.slice(0, 10),
+    outfitName: log.outfitName,
+    occasion: log.occasion,
     items: log.clothingWorn
       .filter(c => c.itemId) // populated ref is null if the item was deleted
       .map(c => ({
@@ -261,45 +265,57 @@ export default function WearHistoryScreen({ navigation }: Props) {
     setAppliedRange({ startDate: isoDaysAgo(7) });
   };
 
-  const handleLogPress = (log: any) => {
+  const handleLogPress = (log: DisplayLog) => {
     navigation.navigate('WearLogDetail', {
       logId: log.id,
       date: log.date,
+      outfitName: log.outfitName,
+      occasion: log.occasion,
       items: log.items,
     });
   };
 
-  const renderWearLogItem = ({ item }: { item: DisplayLog }) => (
-    <TouchableOpacity
-      style={styles.logCard}
-      onPress={() => handleLogPress(item)}
-    >
-      <Text style={styles.logDate}>{item.date}</Text>
-      <View style={styles.logItems}>
-        {item.items.length === 0 ? (
-          // Every item on this log was deleted from the wardrobe (its populated
-          // refs came back null) — show a placeholder instead of a blank row.
-          <Text style={styles.logItemDeleted}>Item no longer in wardrobe</Text>
-        ) : (
-          item.items.map((clothing, index) => (
-            <Text key={index} style={styles.logItem}>
-              {clothing.name}
-              {index < item.items.length - 1 ? ', ' : ''}
-            </Text>
-          ))
-        )}
-      </View>
+  const renderWearLogItem = ({ item }: { item: DisplayLog }) => {
+    // Title prefers the outfit name, then occasion, falling back to the date.
+    // When the title isn't the date itself, show the date as a smaller subline.
+    const title = item.outfitName || item.occasion || item.date;
+    return (
       <TouchableOpacity
-        style={styles.viewDetailsButton}
+        style={styles.logCard}
         onPress={() => handleLogPress(item)}
       >
-        <Text style={styles.viewDetailsText}>View Details &gt;</Text>
+        <Text style={styles.logTitle}>{title}</Text>
+        {title !== item.date && (
+          <Text style={styles.logDateSub}>{item.date}</Text>
+        )}
+        <View style={styles.logItems}>
+          {item.items.length === 0 ? (
+            // Every item on this log was deleted from the wardrobe (its populated
+            // refs came back null) — show a placeholder instead of a blank row.
+            <Text style={styles.logItemDeleted}>
+              Item no longer in wardrobe
+            </Text>
+          ) : (
+            item.items.map((clothing, index) => (
+              <Text key={index} style={styles.logItem}>
+                {clothing.name}
+                {index < item.items.length - 1 ? ', ' : ''}
+              </Text>
+            ))
+          )}
+        </View>
+        <TouchableOpacity
+          style={styles.viewDetailsButton}
+          onPress={() => handleLogPress(item)}
+        >
+          <Text style={styles.viewDetailsText}>View Details &gt;</Text>
+        </TouchableOpacity>
       </TouchableOpacity>
-    </TouchableOpacity>
-  );
+    );
+  };
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -309,132 +325,145 @@ export default function WearHistoryScreen({ navigation }: Props) {
           <Icon name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Wear History</Text>
-        <TouchableOpacity
-          onPress={() => setShowFilters(true)}
-          style={styles.filterButton}
-        >
-          <Icon name="filter-outline" size={24} color={colors.primary} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Filter Chips */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.filterChips}
-      >
-        <TouchableOpacity
-          style={[
-            styles.chip,
-            activeFilter === 'Last 7 Days' && styles.chipActive,
-          ]}
-          onPress={() => applyFilter('Last 7 Days')}
-        >
-          <Text
-            style={[
-              styles.chipText,
-              activeFilter === 'Last 7 Days' && styles.chipTextActive,
-            ]}
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('LogOutfit')}
+            style={styles.filterButton}
           >
-            Last 7 Days
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.chip,
-            activeFilter === 'Last 30 Days' && styles.chipActive,
-          ]}
-          onPress={() => applyFilter('Last 30 Days')}
-        >
-          <Text
-            style={[
-              styles.chipText,
-              activeFilter === 'Last 30 Days' && styles.chipTextActive,
-            ]}
+            <Icon name="add-circle-outline" size={24} color={colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setShowFilters(true)}
+            style={styles.filterButton}
           >
-            Last 30 Days
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.chip, activeFilter === 'Custom' && styles.chipActive]}
-          onPress={() => applyFilter('Custom')}
-        >
-          <Text
-            style={[
-              styles.chipText,
-              activeFilter === 'Custom' && styles.chipTextActive,
-            ]}
-          >
-            Custom
-          </Text>
-        </TouchableOpacity>
-      </ScrollView>
-
-      {/* Stats Summary */}
-      <View style={styles.statsContainer}>
-        <View style={styles.statCard}>
-          <Text style={styles.statNumber}>{totalLogs}</Text>
-          <Text style={styles.statLabel}>Total Logs</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statNumber}>{mostWorn.count}x</Text>
-          <Text style={styles.statLabel}>Most Worn: {mostWorn.name}</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statNumber}>{leastWorn.count}x</Text>
-          <Text style={styles.statLabel}>Least Worn: {leastWorn.name}</Text>
+            <Icon name="filter-outline" size={24} color={colors.primary} />
+          </TouchableOpacity>
         </View>
       </View>
 
-      {/* Wear History List */}
-      {isLoading && (
-        <ActivityIndicator
-          size="large"
-          color={colors.primary}
-          style={styles.loading}
-        />
-      )}
-      {error && !isLoading && <Text style={styles.errorText}>{error}</Text>}
-      <FlatList
-        data={logs}
-        renderItem={renderWearLogItem}
-        keyExtractor={item => item.id}
-        scrollEnabled={false}
-        contentContainerStyle={styles.listContainer}
-        ListFooterComponent={
-          wearLogs.length < total ? (
-            <TouchableOpacity
-              style={styles.loadMoreButton}
-              onPress={loadMore}
-              disabled={isLoadingMore}
+      <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
+        {/* Filter Chips */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.filterChips}
+        >
+          <TouchableOpacity
+            style={[
+              styles.chip,
+              activeFilter === 'Last 7 Days' && styles.chipActive,
+            ]}
+            onPress={() => applyFilter('Last 7 Days')}
+          >
+            <Text
+              style={[
+                styles.chipText,
+                activeFilter === 'Last 7 Days' && styles.chipTextActive,
+              ]}
             >
-              {isLoadingMore ? (
-                <ActivityIndicator color={colors.primary} />
-              ) : (
-                <Text style={styles.loadMoreText}>Load More</Text>
-              )}
-            </TouchableOpacity>
-          ) : null
-        }
-        ListEmptyComponent={
-          !isLoading && !error ? (
-            <View style={styles.emptyContainer}>
-              <Icon
-                name="time-outline"
-                size={48}
-                color={colors.textSecondary}
-              />
-              <Text style={styles.emptyText}>
-                {selectedCategories.length > 0 && wearLogs.length > 0
-                  ? wearLogs.length < total
-                    ? 'No logs match this category on the loaded pages. Load more or clear the filter.'
-                    : 'No logs match this category. Clear the filter to see all.'
-                  : 'No wear logs yet'}
-              </Text>
-            </View>
-          ) : null
-        }
-      />
+              Last 7 Days
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.chip,
+              activeFilter === 'Last 30 Days' && styles.chipActive,
+            ]}
+            onPress={() => applyFilter('Last 30 Days')}
+          >
+            <Text
+              style={[
+                styles.chipText,
+                activeFilter === 'Last 30 Days' && styles.chipTextActive,
+              ]}
+            >
+              Last 30 Days
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.chip,
+              activeFilter === 'Custom' && styles.chipActive,
+            ]}
+            onPress={() => applyFilter('Custom')}
+          >
+            <Text
+              style={[
+                styles.chipText,
+                activeFilter === 'Custom' && styles.chipTextActive,
+              ]}
+            >
+              Custom
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
+
+        {/* Stats Summary */}
+        <View style={styles.statsContainer}>
+          <View style={styles.statCard}>
+            <Text style={styles.statNumber}>{totalLogs}</Text>
+            <Text style={styles.statLabel}>Total Logs</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statNumber}>{mostWorn.count}x</Text>
+            <Text style={styles.statLabel}>Most Worn: {mostWorn.name}</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statNumber}>{leastWorn.count}x</Text>
+            <Text style={styles.statLabel}>Least Worn: {leastWorn.name}</Text>
+          </View>
+        </View>
+
+        {/* Wear History List */}
+        {isLoading && (
+          <ActivityIndicator
+            size="large"
+            color={colors.primary}
+            style={styles.loading}
+          />
+        )}
+        {error && !isLoading && <Text style={styles.errorText}>{error}</Text>}
+        <FlatList
+          data={logs}
+          renderItem={renderWearLogItem}
+          keyExtractor={item => item.id}
+          scrollEnabled={false}
+          contentContainerStyle={styles.listContainer}
+          ListFooterComponent={
+            wearLogs.length < total ? (
+              <TouchableOpacity
+                style={styles.loadMoreButton}
+                onPress={loadMore}
+                disabled={isLoadingMore}
+              >
+                {isLoadingMore ? (
+                  <ActivityIndicator color={colors.primary} />
+                ) : (
+                  <Text style={styles.loadMoreText}>Load More</Text>
+                )}
+              </TouchableOpacity>
+            ) : null
+          }
+          ListEmptyComponent={
+            !isLoading && !error ? (
+              <View style={styles.emptyContainer}>
+                <Icon
+                  name="time-outline"
+                  size={48}
+                  color={colors.textSecondary}
+                />
+                <Text style={styles.emptyText}>
+                  {selectedCategories.length > 0 && wearLogs.length > 0
+                    ? wearLogs.length < total
+                      ? 'No logs match this category on the loaded pages. Load more or clear the filter.'
+                      : 'No logs match this category. Clear the filter to see all.'
+                    : 'No wear logs yet'}
+                </Text>
+              </View>
+            ) : null
+          }
+        />
+      </ScrollView>
 
       {/* Filter Modal */}
       <Modal visible={showFilters} animationType="slide" transparent={true}>
@@ -594,7 +623,7 @@ export default function WearHistoryScreen({ navigation }: Props) {
           </View>
         </View>
       </Modal>
-    </ScrollView>
+    </View>
   );
 }
 
@@ -620,8 +649,15 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.textPrimary,
   },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   filterButton: {
     padding: 8,
+  },
+  body: {
+    flex: 1,
   },
   filterChips: {
     paddingHorizontal: 16,
@@ -685,10 +721,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.inputBorder,
   },
-  logDate: {
+  logTitle: {
     fontSize: 16,
     fontWeight: 'bold',
     color: colors.textPrimary,
+    marginBottom: 2,
+  },
+  logDateSub: {
+    fontSize: 13,
+    color: colors.textSecondary,
     marginBottom: 8,
   },
   logItems: {

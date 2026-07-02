@@ -175,4 +175,37 @@ describe('ItemDetailScreen Component', () => {
     // Read-only: the Log Wear action is not rendered for an exported item.
     expect(texts.some(t => t.includes('Log Wear'))).toBe(false);
   });
+
+  it('shows the archived banner and hides actions for an archived item', async () => {
+    (getClothingById as jest.Mock).mockResolvedValue({
+      _id: 'c1',
+      name: 'Old Sweater',
+      brand: 'Gap',
+      category: 'tops',
+      colors: ['Grey'],
+      size: 'L',
+      imageUrl: 'http://example.com/s.jpg',
+      condition: 'Fair',
+      status: 'Archived',
+      analytics: { wearCount: 5 },
+    });
+
+    let tree: any;
+    await act(async () => {
+      tree = renderer.create(
+        <ItemDetailScreen navigation={mockNavigation} route={route} />,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const texts = textValues(tree);
+    expect(texts.some(t => t.includes('Archived'))).toBe(true);
+    expect(texts.some(t => t.includes('Old Sweater'))).toBe(true);
+    // Read-only: an archived item (left the wardrobe pre-Exported-status)
+    // hides the same actions an exported item does.
+    expect(texts.some(t => t.includes('Log Wear'))).toBe(false);
+    expect(texts.some(t => t.includes('Export/Donate'))).toBe(false);
+  });
 });

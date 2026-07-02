@@ -92,12 +92,14 @@ export default function QualityChecklistScreen({ navigation, route }: Props) {
             '\n',
           )}`;
     Alert.alert('Export Result', summary, [
-      { text: 'OK', onPress: () => navigation.navigate('Main') },
+      // QualityChecklist is deep in the Home stack; pop back to the Dashboard
+      // root (same landing as before, now without leaving the Home tab).
+      { text: 'OK', onPress: () => navigation.popToTop() },
     ]);
   };
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -110,145 +112,150 @@ export default function QualityChecklistScreen({ navigation, route }: Props) {
         <View style={{ width: 40 }} />
       </View>
 
-      {/* Info */}
-      <View style={styles.infoContainer}>
-        <Text style={styles.infoText}>
-          Please confirm the following before exporting {items.length} item(s)
-          for {type}
-        </Text>
-      </View>
-
-      {/* Checklist Items */}
-      <View style={styles.checklistContainer}>
-        <TouchableOpacity
-          style={styles.checklistItem}
-          onPress={() => toggleChecklist('tears')}
-        >
-          <View
-            style={[styles.checkbox, checklist.tears && styles.checkboxChecked]}
-          >
-            {checklist.tears && (
-              <Icon name="checkmark" size={18} color={colors.white} />
-            )}
-          </View>
-          <Text style={styles.checklistText}>No major tears</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.checklistItem}
-          onPress={() => toggleChecklist('stains')}
-        >
-          <View
-            style={[
-              styles.checkbox,
-              checklist.stains && styles.checkboxChecked,
-            ]}
-          >
-            {checklist.stains && (
-              <Icon name="checkmark" size={18} color={colors.white} />
-            )}
-          </View>
-          <Text style={styles.checklistText}>No heavy stains</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.checklistItem}
-          onPress={() => toggleChecklist('buttonsZippers')}
-        >
-          <View
-            style={[
-              styles.checkbox,
-              checklist.buttonsZippers && styles.checkboxChecked,
-            ]}
-          >
-            {checklist.buttonsZippers && (
-              <Icon name="checkmark" size={18} color={colors.white} />
-            )}
-          </View>
-          <Text style={styles.checklistText}>Buttons & zippers work</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.checklistItem}
-          onPress={() => toggleChecklist('photos')}
-        >
-          <View
-            style={[
-              styles.checkbox,
-              checklist.photos && styles.checkboxChecked,
-            ]}
-          >
-            {checklist.photos && (
-              <Icon name="checkmark" size={18} color={colors.white} />
-            )}
-          </View>
-          <Text style={styles.checklistText}>Accurate photos</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.checklistItem}
-          onPress={() => toggleChecklist('description')}
-        >
-          <View
-            style={[
-              styles.checkbox,
-              checklist.description && styles.checkboxChecked,
-            ]}
-          >
-            {checklist.description && (
-              <Icon name="checkmark" size={18} color={colors.white} />
-            )}
-          </View>
-          <Text style={styles.checklistText}>Matches description</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Data-sharing consent (BR17/BR22) */}
-      <View style={styles.consentContainer}>
-        <TouchableOpacity
-          style={styles.checklistItem}
-          onPress={() => setConsent(prev => !prev)}
-        >
-          <View style={[styles.checkbox, consent && styles.checkboxChecked]}>
-            {consent && (
-              <Icon name="checkmark" size={18} color={colors.white} />
-            )}
-          </View>
-          <Text style={styles.checklistText}>
-            I consent to sharing this item's details with the partner
+      <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
+        {/* Info */}
+        <View style={styles.infoContainer}>
+          <Text style={styles.infoText}>
+            Please confirm the following before exporting {items.length} item(s)
+            for {type}
           </Text>
-        </TouchableOpacity>
-        <Text style={styles.sharedFieldsText}>
-          Shared with the partner: {SHARED_FIELDS_LABEL}
-        </Text>
-      </View>
+        </View>
 
-      {/* Action Buttons */}
-      <View style={styles.actionContainer}>
-        <TouchableOpacity
-          style={[
-            styles.confirmButton,
-            (!allChecked || !consent || submitting) &&
-              styles.confirmButtonDisabled,
-          ]}
-          onPress={handleConfirmExport}
-          disabled={!allChecked || !consent || submitting}
-        >
-          <Text style={styles.confirmButtonText}>
-            {submitting ? 'Exporting…' : 'Confirm & Export'}
+        {/* Checklist Items */}
+        <View style={styles.checklistContainer}>
+          <TouchableOpacity
+            style={styles.checklistItem}
+            onPress={() => toggleChecklist('tears')}
+          >
+            <View
+              style={[
+                styles.checkbox,
+                checklist.tears && styles.checkboxChecked,
+              ]}
+            >
+              {checklist.tears && (
+                <Icon name="checkmark" size={18} color={colors.white} />
+              )}
+            </View>
+            <Text style={styles.checklistText}>No major tears</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.checklistItem}
+            onPress={() => toggleChecklist('stains')}
+          >
+            <View
+              style={[
+                styles.checkbox,
+                checklist.stains && styles.checkboxChecked,
+              ]}
+            >
+              {checklist.stains && (
+                <Icon name="checkmark" size={18} color={colors.white} />
+              )}
+            </View>
+            <Text style={styles.checklistText}>No heavy stains</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.checklistItem}
+            onPress={() => toggleChecklist('buttonsZippers')}
+          >
+            <View
+              style={[
+                styles.checkbox,
+                checklist.buttonsZippers && styles.checkboxChecked,
+              ]}
+            >
+              {checklist.buttonsZippers && (
+                <Icon name="checkmark" size={18} color={colors.white} />
+              )}
+            </View>
+            <Text style={styles.checklistText}>Buttons & zippers work</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.checklistItem}
+            onPress={() => toggleChecklist('photos')}
+          >
+            <View
+              style={[
+                styles.checkbox,
+                checklist.photos && styles.checkboxChecked,
+              ]}
+            >
+              {checklist.photos && (
+                <Icon name="checkmark" size={18} color={colors.white} />
+              )}
+            </View>
+            <Text style={styles.checklistText}>Accurate photos</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.checklistItem}
+            onPress={() => toggleChecklist('description')}
+          >
+            <View
+              style={[
+                styles.checkbox,
+                checklist.description && styles.checkboxChecked,
+              ]}
+            >
+              {checklist.description && (
+                <Icon name="checkmark" size={18} color={colors.white} />
+              )}
+            </View>
+            <Text style={styles.checklistText}>Matches description</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Data-sharing consent (BR17/BR22) */}
+        <View style={styles.consentContainer}>
+          <TouchableOpacity
+            style={styles.checklistItem}
+            onPress={() => setConsent(prev => !prev)}
+          >
+            <View style={[styles.checkbox, consent && styles.checkboxChecked]}>
+              {consent && (
+                <Icon name="checkmark" size={18} color={colors.white} />
+              )}
+            </View>
+            <Text style={styles.checklistText}>
+              I consent to sharing this item's details with the partner
+            </Text>
+          </TouchableOpacity>
+          <Text style={styles.sharedFieldsText}>
+            Shared with the partner: {SHARED_FIELDS_LABEL}
           </Text>
-        </TouchableOpacity>
+        </View>
 
-        <TouchableOpacity
-          style={styles.cancelButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.cancelButtonText}>Cancel</Text>
-        </TouchableOpacity>
-      </View>
+        {/* Action Buttons */}
+        <View style={styles.actionContainer}>
+          <TouchableOpacity
+            style={[
+              styles.confirmButton,
+              (!allChecked || !consent || submitting) &&
+                styles.confirmButtonDisabled,
+            ]}
+            onPress={handleConfirmExport}
+            disabled={!allChecked || !consent || submitting}
+          >
+            <Text style={styles.confirmButtonText}>
+              {submitting ? 'Exporting…' : 'Confirm & Export'}
+            </Text>
+          </TouchableOpacity>
 
-      <View style={styles.bottomPadding} />
-    </ScrollView>
+          <TouchableOpacity
+            style={styles.cancelButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.cancelButtonText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.bottomPadding} />
+      </ScrollView>
+    </View>
   );
 }
 
@@ -273,6 +280,9 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: colors.textPrimary,
+  },
+  body: {
+    flex: 1,
   },
   infoContainer: {
     marginHorizontal: 16,

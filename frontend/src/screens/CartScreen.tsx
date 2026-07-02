@@ -74,10 +74,14 @@ export default function CartScreen() {
       // Send the buyer to the wardrobe Add form, prefilled with what we already
       // know; they fill in brand/category/size/color and a photo (BR4 requires
       // one — AddCloth enforces it at save), then save it to the wardrobe.
-      navigation.navigate('AddCloth', {
-        prefill: {
-          name: item.itemName,
-          imageUrl: item.imageUrl,
+      // AddCloth lives in the Home tab's stack — hop tabs then target it.
+      navigation.navigate('Home', {
+        screen: 'AddCloth',
+        params: {
+          prefill: {
+            name: item.itemName,
+            imageUrl: item.imageUrl,
+          },
         },
       });
     } catch (err: any) {

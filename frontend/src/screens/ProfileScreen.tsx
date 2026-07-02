@@ -142,7 +142,10 @@ export default function ProfileScreen({ navigation }: Props) {
         <MenuRow
           icon="cube-outline"
           label="Export History"
-          onPress={() => navigation.navigate('ExportHistory')}
+          onPress={() =>
+            // ExportHistory lives in the Home tab's stack — hop tabs then target it.
+            navigation.navigate('Home', { screen: 'ExportHistory' })
+          }
         />
         <View style={styles.separator} />
         <MenuRow

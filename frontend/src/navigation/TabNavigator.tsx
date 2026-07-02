@@ -1,9 +1,10 @@
 import { TouchableOpacity } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
 
-import MainScreen from '../screens/MainScreen';
+import HomeStackNavigator from './HomeStackNavigator';
 import ThoughtfulPurchasing from '../screens/ThoughtfulPurchasingScreen';
 import CartScreen from '../screens/CartScreen';
 import NotificationScreen from '../screens/NotificationScreen';
@@ -74,7 +75,27 @@ export default function TabNavigator() {
         ),
       })}
     >
-      <Tab.Screen name="Home" component={MainScreen} />
+      <Tab.Screen
+        name="Home"
+        component={HomeStackNavigator}
+        // Show the tab-level "ReDrobe" header only while the Home stack is on
+        // its Dashboard root — pushed screens render their own headers, so a
+        // deeper route would otherwise stack two headers.
+        options={({ route }) => {
+          const routeName = getFocusedRouteNameFromRoute(route) ?? 'Dashboard';
+          return { headerShown: routeName === 'Dashboard' };
+        }}
+        // Re-pressing the already-focused Home tab pops its nested stack back
+        // to the Dashboard (bottom-tabs does not do this by default).
+        listeners={({ navigation }) => ({
+          tabPress: e => {
+            if (navigation.isFocused()) {
+              e.preventDefault();
+              navigation.navigate('Home', { screen: 'Dashboard' });
+            }
+          },
+        })}
+      />
       <Tab.Screen
         name="ThoughtfulPurchasing"
         component={ThoughtfulPurchasing}

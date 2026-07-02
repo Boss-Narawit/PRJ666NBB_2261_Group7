@@ -3,12 +3,28 @@ const Clothing = require('../models/Clothing');
 const { withTransaction } = require('../config/db');
 const { WEARLOG_PAGE_SIZE } = require('../config/constants');
 
-// WearLog.logDate is stored as midnight UTC (one log per user per day, BR8).
+// WearLog.logDate is stored as midnight UTC. BR8: a user may log multiple wear
+// logs ("outfits") on the same day — each is its own document, no merge/uniqueness.
 const normalizeToMidnightUTC = (value) => {
   if (!value) return null;
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return null;
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+};
+
+// The same item listed twice in one outfit is meaningless — keep the first
+// occurrence of each itemId (preserves its outfitId, if any).
+const dedupeWornByItemId = (clothingWorn) => {
+  const seen = new Set();
+  const result = [];
+  for (const c of clothingWorn) {
+    const key = String(c.itemId);
+    if (!seen.has(key)) {
+      seen.add(key);
+      result.push(c);
+    }
+  }
+  return result;
 };
 
 // BR9: wearCount/lastWornAt are derived from WearLogs — recompute from the
@@ -52,7 +68,9 @@ const listWearLogs = async (userId, { page, limit, startDate, endDate } = {}) =>
 
   const [wearLogs, total] = await Promise.all([
     WearLog.find(filter)
-      .sort({ logDate: -1 })
+      // _id tie-break: same-day outfits share a logDate (BR8), and skip/limit
+      // pagination over an unstable sort can duplicate or drop ties across pages.
+      .sort({ logDate: -1, _id: -1 })
       .skip((safePage - 1) * safeLimit)
       .limit(safeLimit)
       .populate('clothingWorn.itemId', 'name brand category imageUrl analytics.wearCount'),
@@ -76,7 +94,7 @@ const getWearLogById = async (userId, id) => {
 };
 
 const createWearLog = async (userId, data) => {
-  const { clothingWorn, occasion, notes } = data;
+  const { clothingWorn, occasion, notes, outfitName } = data;
 
   const logDate = normalizeToMidnightUTC(data.logDate);
   if (!logDate) {
@@ -102,38 +120,24 @@ const createWearLog = async (userId, data) => {
     throw e;
   }
 
-  // BR8: one log document per day. A same-day create merges its items into that
-  // day's existing log (deduped by itemId) instead of erroring, so a user can log
-  // several items across the day. (Moving a log onto an occupied day via PATCH
-  // still 409s through the unique index — see updateWearLog.)
+  // The same item worn twice in one outfit is meaningless — dedupe by itemId,
+  // keeping the first occurrence (preserves any per-entry outfitId).
+  const dedupedWorn = dedupeWornByItemId(clothingWorn);
+
+  // BR8: each same-day log is its own document — always create a new one.
+  // An item worn across two outfits the same day legitimately counts 2 wears (BR9).
   return withTransaction(async (session) => {
-    const existing = await WearLog.findOne({ userId, logDate }).session(session);
-    let log;
-    if (existing) {
-      const present = new Set(existing.clothingWorn.map((c) => String(c.itemId)));
-      for (const c of clothingWorn) {
-        if (!present.has(String(c.itemId))) {
-          existing.clothingWorn.push(c);
-          present.add(String(c.itemId));
-        }
-      }
-      // A merge only fills occasion/notes the day's log doesn't have yet —
-      // never overwrites, but no longer silently drops them either.
-      if (occasion !== undefined && !existing.occasion) existing.occasion = occasion;
-      if (notes !== undefined && !existing.notes) existing.notes = notes;
-      log = await existing.save({ session });
-    } else {
-      [log] = await WearLog.create([{ userId, logDate, clothingWorn, occasion, notes }], {
-        session,
-      });
-    }
+    const [log] = await WearLog.create(
+      [{ userId, logDate, clothingWorn: dedupedWorn, occasion, notes, outfitName }],
+      { session }
+    );
     await recomputeItemAnalytics(userId, itemIds, session);
     return log;
   });
 };
 
 // BR10: past wear logs are editable. Partial update of logDate/clothingWorn/
-// occasion/notes. Analytics are recomputed for the union of the items present
+// occasion/notes/outfitName. Analytics are recomputed for the union of the items present
 // before and after — editing the date alone changes an item's lastWornAt, so
 // recompute always runs regardless of which fields changed.
 const updateWearLog = async (userId, id, data) => {
@@ -173,13 +177,14 @@ const updateWearLog = async (userId, id, data) => {
         e.status = 422;
         throw e;
       }
-      log.clothingWorn = data.clothingWorn;
+      log.clothingWorn = dedupeWornByItemId(data.clothingWorn);
     }
 
     if (data.occasion !== undefined) log.occasion = data.occasion;
     if (data.notes !== undefined) log.notes = data.notes;
+    if (data.outfitName !== undefined) log.outfitName = data.outfitName;
 
-    // Duplicate-day (BR8) surfaces as a 11000 key error → errorHandler maps to 409.
+    // BR8 allows multiple logs per day, so moving a log onto an occupied day is fine.
     await log.save({ session });
 
     const finalItemIds = log.clothingWorn.map((c) => String(c.itemId));

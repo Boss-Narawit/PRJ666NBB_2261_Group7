@@ -12,58 +12,38 @@ import {
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
 import { useAuth } from '../context/AuthContext';
-import {
-  getWearLogById,
-  getClothing,
-  updateWearLog,
-  Clothing,
-} from '../services/api';
+import { getClothing, createWearLog, Clothing } from '../services/api';
+import { localDateString } from '../utils/date';
 
 type Props = {
   navigation: any;
-  route: { params: { logId: string } };
 };
 
-export default function EditWearLogScreen({ navigation, route }: Props) {
-  const { logId } = route.params;
+export default function LogOutfitScreen({ navigation }: Props) {
   const { token } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [logDate, setLogDate] = useState('');
+  const [logDate, setLogDate] = useState(localDateString());
   const [outfitName, setOutfitName] = useState('');
   const [occasion, setOccasion] = useState('');
   const [notes, setNotes] = useState('');
   const [wardrobe, setWardrobe] = useState<Clothing[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  // Item ids that were on this log when it loaded. Kept so items since archived
-  // (or exported) stay visible in the picker below even after being deselected.
-  const [logItemIds, setLogItemIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (!token) return;
     let active = true;
     (async () => {
       try {
-        const [log, items] = await Promise.all([
-          getWearLogById(token, logId),
-          getClothing(token),
-        ]);
+        const items = await getClothing(token);
         if (!active) return;
-        const originalIds = log.clothingWorn
-          .filter(c => c.itemId)
-          .map(c => c.itemId!._id);
-        setLogDate(log.logDate.slice(0, 10));
-        setOutfitName(log.outfitName ?? '');
-        setOccasion(log.occasion ?? '');
-        setNotes(log.notes ?? '');
-        setSelectedIds(originalIds);
-        setLogItemIds(originalIds);
-        setWardrobe(items);
+        // Only Available items can be logged into a new outfit.
+        setWardrobe(items.filter(i => i.status === 'Available'));
       } catch (err: any) {
-        if (active) setError(err.message || 'Failed to load wear log');
+        if (active) setError(err.message || 'Failed to load wardrobe');
       } finally {
         if (active) setLoading(false);
       }
@@ -71,19 +51,13 @@ export default function EditWearLogScreen({ navigation, route }: Props) {
     return () => {
       active = false;
     };
-  }, [token, logId]);
+  }, [token]);
 
   const toggleItem = (id: string) => {
     setSelectedIds(prev =>
       prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id],
     );
   };
-
-  // Only Available items are pickable, plus any item that was already on this
-  // log (so an item since archived/exported stays visible and deselectable).
-  const pickerItems = wardrobe.filter(
-    item => item.status === 'Available' || logItemIds.includes(item._id),
-  );
 
   const handleSave = async () => {
     if (!token) return;
@@ -97,16 +71,16 @@ export default function EditWearLogScreen({ navigation, route }: Props) {
     }
     setSaving(true);
     try {
-      await updateWearLog(token, logId, {
+      await createWearLog(token, {
         logDate: logDate.trim(),
         clothingWorn: selectedIds.map(id => ({ itemId: id })),
-        outfitName: outfitName.trim(),
+        outfitName: outfitName.trim() || undefined,
         occasion: occasion.trim(),
         notes: notes.trim(),
       });
-      navigation.navigate('WearLog');
+      navigation.goBack();
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to update wear log');
+      Alert.alert('Error', err.message || 'Failed to log outfit');
     } finally {
       setSaving(false);
     }
@@ -121,7 +95,7 @@ export default function EditWearLogScreen({ navigation, route }: Props) {
         >
           <Icon name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Edit Wear Log</Text>
+        <Text style={styles.headerTitle}>Log Outfit</Text>
         <View style={styles.headerRightSpacer} />
       </View>
 
@@ -178,10 +152,10 @@ export default function EditWearLogScreen({ navigation, route }: Props) {
           />
 
           <Text style={styles.label}>Items Worn</Text>
-          {pickerItems.length === 0 ? (
+          {wardrobe.length === 0 ? (
             <Text style={styles.emptyText}>No items in your wardrobe.</Text>
           ) : (
-            pickerItems.map(item => {
+            wardrobe.map(item => {
               const selected = selectedIds.includes(item._id);
               return (
                 <TouchableOpacity
@@ -210,7 +184,7 @@ export default function EditWearLogScreen({ navigation, route }: Props) {
             disabled={saving}
           >
             <Text style={styles.saveButtonText}>
-              {saving ? 'Saving…' : 'Save Changes'}
+              {saving ? 'Saving…' : 'Log Outfit'}
             </Text>
           </TouchableOpacity>
         </ScrollView>

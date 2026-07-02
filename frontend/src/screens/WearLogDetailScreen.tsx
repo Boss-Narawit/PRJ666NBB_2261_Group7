@@ -19,6 +19,8 @@ type Props = {
     params: {
       logId: string;
       date: string;
+      outfitName?: string;
+      occasion?: string;
       items: {
         name: string;
         brand?: string;
@@ -30,7 +32,7 @@ type Props = {
 };
 
 export default function WearLogDetailScreen({ navigation, route }: Props) {
-  const { logId, date, items } = route.params;
+  const { logId, date, outfitName, occasion, items } = route.params;
   const { token } = useAuth();
   const [deleting, setDeleting] = React.useState(false);
 
@@ -64,7 +66,7 @@ export default function WearLogDetailScreen({ navigation, route }: Props) {
   };
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -77,58 +79,77 @@ export default function WearLogDetailScreen({ navigation, route }: Props) {
         <View style={styles.headerRightSpacer} />
       </View>
 
-      {/* Date Section */}
-      <View style={styles.dateSection}>
-        <Icon name="calendar-outline" size={24} color={colors.primary} />
-        <Text style={styles.dateText}>{date}</Text>
-      </View>
-
-      {/* Items List */}
-      <View style={styles.itemsContainer}>
-        <Text style={styles.itemsTitle}>Items Worn</Text>
-
-        {items.map((item, index) => (
-          <View key={index} style={styles.itemCard}>
-            <View style={styles.itemImage}>
-              {item.image ? (
-                <Image source={{ uri: item.image }} style={styles.thumbnail} />
-              ) : (
-                <Icon
-                  name="shirt-outline"
-                  size={30}
-                  color={colors.textSecondary}
-                />
-              )}
-            </View>
-            <View style={styles.itemInfo}>
-              <Text style={styles.itemName}>{item.name}</Text>
-              {item.brand && (
-                <Text style={styles.itemBrand}>Brand: {item.brand}</Text>
-              )}
-              <Text style={styles.itemWorn}>Worn: {item.wearCount} times</Text>
-            </View>
+      <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
+        {/* Date Section — outfit name (if any) leads, with the date beneath it */}
+        <View style={styles.dateSection}>
+          <Icon name="calendar-outline" size={24} color={colors.primary} />
+          <View style={styles.dateInfo}>
+            {outfitName ? (
+              <>
+                <Text style={styles.dateText}>{outfitName}</Text>
+                <Text style={styles.dateSubText}>{date}</Text>
+              </>
+            ) : (
+              <Text style={styles.dateText}>{date}</Text>
+            )}
+            {occasion ? (
+              <Text style={styles.occasionText}>{occasion}</Text>
+            ) : null}
           </View>
-        ))}
-      </View>
+        </View>
 
-      {/* Action Buttons */}
-      <View style={styles.actionButtons}>
-        <TouchableOpacity style={styles.editButton} onPress={handleEditLog}>
-          <Icon name="create-outline" size={20} color={colors.white} />
-          <Text style={styles.editButtonText}>Edit Log</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={handleDeleteLog}
-          disabled={deleting}
-        >
-          <Icon name="trash-outline" size={20} color={colors.error} />
-          <Text style={styles.deleteButtonText}>
-            {deleting ? 'Deleting…' : 'Delete Log'}
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+        {/* Items List */}
+        <View style={styles.itemsContainer}>
+          <Text style={styles.itemsTitle}>Items Worn</Text>
+
+          {items.map((item, index) => (
+            <View key={index} style={styles.itemCard}>
+              <View style={styles.itemImage}>
+                {item.image ? (
+                  <Image
+                    source={{ uri: item.image }}
+                    style={styles.thumbnail}
+                  />
+                ) : (
+                  <Icon
+                    name="shirt-outline"
+                    size={30}
+                    color={colors.textSecondary}
+                  />
+                )}
+              </View>
+              <View style={styles.itemInfo}>
+                <Text style={styles.itemName}>{item.name}</Text>
+                {item.brand && (
+                  <Text style={styles.itemBrand}>Brand: {item.brand}</Text>
+                )}
+                <Text style={styles.itemWorn}>
+                  Worn: {item.wearCount} times
+                </Text>
+              </View>
+            </View>
+          ))}
+        </View>
+
+        {/* Action Buttons */}
+        <View style={styles.actionButtons}>
+          <TouchableOpacity style={styles.editButton} onPress={handleEditLog}>
+            <Icon name="create-outline" size={20} color={colors.white} />
+            <Text style={styles.editButtonText}>Edit Log</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.deleteButton}
+            onPress={handleDeleteLog}
+            disabled={deleting}
+          >
+            <Icon name="trash-outline" size={20} color={colors.error} />
+            <Text style={styles.deleteButtonText}>
+              {deleting ? 'Deleting…' : 'Delete Log'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -154,6 +175,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.textPrimary,
   },
+  body: {
+    flex: 1,
+  },
   dateSection: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -167,10 +191,23 @@ const styles = StyleSheet.create({
     borderColor: colors.inputBorder,
     gap: 8,
   },
+  dateInfo: {
+    alignItems: 'center',
+  },
   dateText: {
     fontSize: 18,
     fontWeight: 'bold',
     color: colors.textPrimary,
+  },
+  dateSubText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  occasionText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: 2,
   },
   itemsContainer: {
     backgroundColor: colors.white,

@@ -59,12 +59,12 @@ describe('WearLog API (/api/wear-logs)', () => {
     expect(new Date(res.body.logDate).toISOString()).toBe('2026-06-15T00:00:00.000Z');
   });
 
-  test('a same-day log appends items to that day’s single log, deduped (BR8)', async () => {
-    // First item logged for the day.
+  test('allows multiple outfit logs on the same day, each its own document (BR8)', async () => {
+    // First outfit logged for the day.
     await request(app)
       .post('/api/wear-logs')
       .set('Authorization', `Bearer ${token}`)
-      .send({ logDate: '2026-06-15', clothingWorn: [{ itemId }] });
+      .send({ logDate: '2026-06-15', clothingWorn: [{ itemId }], occasion: 'Work' });
 
     const second = await Clothing.create({
       userId,
@@ -77,26 +77,49 @@ describe('WearLog API (/api/wear-logs)', () => {
       condition: 'Good',
     });
 
-    // A different item the same day → merged into the one log, not a 409.
+    // A second outfit the same day → a NEW log document, not a merge, not a 409.
     const res = await request(app)
       .post('/api/wear-logs')
       .set('Authorization', `Bearer ${token}`)
-      .send({ logDate: '2026-06-15', clothingWorn: [{ itemId: second._id }] });
+      .send({
+        logDate: '2026-06-15',
+        clothingWorn: [{ itemId: second._id }],
+        occasion: 'Evening hangout',
+      });
 
     expect(res.statusCode).toBe(201);
-    expect(res.body.clothingWorn).toHaveLength(2);
+    expect(res.body.clothingWorn).toHaveLength(1);
+    expect(res.body.occasion).toBe('Evening hangout');
 
-    // Still one log document for the day, and the new item counts as worn once.
+    // Two separate log documents for the day, each with its own items/occasion.
     const list = await request(app).get('/api/wear-logs').set('Authorization', `Bearer ${token}`);
-    expect(list.body.total).toBe(1);
-    expect((await Clothing.findById(second._id)).analytics.wearCount).toBe(1);
+    expect(list.body.total).toBe(2);
+    const occasions = list.body.wearLogs.map((l) => l.occasion).sort();
+    expect(occasions).toEqual(['Evening hangout', 'Work']);
+  });
 
-    // Re-logging the same item that day is a no-op (deduped, no double count).
-    const dup = await request(app)
+  test('an item present in two same-day logs has wearCount 2 (BR9)', async () => {
+    for (const occasion of ['Work', 'Evening hangout']) {
+      const res = await request(app)
+        .post('/api/wear-logs')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ logDate: '2026-06-15', clothingWorn: [{ itemId }], occasion });
+      expect(res.statusCode).toBe(201);
+    }
+
+    const item = await Clothing.findById(itemId);
+    expect(item.analytics.wearCount).toBe(2);
+    expect(new Date(item.analytics.lastWornAt).toISOString()).toBe('2026-06-15T00:00:00.000Z');
+  });
+
+  test('dedupes an item listed twice within one outfit (no double count)', async () => {
+    const res = await request(app)
       .post('/api/wear-logs')
       .set('Authorization', `Bearer ${token}`)
-      .send({ logDate: '2026-06-15', clothingWorn: [{ itemId }] });
-    expect(dup.body.clothingWorn).toHaveLength(2);
+      .send({ logDate: '2026-06-15', clothingWorn: [{ itemId }, { itemId }] });
+
+    expect(res.statusCode).toBe(201);
+    expect(res.body.clothingWorn).toHaveLength(1);
     expect((await Clothing.findById(itemId)).analytics.wearCount).toBe(1);
   });
 
@@ -329,7 +352,7 @@ describe('WearLog API (/api/wear-logs)', () => {
     expect(res.statusCode).toBe(422);
   });
 
-  test('rejects editing logDate onto a day that already has a log (BR8 409)', async () => {
+  test('allows editing a log onto a day that already has a log (BR8)', async () => {
     await request(app)
       .post('/api/wear-logs')
       .set('Authorization', `Bearer ${token}`)
@@ -344,6 +367,56 @@ describe('WearLog API (/api/wear-logs)', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({ logDate: '2026-06-10' });
 
-    expect(res.statusCode).toBe(409);
+    expect(res.statusCode).toBe(200);
+    expect(new Date(res.body.logDate).toISOString()).toBe('2026-06-10T00:00:00.000Z');
+
+    // Both logs now share the same day.
+    const list = await request(app)
+      .get('/api/wear-logs?startDate=2026-06-10&endDate=2026-06-10')
+      .set('Authorization', `Bearer ${token}`);
+    expect(list.body.total).toBe(2);
+  });
+
+  test('persists outfitName on create and returns it from list + detail', async () => {
+    const created = await request(app)
+      .post('/api/wear-logs')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ logDate: '2026-06-15', clothingWorn: [{ itemId }], outfitName: 'Work Fit' });
+
+    expect(created.statusCode).toBe(201);
+    expect(created.body.outfitName).toBe('Work Fit');
+
+    const list = await request(app).get('/api/wear-logs').set('Authorization', `Bearer ${token}`);
+    expect(list.body.wearLogs[0].outfitName).toBe('Work Fit');
+
+    const detail = await request(app)
+      .get(`/api/wear-logs/${created.body._id}`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(detail.body.outfitName).toBe('Work Fit');
+  });
+
+  test('leaves outfitName unset when omitted on create', async () => {
+    const created = await request(app)
+      .post('/api/wear-logs')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ logDate: '2026-06-15', clothingWorn: [{ itemId }] });
+
+    expect(created.statusCode).toBe(201);
+    expect(created.body.outfitName).toBeUndefined();
+  });
+
+  test('can change outfitName via PATCH (BR10)', async () => {
+    const created = await request(app)
+      .post('/api/wear-logs')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ logDate: '2026-06-15', clothingWorn: [{ itemId }], outfitName: 'Work Fit' });
+
+    const res = await request(app)
+      .patch(`/api/wear-logs/${created.body._id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ outfitName: 'Evening Fit' });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.outfitName).toBe('Evening Fit');
   });
 });
