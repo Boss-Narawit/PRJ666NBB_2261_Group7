@@ -50,8 +50,14 @@ describe('fieldToPatch reconciliation', () => {
     });
   });
 
-  it('maps the single color input onto the colors[] field', () => {
+  it('maps a single color input onto the colors[] field', () => {
     expect(fieldToPatch('color', 'Navy')).toEqual({ colors: ['Navy'] });
+  });
+
+  it('splits a comma-separated color list onto the colors[] field', () => {
+    expect(fieldToPatch('color', 'Navy, White , Red')).toEqual({
+      colors: ['Navy', 'White', 'Red'],
+    });
   });
 
   it('maps description onto notes', () => {

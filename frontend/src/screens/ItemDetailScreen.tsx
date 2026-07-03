@@ -61,7 +61,7 @@ function toDisplayItem(c: Clothing): DisplayItem {
     name: c.name,
     brand: c.brand,
     category: toTitle(c.category),
-    color: c.colors?.[0] ?? '',
+    color: c.colors?.join(', ') ?? '',
     size: c.size,
     description: c.notes ?? '',
     condition: c.condition,
@@ -96,7 +96,14 @@ export function fieldToPatch(field: string, value: string): ClothingUpdate {
     case 'category':
       return { category: value.toLowerCase() };
     case 'color':
-      return { colors: [value] }; // model stores colors[]; UI edits the primary color
+      // model stores colors[]; UI edits the full comma-separated list
+      // (mirrors AddCloth's convention — see createClothing in api.ts).
+      return {
+        colors: value
+          .split(',')
+          .map(c => c.trim())
+          .filter(Boolean),
+      };
     case 'description':
       return { notes: value };
     default:

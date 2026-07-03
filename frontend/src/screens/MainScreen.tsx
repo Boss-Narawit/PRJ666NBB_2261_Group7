@@ -10,6 +10,7 @@ import {
   ImageBackground,
   Image,
   Alert,
+  RefreshControl,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -31,6 +32,7 @@ export default function MainScreen({ navigation }: any) {
   const { token } = useAuth();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const loadSummary = useCallback(async () => {
@@ -43,6 +45,7 @@ export default function MainScreen({ navigation }: any) {
       setError(err.message || 'Failed to load dashboard.');
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   }, [token]);
 
@@ -129,6 +132,16 @@ export default function MainScreen({ navigation }: any) {
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={isRefreshing}
+          onRefresh={() => {
+            setIsRefreshing(true);
+            loadSummary();
+          }}
+          tintColor={colors.primary}
+        />
+      }
     >
       {/* Header */}
       <ImageBackground
@@ -161,7 +174,10 @@ export default function MainScreen({ navigation }: any) {
 
       {/* Stats Summary */}
       <View style={styles.statsContainer}>
-        <View style={[styles.statCard, { backgroundColor: colors.white }]}>
+        <TouchableOpacity
+          style={[styles.statCard, { backgroundColor: colors.white }]}
+          onPress={() => navigation.navigate('Wardrobe')}
+        >
           <Text style={styles.statNumber}>{summary?.totalItems ?? '–'}</Text>
           <Text
             style={[styles.statLabel, { color: colors.textSecondary }]}
@@ -170,8 +186,11 @@ export default function MainScreen({ navigation }: any) {
           >
             Total Items
           </Text>
-        </View>
-        <View style={[styles.statCard, { backgroundColor: colors.white }]}>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.statCard, { backgroundColor: colors.white }]}
+          onPress={() => navigation.navigate('WearLog')}
+        >
           <Text style={styles.statNumber}>{summary?.wornThisMonth ?? '–'}</Text>
           <Text
             style={[styles.statLabel, { color: colors.textSecondary }]}
@@ -180,8 +199,11 @@ export default function MainScreen({ navigation }: any) {
           >
             Worn This Month
           </Text>
-        </View>
-        <View style={[styles.statCard, { backgroundColor: colors.white }]}>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.statCard, { backgroundColor: colors.white }]}
+          onPress={() => navigation.navigate('ForgottenItems')}
+        >
           <Text style={styles.statNumber}>
             {summary?.forgottenCount ?? '–'}
           </Text>
@@ -192,7 +214,7 @@ export default function MainScreen({ navigation }: any) {
           >
             Forgotten
           </Text>
-        </View>
+        </TouchableOpacity>
       </View>
 
       {/* My Wardrobe Section */}

@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Image,
   Alert,
+  RefreshControl,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -35,6 +36,7 @@ export default function WardrobeScreen({ navigation, route }: Props) {
   const { token } = useAuth();
   const [items, setItems] = useState<Clothing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(
@@ -73,7 +75,10 @@ export default function WardrobeScreen({ navigation, route }: Props) {
       if (mountedRef.current)
         setError(err.message || 'Failed to load wardrobe.');
     } finally {
-      if (mountedRef.current) setIsLoading(false);
+      if (mountedRef.current) {
+        setIsLoading(false);
+        setIsRefreshing(false);
+      }
     }
   }, [token]);
 
@@ -144,8 +149,16 @@ export default function WardrobeScreen({ navigation, route }: Props) {
     return matchesSearch && matchesCategory;
   });
 
-  // Recent items (first 5 returned)
-  const recentItems = activeItems.slice(0, 5);
+  // Recent items — newest first by createdAt, over a copy so the main
+  // grid/list below stays in the backend's original (unsorted) order. Items
+  // missing createdAt sort as oldest rather than crashing the comparator.
+  const recentItems = [...activeItems]
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt ?? 0).getTime() -
+        new Date(a.createdAt ?? 0).getTime(),
+    )
+    .slice(0, 5);
 
   // Only show the empty state once the fetch settles — otherwise it flashes
   // alongside the loading spinner on first paint.
@@ -252,7 +265,20 @@ export default function WardrobeScreen({ navigation, route }: Props) {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={() => {
+              setIsRefreshing(true);
+              load();
+            }}
+            tintColor={colors.primary}
+          />
+        }
+      >
         {/* Search Bar */}
         <View style={styles.searchContainer}>
           <Icon

@@ -197,6 +197,8 @@ export default function WearHistoryScreen({ navigation }: Props) {
   // it, so fall back to the visible matched count to avoid contradicting the list.
   const totalLogs =
     selectedCategories.length > 0 || selectedBrand ? logs.length : total;
+  // wearCount is lifetime analytics (Clothing.analytics.wearCount), not scoped
+  // to the active date filter — the labels below call this out explicitly.
   const mostWornItem = () => {
     let maxWear = 0;
     let mostWorn = '';
@@ -406,11 +408,15 @@ export default function WearHistoryScreen({ navigation }: Props) {
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statNumber}>{mostWorn.count}x</Text>
-            <Text style={styles.statLabel}>Most Worn: {mostWorn.name}</Text>
+            <Text style={styles.statLabel}>
+              Most Worn (all-time): {mostWorn.name}
+            </Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statNumber}>{leastWorn.count}x</Text>
-            <Text style={styles.statLabel}>Least Worn: {leastWorn.name}</Text>
+            <Text style={styles.statLabel}>
+              Least Worn (all-time): {leastWorn.name}
+            </Text>
           </View>
         </View>
 

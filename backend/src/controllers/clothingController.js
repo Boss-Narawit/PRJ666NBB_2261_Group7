@@ -8,6 +8,10 @@ const streamifier = require('streamifier');
 
 // Only these fields are client-writable — userId, analytics (BR9), aiEmbedding,
 // and exportInfo are server-managed and must never come from the request body.
+// `status` is handled separately in updateClothing behind a transition guard
+// (only the export flow may set 'Exported'), so it is intentionally excluded
+// here — create paths silently ignore a client-sent status and default to
+// 'Available' via the schema.
 const EDITABLE_FIELDS = [
   'name',
   'brand',
@@ -16,7 +20,6 @@ const EDITABLE_FIELDS = [
   'size',
   'imageUrl',
   'condition',
-  'status',
   'purchasePrice',
   'purchaseDate',
   'tags',
@@ -78,6 +81,11 @@ const uploadClothing = async (req, res) => {
 
     res.status(201).json(clothing);
   } catch (error) {
+    if (error.name === 'ValidationError') {
+      return res.status(422).json({
+        message: error.message,
+      });
+    }
     res.status(500).json({
       message: error.message,
     });
@@ -109,6 +117,13 @@ const bulkUploadClothing = async (req, res) => {
 
     res.status(201).json(clothingItems);
   } catch (error) {
+    // Mongoose 9 insertMany throws a ValidationError (name preserved) for an
+    // invalid doc under the default ordered mode — surface it as 422, not 500.
+    if (error.name === 'ValidationError') {
+      return res.status(422).json({
+        message: error.message,
+      });
+    }
     res.status(500).json({
       message: error.message,
     });
@@ -146,6 +161,11 @@ const getClothingById = async (req, res) => {
 
     res.status(200).json(clothing);
   } catch (error) {
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        message: error.message,
+      });
+    }
     res.status(500).json({
       message: error.message,
     });
@@ -155,12 +175,47 @@ const getClothingById = async (req, res) => {
 const updateClothing = async (req, res) => {
   try {
     const userId = req.user.userId;
+    const update = pickEditableFields(req.body);
+
+    // status is a state-machine field, not a plain editable field: only the
+    // export flow may set 'Exported', and once exported an item's status is
+    // final (prevents faking an export or re-exporting the same item, which
+    // would bypass BR6/BR17/BR20/BR21). Archived <-> Available stays open.
+    if (req.body.status !== undefined) {
+      // Bad enum strings reject via runValidators below, but null would slip
+      // through (enum validators skip null) and silently unset the field —
+      // the item would then vanish from every status-filtered view.
+      if (req.body.status === null) {
+        return res.status(422).json({
+          message: 'Invalid status value',
+        });
+      }
+      if (req.body.status === 'Exported') {
+        return res.status(422).json({
+          message: 'Only the export flow can set status to Exported',
+        });
+      }
+      // findOne here throws a CastError on a malformed id → caught below (400).
+      const current = await Clothing.findOne({ _id: req.params.id, userId });
+      if (!current) {
+        return res.status(404).json({
+          message: 'Clothing item not found',
+        });
+      }
+      if (current.status === 'Exported') {
+        return res.status(422).json({
+          message: "An exported item's status is final",
+        });
+      }
+      update.status = req.body.status;
+    }
+
     const updatedClothing = await Clothing.findOneAndUpdate(
       {
         _id: req.params.id,
         userId,
       },
-      pickEditableFields(req.body),
+      update,
       {
         new: true,
         runValidators: true, // reject invalid enum/required values instead of saving silently (BR4/BR7)
@@ -177,6 +232,11 @@ const updateClothing = async (req, res) => {
   } catch (error) {
     if (error.name === 'ValidationError') {
       return res.status(422).json({
+        message: error.message,
+      });
+    }
+    if (error.name === 'CastError') {
+      return res.status(400).json({
         message: error.message,
       });
     }
@@ -204,6 +264,11 @@ const deleteClothing = async (req, res) => {
       message: 'Clothing item deleted',
     });
   } catch (error) {
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        message: error.message,
+      });
+    }
     res.status(500).json({
       message: error.message,
     });

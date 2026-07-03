@@ -43,6 +43,11 @@ const updateMe = async (req, res) => {
       preferences: updatedUser.preferences,
     });
   } catch (error) {
+    // BR12: an out-of-range threshold rejects via ValidationError on save →
+    // 422, not a blanket 500.
+    if (error.name === 'ValidationError') {
+      return res.status(422).json({ message: error.message });
+    }
     res.status(500).json({ message: error.message });
   }
 };

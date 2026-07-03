@@ -42,14 +42,23 @@ describe('Clothing API (/api/clothing)', () => {
       expect(res.body.name).toBe('Blue Tee');
     });
 
-    test('missing required field returns 500 (validation error caught in controller)', async () => {
+    test('missing required field returns 422 (ValidationError mapped in controller)', async () => {
       const { name, ...incomplete } = validItem(userId);
       const res = await request(app)
         .post('/api/clothing/upload')
         .set('Authorization', `Bearer ${token}`)
         .send(incomplete);
-      expect(res.statusCode).toBe(500);
+      expect(res.statusCode).toBe(422);
       expect(res.body.message).toBeDefined();
+    });
+
+    test('ignores a client-sent status — created items default to Available', async () => {
+      const res = await request(app)
+        .post('/api/clothing/upload')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ ...validItem(userId), status: 'Exported' });
+      expect(res.statusCode).toBe(201);
+      expect(res.body.status).toBe('Available');
     });
   });
 
@@ -91,12 +100,12 @@ describe('Clothing API (/api/clothing)', () => {
       expect(res.body).toHaveLength(2);
     });
 
-    test('invalid items return 500', async () => {
+    test('invalid items return 422 (ValidationError mapped in controller)', async () => {
       const res = await request(app)
         .post('/api/clothing/bulk-upload')
         .set('Authorization', `Bearer ${token}`)
         .send([{ name: 'broken' }]);
-      expect(res.statusCode).toBe(500);
+      expect(res.statusCode).toBe(422);
     });
 
     test('ignores a client-sent userId — items always belong to the requester', async () => {
@@ -162,11 +171,11 @@ describe('Clothing API (/api/clothing)', () => {
       expect(res.body.message).toBe('Clothing item not found');
     });
 
-    test('returns 500 on invalid ObjectId (CastError caught in controller)', async () => {
+    test('returns 400 on invalid ObjectId (CastError mapped in controller)', async () => {
       const res = await request(app)
         .get('/api/clothing/not-a-valid-id')
         .set('Authorization', `Bearer ${token}`);
-      expect(res.statusCode).toBe(500);
+      expect(res.statusCode).toBe(400);
     });
   });
 
@@ -231,12 +240,55 @@ describe('Clothing API (/api/clothing)', () => {
       expect(reloaded.exportInfo.partnerName).toBeUndefined();
     });
 
-    test('returns 500 on invalid ObjectId', async () => {
+    test('returns 400 on invalid ObjectId', async () => {
       const res = await request(app)
         .patch('/api/clothing/bad-id')
         .set('Authorization', `Bearer ${token}`)
         .send({ name: 'x' });
-      expect(res.statusCode).toBe(500);
+      expect(res.statusCode).toBe(400);
+    });
+
+    test('rejects setting status to Exported with 422 (only the export flow may)', async () => {
+      const created = await Clothing.create(validItem(userId));
+      const res = await request(app)
+        .patch(`/api/clothing/${created._id}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ status: 'Exported' });
+      expect(res.statusCode).toBe(422);
+      const reloaded = await Clothing.findById(created._id);
+      expect(reloaded.status).toBe('Available');
+    });
+
+    test('rejects changing the status of an already-exported item with 422 (final)', async () => {
+      const created = await Clothing.create({ ...validItem(userId), status: 'Exported' });
+      const res = await request(app)
+        .patch(`/api/clothing/${created._id}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ status: 'Available' });
+      expect(res.statusCode).toBe(422);
+      const reloaded = await Clothing.findById(created._id);
+      expect(reloaded.status).toBe('Exported');
+    });
+
+    test('rejects a null status with 422 (would silently unset the field)', async () => {
+      const created = await Clothing.create(validItem(userId));
+      const res = await request(app)
+        .patch(`/api/clothing/${created._id}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ status: null });
+      expect(res.statusCode).toBe(422);
+      const reloaded = await Clothing.findById(created._id);
+      expect(reloaded.status).toBe('Available');
+    });
+
+    test('allows archiving an Available item with 200 (app archive flow)', async () => {
+      const created = await Clothing.create(validItem(userId));
+      const res = await request(app)
+        .patch(`/api/clothing/${created._id}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ status: 'Archived' });
+      expect(res.statusCode).toBe(200);
+      expect(res.body.status).toBe('Archived');
     });
   });
 
@@ -258,11 +310,11 @@ describe('Clothing API (/api/clothing)', () => {
       expect(res.statusCode).toBe(404);
     });
 
-    test('returns 500 on invalid ObjectId', async () => {
+    test('returns 400 on invalid ObjectId', async () => {
       const res = await request(app)
         .delete('/api/clothing/bad-id')
         .set('Authorization', `Bearer ${token}`);
-      expect(res.statusCode).toBe(500);
+      expect(res.statusCode).toBe(400);
     });
   });
 });

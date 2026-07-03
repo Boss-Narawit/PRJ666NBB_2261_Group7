@@ -97,7 +97,7 @@ describe('User Profile & Account API (/api/users & /api/auth)', () => {
         .set('Authorization', `Bearer ${authToken}`)
         .send({ forgottenItemThresholdDays: 3 });
 
-      expect(res.statusCode).toBeGreaterThanOrEqual(400);
+      expect(res.statusCode).toBe(422);
 
       const user = await User.findById(userId);
       expect(user.preferences.forgottenItemThresholdDays).not.toBe(3);

@@ -11,6 +11,7 @@ import {
   Alert,
   ActivityIndicator,
   Image,
+  RefreshControl,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -20,6 +21,7 @@ import {
   getForgottenItems,
   createWearLog,
   updateProfile,
+  getProfile,
   Clothing,
 } from '../services/api';
 import { localDateString } from '../utils/date';
@@ -48,6 +50,7 @@ export default function ForgottenItemsScreen({ navigation }: Props) {
   const { token } = useAuth();
   const [items, setItems] = useState<Clothing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [thresholdDays, setThresholdDays] = useState('21');
@@ -64,6 +67,18 @@ export default function ForgottenItemsScreen({ navigation }: Props) {
       setError(err.message || 'Failed to load forgotten items.');
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
+    }
+    // Seed the modal from the saved preference — a separate try/catch so a
+    // profile fetch failure never blocks the items list above; on failure the
+    // box just keeps whatever value it already had.
+    try {
+      const user = await getProfile(token);
+      if (user?.preferences?.forgottenItemThresholdDays != null) {
+        setThresholdDays(String(user.preferences.forgottenItemThresholdDays));
+      }
+    } catch {
+      // keep current value silently
     }
   }, [token]);
 
@@ -177,7 +192,20 @@ export default function ForgottenItemsScreen({ navigation }: Props) {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.body}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={() => {
+              setIsRefreshing(true);
+              load();
+            }}
+            tintColor={colors.primary}
+          />
+        }
+      >
         {/* Unworn Summary */}
         <View style={styles.summaryContainer}>
           <Text style={styles.summaryText}>{items.length} items forgotten</Text>

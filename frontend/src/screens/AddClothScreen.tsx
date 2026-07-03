@@ -137,7 +137,7 @@ export default function AddClothScreen({ navigation, route }: Props) {
   };
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         {/* Backing out mid-save would let the success alert's goBack pop
@@ -153,176 +153,181 @@ export default function AddClothScreen({ navigation, route }: Props) {
         <View style={styles.headerRightSpacer} />
       </View>
 
-      {/* Add New Cloth Button */}
-      <TouchableOpacity style={styles.addButton} onPress={selectPhoto}>
-        <Icon name="camera-outline" size={24} color={colors.white} />
-        <Text style={styles.addButtonText}>Add New Cloth</Text>
-      </TouchableOpacity>
-
-      {/* Photo Preview — picked photo takes precedence over a prefilled image */}
-      {(photo || prefillImageUrl) && (
-        <View style={styles.photoPreview}>
-          <Image
-            source={{ uri: photo?.uri ?? prefillImageUrl! }}
-            style={styles.previewImage}
-          />
-          {photo && (
-            <TouchableOpacity
-              style={styles.removePhoto}
-              onPress={() => setPhoto(null)}
-            >
-              <Icon name="close-circle" size={24} color={colors.error} />
-            </TouchableOpacity>
-          )}
-        </View>
-      )}
-
-      {/* Select Photo Button */}
-      <TouchableOpacity style={styles.selectPhotoButton} onPress={selectPhoto}>
-        <Icon name="image-outline" size={20} color={colors.primary} />
-        <Text style={styles.selectPhotoText}>Select Photo</Text>
-        <Text style={styles.requiredStar}>*</Text>
-      </TouchableOpacity>
-
-      {/* Form Fields */}
-      <View style={styles.form}>
-        {/* Name */}
-        <View style={styles.field}>
-          <Text style={styles.label}>
-            Name <Text style={styles.requiredStar}>*</Text>
-          </Text>
-          <TextInput
-            style={styles.input}
-            placeholder="e.g., Blue Denim Jacket"
-            value={name}
-            onChangeText={setName}
-          />
-        </View>
-
-        {/* Brand */}
-        <View style={styles.field}>
-          <Text style={styles.label}>
-            Brand <Text style={styles.requiredStar}>*</Text>
-          </Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter brand name"
-            value={brand}
-            onChangeText={setBrand}
-          />
-        </View>
-
-        {/* Category */}
-        <View style={styles.field}>
-          <Text style={styles.label}>
-            Category <Text style={styles.requiredStar}>*</Text>
-          </Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.categoryList}
-          >
-            {categories.map(cat => (
-              <TouchableOpacity
-                key={cat}
-                style={[
-                  styles.categoryChip,
-                  category === cat && styles.categoryChipActive,
-                ]}
-                onPress={() => setCategory(cat)}
-              >
-                <Text
-                  style={[
-                    styles.categoryChipText,
-                    category === cat && styles.categoryChipTextActive,
-                  ]}
-                >
-                  {cat}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-
-        {/* Color */}
-        <View style={styles.field}>
-          <Text style={styles.label}>
-            Color <Text style={styles.requiredStar}>*</Text>
-          </Text>
-          <TextInput
-            style={styles.input}
-            placeholder="e.g., Black, White, Blue"
-            value={color}
-            onChangeText={setColor}
-          />
-        </View>
-
-        {/* Size — free text is the source of truth; chips are quick-fill
-            suggestions so any real printed size can still be entered. */}
-        <View style={styles.field}>
-          <Text style={styles.label}>
-            Size <Text style={styles.requiredStar}>*</Text>
-          </Text>
-          <TextInput
-            style={styles.input}
-            placeholder="e.g., M, 32x34, EU 42, 8"
-            value={size}
-            onChangeText={setSize}
-          />
-          <Text style={styles.sizeHint}>Suggestions</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.sizeList}
-          >
-            {sizes.map(s => (
-              <TouchableOpacity
-                key={s}
-                style={[styles.sizeChip, size === s && styles.sizeChipActive]}
-                onPress={() => setSize(s)}
-              >
-                <Text
-                  style={[
-                    styles.sizeChipText,
-                    size === s && styles.sizeChipTextActive,
-                  ]}
-                >
-                  {s}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-
-        {/* Description */}
-        <View style={styles.field}>
-          <Text style={styles.label}>Description</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            placeholder="Add notes about this item..."
-            value={description}
-            onChangeText={setDescription}
-            multiline
-            numberOfLines={3}
-          />
-        </View>
-
-        {/* Next/Save Button */}
-        <TouchableOpacity
-          style={styles.saveButton}
-          onPress={handleSave}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color={colors.white} />
-          ) : (
-            <Text style={styles.saveButtonText}>Save</Text>
-          )}
+      <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
+        {/* Add New Cloth Button */}
+        <TouchableOpacity style={styles.addButton} onPress={selectPhoto}>
+          <Icon name="camera-outline" size={24} color={colors.white} />
+          <Text style={styles.addButtonText}>Add New Cloth</Text>
         </TouchableOpacity>
-      </View>
 
-      <View style={styles.bottomPadding} />
-    </ScrollView>
+        {/* Photo Preview — picked photo takes precedence over a prefilled image */}
+        {(photo || prefillImageUrl) && (
+          <View style={styles.photoPreview}>
+            <Image
+              source={{ uri: photo?.uri ?? prefillImageUrl! }}
+              style={styles.previewImage}
+            />
+            {photo && (
+              <TouchableOpacity
+                style={styles.removePhoto}
+                onPress={() => setPhoto(null)}
+              >
+                <Icon name="close-circle" size={24} color={colors.error} />
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        {/* Select Photo Button */}
+        <TouchableOpacity
+          style={styles.selectPhotoButton}
+          onPress={selectPhoto}
+        >
+          <Icon name="image-outline" size={20} color={colors.primary} />
+          <Text style={styles.selectPhotoText}>Select Photo</Text>
+          <Text style={styles.requiredStar}>*</Text>
+        </TouchableOpacity>
+
+        {/* Form Fields */}
+        <View style={styles.form}>
+          {/* Name */}
+          <View style={styles.field}>
+            <Text style={styles.label}>
+              Name <Text style={styles.requiredStar}>*</Text>
+            </Text>
+            <TextInput
+              style={styles.input}
+              placeholder="e.g., Blue Denim Jacket"
+              value={name}
+              onChangeText={setName}
+            />
+          </View>
+
+          {/* Brand */}
+          <View style={styles.field}>
+            <Text style={styles.label}>
+              Brand <Text style={styles.requiredStar}>*</Text>
+            </Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter brand name"
+              value={brand}
+              onChangeText={setBrand}
+            />
+          </View>
+
+          {/* Category */}
+          <View style={styles.field}>
+            <Text style={styles.label}>
+              Category <Text style={styles.requiredStar}>*</Text>
+            </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.categoryList}
+            >
+              {categories.map(cat => (
+                <TouchableOpacity
+                  key={cat}
+                  style={[
+                    styles.categoryChip,
+                    category === cat && styles.categoryChipActive,
+                  ]}
+                  onPress={() => setCategory(cat)}
+                >
+                  <Text
+                    style={[
+                      styles.categoryChipText,
+                      category === cat && styles.categoryChipTextActive,
+                    ]}
+                  >
+                    {cat}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+
+          {/* Color */}
+          <View style={styles.field}>
+            <Text style={styles.label}>
+              Color <Text style={styles.requiredStar}>*</Text>
+            </Text>
+            <TextInput
+              style={styles.input}
+              placeholder="e.g., Black, White, Blue"
+              value={color}
+              onChangeText={setColor}
+            />
+          </View>
+
+          {/* Size — free text is the source of truth; chips are quick-fill
+              suggestions so any real printed size can still be entered. */}
+          <View style={styles.field}>
+            <Text style={styles.label}>
+              Size <Text style={styles.requiredStar}>*</Text>
+            </Text>
+            <TextInput
+              style={styles.input}
+              placeholder="e.g., M, 32x34, EU 42, 8"
+              value={size}
+              onChangeText={setSize}
+            />
+            <Text style={styles.sizeHint}>Suggestions</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.sizeList}
+            >
+              {sizes.map(s => (
+                <TouchableOpacity
+                  key={s}
+                  style={[styles.sizeChip, size === s && styles.sizeChipActive]}
+                  onPress={() => setSize(s)}
+                >
+                  <Text
+                    style={[
+                      styles.sizeChipText,
+                      size === s && styles.sizeChipTextActive,
+                    ]}
+                  >
+                    {s}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+
+          {/* Description */}
+          <View style={styles.field}>
+            <Text style={styles.label}>Description</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder="Add notes about this item..."
+              value={description}
+              onChangeText={setDescription}
+              multiline
+              numberOfLines={3}
+            />
+          </View>
+
+          {/* Next/Save Button */}
+          <TouchableOpacity
+            style={styles.saveButton}
+            onPress={handleSave}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color={colors.white} />
+            ) : (
+              <Text style={styles.saveButtonText}>Save</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.bottomPadding} />
+      </ScrollView>
+    </View>
   );
 }
 
@@ -347,6 +352,9 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: colors.textPrimary,
+  },
+  body: {
+    flex: 1,
   },
   addButton: {
     flexDirection: 'row',
