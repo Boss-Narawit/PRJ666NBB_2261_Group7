@@ -80,6 +80,7 @@ export default function MainScreen({ navigation }: any) {
       },
     ]);
   };
+
   const renderCategoryItem = ({ item }: any) => (
     <TouchableOpacity
       style={styles.categoryCard}
@@ -217,6 +218,26 @@ export default function MainScreen({ navigation }: any) {
         </TouchableOpacity>
       </View>
 
+      {/* 🎉 STYLE RECAP BANNER - ADDED HERE */}
+      <TouchableOpacity 
+        style={styles.recapBanner}
+        onPress={() => navigation.navigate('StyleRecap')}
+        activeOpacity={0.9}
+      >
+        <View style={styles.recapBannerContent}>
+          <Text style={styles.recapBannerTitle}>🎉 2025 RECAP</Text>
+          <Text style={styles.recapBannerSubtitle}>
+            Your 2025 Style Recap is Here!
+          </Text>
+          <Text style={styles.recapBannerDescription}>
+            Discover your most worn items, sustainability stats, and more.
+          </Text>
+          <View style={styles.recapBannerButton}>
+            <Text style={styles.recapBannerButtonText}>View Your Recap →</Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+
       {/* My Wardrobe Section */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
@@ -323,12 +344,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.45)', // Translucent overlay to make pink text/icons stand out
+    backgroundColor: 'rgba(255, 255, 255, 0.45)',
   },
   logo: {
     fontSize: 28,
     fontWeight: 'bold',
-    textShadowColor: 'rgba(0, 0, 0, 0.2)', // Soft text shadow for readability
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
   },
@@ -342,7 +363,7 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 12,
     paddingVertical: 16,
-    paddingHorizontal: 8, // Reduced horizontal padding to allow space for text
+    paddingHorizontal: 8,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -356,9 +377,56 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   statLabel: {
-    fontSize: 11, // Slightly reduced font size
+    fontSize: 11,
     marginTop: 4,
     textAlign: 'center',
+  },
+  // 🎉 STYLE RECAP BANNER STYLES - ADDED HERE
+  recapBanner: {
+    backgroundColor: colors.primary,
+    marginHorizontal: 20,
+    marginTop: 8,
+    marginBottom: 16,
+    padding: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  recapBannerContent: {
+    flex: 1,
+    gap: 4,
+  },
+  recapBannerTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.white,
+    letterSpacing: 1,
+  },
+  recapBannerSubtitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.white,
+  },
+  recapBannerDescription: {
+    fontSize: 12,
+    color: colors.white + 'CC',
+    marginTop: 2,
+  },
+  recapBannerButton: {
+    backgroundColor: colors.white + '25',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    alignSelf: 'flex-start',
+    marginTop: 8,
+  },
+  recapBannerButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.white,
   },
   section: {
     marginTop: 20,
@@ -392,12 +460,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
-    overflow: 'hidden', // Clips the image into a circle
+    overflow: 'hidden',
   },
   categoryImage: {
     width: '100%',
     height: '100%',
-    resizeMode: 'cover', // Fills the circular space beautifully
+    resizeMode: 'cover',
   },
   categoryName: {
     fontSize: 12,

@@ -10,6 +10,7 @@ import TabNavigator from './TabNavigator';
 import SettingsScreen from '../screens/SettingsScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
 import NotificationSettingsScreen from '../screens/NotificationSettingsScreen';
+import StyleRecapScreen from '../screens/StyleRecapScreen';
 import { LoginScreen } from '../screens/LoginScreen';
 import SignUpScreen from '../screens/auth/SignUpScreen';
 import { AuthProvider, useAuth } from '../context/AuthContext';
@@ -27,6 +28,7 @@ export type RootStackParamList = {
   Settings: undefined;
   EditProfile: undefined;
   NotificationSettings: undefined;
+  StyleRecap: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -125,6 +127,11 @@ function RootStacks() {
                   </TouchableOpacity>
                 ),
               })}
+            />
+            <Stack.Screen 
+              name="StyleRecap"
+              component={StyleRecapScreen}
+              options={{ headerShown: false }} 
             />
           </>
         ) : (
