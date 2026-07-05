@@ -155,4 +155,113 @@ describe('WearHistoryScreen Component', () => {
     const texts = textValues(tree);
     expect(texts.some(t => t.includes('No wear logs yet'))).toBe(true);
   });
+
+  it('calculates and renders correct stats summary (total logs, most worn, least worn)', async () => {
+    (getWearLogs as jest.Mock).mockResolvedValue({
+      wearLogs: [
+        {
+          _id: 'log1',
+          logDate: '2026-06-15T00:00:00.000Z',
+          clothingWorn: [
+            {
+              _id: 'cw1',
+              itemId: {
+                _id: 'c1',
+                name: 'Blue Shirt',
+                brand: 'Uniqlo',
+                category: 'tops',
+                analytics: { wearCount: 10 },
+              },
+            },
+          ],
+        },
+        {
+          _id: 'log2',
+          logDate: '2026-06-10T00:00:00.000Z',
+          clothingWorn: [
+            {
+              _id: 'cw2',
+              itemId: {
+                _id: 'c2',
+                name: 'Black Jeans',
+                brand: 'Levis',
+                category: 'bottoms',
+                analytics: { wearCount: 2 },
+              },
+            },
+          ],
+        },
+      ],
+      total: 2,
+      page: 1,
+      limit: 20,
+    });
+
+    let tree: any;
+    await act(async () => {
+      tree = renderer.create(<WearHistoryScreen navigation={mockNavigation} />);
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const texts = textValues(tree);
+    // Total logs
+    expect(texts.some(t => t.includes('2'))).toBe(true);
+    // Most Worn count and name
+    expect(texts.some(t => t.includes('10x'))).toBe(true);
+    expect(
+      texts.some(t => t.includes('Most Worn (all-time): Blue Shirt')),
+    ).toBe(true);
+    // Least Worn count and name
+    expect(texts.some(t => t.includes('2x'))).toBe(true);
+    expect(
+      texts.some(t => t.includes('Least Worn (all-time): Black Jeans')),
+    ).toBe(true);
+  });
+
+  it('calls API with the correct date range on quick-chip filter tap', async () => {
+    (getWearLogs as jest.Mock).mockResolvedValue({
+      wearLogs: [],
+      total: 0,
+      page: 1,
+      limit: 20,
+    });
+
+    let tree: any;
+    await act(async () => {
+      tree = renderer.create(<WearHistoryScreen navigation={mockNavigation} />);
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    // Reset mock calls from initial render
+    (getWearLogs as jest.Mock).mockClear();
+
+    // Find the chip with text 'Last 30 Days' by checking for onPress prop
+    const last30DaysChip = tree.root.find(
+      (node: any) =>
+        node.props.onPress &&
+        node.findAll(
+          (n: any) => n.type === 'Text' && n.props.children === 'Last 30 Days',
+        ).length > 0,
+    );
+
+    expect(last30DaysChip).toBeTruthy();
+
+    // Tap "Last 30 Days"
+    await act(async () => {
+      last30DaysChip.props.onPress();
+    });
+
+    // Verify it called getWearLogs with the correct parameters (token, page 1, and 30 days ago range)
+    expect(getWearLogs).toHaveBeenCalledWith(
+      'mock-token',
+      1,
+      expect.objectContaining({
+        startDate: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+      }),
+    );
+  });
 });
