@@ -44,6 +44,28 @@ To install all dependencies for the entire project (root, frontend, and backend)
 npm run install:all
 ```
 
+## Running Unit Tests
+
+You can run unit tests for both the backend and frontend at once from the root folder, or navigate to individual directories to run them separately.
+
+### Run All Tests at Once
+To run both backend and frontend tests sequentially with a single command from the root directory:
+```powershell
+npm run test:all
+```
+
+### Run Separately
+- **Backend Tests:**
+  ```powershell
+  cd backend
+  npm run test
+  ```
+- **Frontend Tests:** (run sequentially and force exit to prevent timeouts/warnings from background timers)
+  ```powershell
+  cd frontend
+  npm run test -- --runInBand --forceExit
+  ```
+
 ## Frontend Run
 
 Before running any frontend commands, make sure you are in the `frontend` folder:
@@ -67,12 +89,6 @@ npx react-native run-android
 ## Backend Run
 
 Before running the backend, make sure you have set up the environment variables (see below).
-
-### - Run from the Root folder
-You can start the backend directly from the project root using:
-```powershell
-npm run dev:backend
-```
 
 ### - Run from the `backend` folder
 Alternatively, navigate to the `backend` folder and run the development script:
