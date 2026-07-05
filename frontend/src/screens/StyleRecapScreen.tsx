@@ -47,7 +47,9 @@ export default function StyleRecapScreen({ navigation }: Props) {
           </View>
           <View style={styles.emojiContainer}>
             <Text style={styles.emoji}>🎉</Text>
-            <Text style={styles.emojiText}>You're making conscious style choices!</Text>
+            <Text style={styles.emojiText}>
+              You're making conscious style choices!
+            </Text>
           </View>
           <View style={styles.slideIndicator}>
             <Text style={styles.slideIndicatorText}>1 / 4</Text>
@@ -61,7 +63,9 @@ export default function StyleRecapScreen({ navigation }: Props) {
       content: (
         <View style={styles.slideContainer}>
           <Text style={styles.slideTitle}>Your Top 3 Items 🎁</Text>
-          <Text style={styles.slideSubtitle}>Your most worn pieces of 2025</Text>
+          <Text style={styles.slideSubtitle}>
+            Your most worn pieces of 2025
+          </Text>
           <View style={styles.topItemsContainer}>
             {recapData.topItems.map((item, index) => (
               <View key={index} style={styles.topItemRow}>
@@ -88,11 +92,15 @@ export default function StyleRecapScreen({ navigation }: Props) {
           <Text style={styles.slideSubtitle}>
             Based on the last 90 days
             {'\n'}
-            <Text style={styles.slideSubtitleSmall}>*Archived clothing excluded from stats</Text>
+            <Text style={styles.slideSubtitleSmall}>
+              *Archived clothing excluded from stats
+            </Text>
           </Text>
           <View style={styles.statsContainer}>
             <View style={styles.statsBigNumber}>
-              <Text style={styles.statsBigNumberText}>{recapData.utilizationRate}%</Text>
+              <Text style={styles.statsBigNumberText}>
+                {recapData.utilizationRate}%
+              </Text>
               <Text style={styles.statsBigNumberLabel}>Utilization</Text>
             </View>
             <View style={styles.statsEmojiContainer}>
@@ -100,7 +108,8 @@ export default function StyleRecapScreen({ navigation }: Props) {
               <Text style={styles.statsEmojiText}>Great Work!</Text>
             </View>
             <Text style={styles.statsDescription}>
-              You're actively wearing {recapData.activeItems} of your {recapData.totalItems} items
+              You're actively wearing {recapData.activeItems} of your{' '}
+              {recapData.totalItems} items
             </Text>
           </View>
           <View style={styles.statsRow}>
@@ -126,18 +135,26 @@ export default function StyleRecapScreen({ navigation }: Props) {
       content: (
         <View style={styles.slideContainer}>
           <Text style={styles.slideTitle}>Amazing Year!</Text>
-          <Text style={styles.slideSubtitle}>Share your style journey with friends</Text>
+          <Text style={styles.slideSubtitle}>
+            Share your style journey with friends
+          </Text>
           <View style={styles.finalStatsContainer}>
             <View style={styles.finalStatItem}>
-              <Text style={styles.finalStatNumber}>{recapData.outfitsLogged}</Text>
+              <Text style={styles.finalStatNumber}>
+                {recapData.outfitsLogged}
+              </Text>
               <Text style={styles.finalStatLabel}>Outfits Logged</Text>
             </View>
             <View style={styles.finalStatItem}>
-              <Text style={styles.finalStatNumber}>{recapData.utilizationRate}%</Text>
+              <Text style={styles.finalStatNumber}>
+                {recapData.utilizationRate}%
+              </Text>
               <Text style={styles.finalStatLabel}>Utilization Rate</Text>
             </View>
             <View style={styles.finalStatItem}>
-              <Text style={styles.finalStatNumber}>{recapData.topItems[0].name}</Text>
+              <Text style={styles.finalStatNumber}>
+                {recapData.topItems[0].name}
+              </Text>
               <Text style={styles.finalStatLabel}>Top Item</Text>
             </View>
           </View>
@@ -183,7 +200,10 @@ export default function StyleRecapScreen({ navigation }: Props) {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
           <Icon name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Style Recap</Text>
@@ -202,7 +222,7 @@ export default function StyleRecapScreen({ navigation }: Props) {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollViewContent}
       >
-        {slides.map((slide) => (
+        {slides.map(slide => (
           <View key={slide.id} style={[styles.slide, { width: width }]}>
             {slide.content}
           </View>
@@ -214,10 +234,7 @@ export default function StyleRecapScreen({ navigation }: Props) {
         {slides.map((_, index) => (
           <View
             key={index}
-            style={[
-              styles.dot,
-              currentSlide === index && styles.dotActive,
-            ]}
+            style={[styles.dot, currentSlide === index && styles.dotActive]}
           />
         ))}
       </View>

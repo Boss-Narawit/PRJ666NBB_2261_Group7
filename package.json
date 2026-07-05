@@ -9,6 +9,7 @@
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && npm start",
     "install:all": "npm i && cd frontend && npm i && cd ../backend && npm i",
+    "test:all": "npm --prefix backend run test && npm --prefix frontend run test -- --runInBand --forceExit",
     "prepare": "husky"
   },
   "lint-staged": {

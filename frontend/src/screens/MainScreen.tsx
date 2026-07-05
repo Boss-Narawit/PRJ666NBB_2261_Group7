@@ -219,7 +219,7 @@ export default function MainScreen({ navigation }: any) {
       </View>
 
       {/* 🎉 STYLE RECAP BANNER - ADDED HERE */}
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.recapBanner}
         onPress={() => navigation.navigate('StyleRecap')}
         activeOpacity={0.9}
