@@ -128,10 +128,10 @@ function RootStacks() {
                 ),
               })}
             />
-            <Stack.Screen 
+            <Stack.Screen
               name="StyleRecap"
               component={StyleRecapScreen}
-              options={{ headerShown: false }} 
+              options={{ headerShown: false }}
             />
           </>
         ) : (
