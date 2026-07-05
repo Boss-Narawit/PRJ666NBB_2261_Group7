@@ -22,79 +22,74 @@ const getAnnualRecapAnalytics = async (req, res) => {
     });
 
     const totalClothingItems = clothingItems.length;
-
-    const totalWearCount = clothingItems.reduce(
-      (sum, item) => sum + (item.analytics?.wearCount || 0),
-      0
-    );
-
-    // Most and Least Worn Items
-    let mostWornItem = null;
-    let leastWornItem = null;
-
-    if (clothingItems.length > 0) {
-      const sortedItems = [...clothingItems].sort(
-        (a, b) => (b.analytics?.wearCount || 0) - (a.analytics?.wearCount || 0)
-      );
-
-      mostWornItem = {
-        id: sortedItems[0]._id,
-        name: sortedItems[0].name,
-        wearCount: sortedItems[0].analytics?.wearCount || 0,
-      };
-
-      leastWornItem = {
-        id: sortedItems[sortedItems.length - 1]._id,
-        name: sortedItems[sortedItems.length - 1].name,
-        wearCount: sortedItems[sortedItems.length - 1].analytics?.wearCount || 0,
-      };
-    }
-
-    // Favorite Category
-    const categoryWearMap = {};
-
-    clothingItems.forEach((item) => {
-      const wearCount = item.analytics?.wearCount || 0;
-
-      categoryWearMap[item.category] = (categoryWearMap[item.category] || 0) + wearCount;
+    const currentYear = new Date().getFullYear();
+    const yearStart = new Date(currentYear, 0, 1);
+    const yearlyWearLogs = await WearLog.find({
+      userId,
+      logDate: {
+        $gte: yearStart,
+      },
     });
 
-    let favoriteCategory = null;
+    const totalWearCount = yearlyWearLogs.reduce((sum, log) => sum + log.clothingWorn.length, 0);
 
-    if (Object.keys(categoryWearMap).length > 0) {
-      favoriteCategory = Object.entries(categoryWearMap).sort((a, b) => b[1] - a[1])[0][0];
-    }
+    // Top 3 Most Worn Items
+    const wearMap = {};
+    yearlyWearLogs.forEach((log) => {
+      log.clothingWorn.forEach((item) => {
+        const id = item.itemId.toString();
 
-    // Most Worn Brand
-    const brandWearMap = {};
-
-    clothingItems.forEach((item) => {
-      const wearCount = item.analytics?.wearCount || 0;
-
-      brandWearMap[item.brand] = (brandWearMap[item.brand] || 0) + wearCount;
+        wearMap[id] = (wearMap[id] || 0) + 1;
+      });
     });
 
-    let mostWornBrand = null;
+    const clothingMap = {};
+    clothingItems.forEach((item) => {
+      clothingMap[item._id.toString()] = item;
+    });
 
-    if (Object.keys(brandWearMap).length > 0) {
-      mostWornBrand = Object.entries(brandWearMap).sort((a, b) => b[1] - a[1])[0][0];
-    }
+    const topItems = Object.entries(wearMap)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([itemId, wearCount], index) => ({
+        rank: index + 1,
+        id: itemId,
+        name: clothingMap[itemId]?.name,
+        imageUrl: clothingMap[itemId]?.imageUrl,
+        wearCount,
+      }));
+
+    const mostWornItem = topItems.length > 0 ? topItems[0] : null;
 
     // Wardrobe Utilization
-    const wornItems = clothingItems.filter((item) => (item.analytics?.wearCount || 0) > 0).length;
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+    const recentWearLogs = await WearLog.find({
+      userId,
+      logDate: {
+        $gte: ninetyDaysAgo,
+      },
+    });
+    const activeItemIds = new Set();
+    recentWearLogs.forEach((log) => {
+      log.clothingWorn.forEach((item) => {
+        activeItemIds.add(item.itemId.toString());
+      });
+    });
+    const activeItems = activeItemIds.size;
 
     const utilizationRate =
-      totalClothingItems === 0 ? 0 : Number(((wornItems / totalClothingItems) * 100).toFixed(1));
+      totalClothingItems === 0 ? 0 : Number(((activeItems / totalClothingItems) * 100).toFixed(1));
 
     res.status(200).json({
       year: new Date().getFullYear(),
       totalClothingItems,
       totalWearCount,
-      mostWornItem,
-      leastWornItem,
-      favoriteCategory,
-      mostWornBrand,
+      topItems,
+      activeItems,
       utilizationRate,
+      mostWornItem,
     });
   } catch (error) {
     res.status(500).json({
