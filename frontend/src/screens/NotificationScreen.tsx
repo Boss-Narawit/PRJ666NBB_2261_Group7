@@ -12,7 +12,7 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
 import { useAuth } from '../context/AuthContext';
@@ -28,6 +28,8 @@ const TYPE_ICONS: Record<string, string> = {
   similarity_alert: 'alert-circle-outline',
   recap_ready: 'sparkles-outline',
   export_update: 'cube-outline',
+  repair_reminder: 'construct-outline',
+  repurpose_suggestion: 'swap-horizontal-outline',
 };
 
 function timeAgo(createdAt: string) {
@@ -43,6 +45,7 @@ function timeAgo(createdAt: string) {
 
 export default function NotificationScreen() {
   const { token } = useAuth();
+  const navigation = useNavigation<any>();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -93,19 +96,24 @@ export default function NotificationScreen() {
     }, [load]),
   );
 
-  const handlePress = async (item: AppNotification) => {
-    // Open the full-detail card with the read state as-is at tap time.
-    setSelected(item);
-    if (item.isRead || !token) return;
-    // Optimistic flip; reload on failure to stay in sync with the server.
-    setNotifications(prev =>
-      prev.map(n => (n._id === item._id ? { ...n, isRead: true } : n)),
-    );
-    try {
-      await markNotificationRead(token, item._id);
-    } catch {
-      load();
+  const handlePress = (item: AppNotification) => {
+    // Optimistic read-flip; reload on failure to stay in sync with the server.
+    if (!item.isRead && token) {
+      setNotifications(prev =>
+        prev.map(n => (n._id === item._id ? { ...n, isRead: true } : n)),
+      );
+      markNotificationRead(token, item._id).catch(() => load());
     }
+    // recap_ready deep-links into that year's recap instead of the detail card.
+    // It's emitted Jan 1 about the year that just ended, so the target year is
+    // the notification's UTC creation year minus one.
+    if (item.type === 'recap_ready') {
+      const year = new Date(item.createdAt).getUTCFullYear() - 1;
+      navigation.navigate('StyleRecap', { year });
+      return;
+    }
+    // Everything else opens the full-detail card with read state as-is at tap.
+    setSelected(item);
   };
 
   const renderItem = ({ item }: { item: AppNotification }) => (

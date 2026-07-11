@@ -396,11 +396,11 @@ const CATEGORY_MAP: Record<string, string> = {
   other: 'other',
 };
 
-export function createClothing(
-  token: string,
-  input: NewClothingInput,
-): Promise<Clothing> {
-  const body = {
+// Reconcile a form-shaped input to the Clothing model's field shape at the API
+// boundary (category→enum, comma color→colors[], condition default). Shared by
+// the single- and batch-create paths so both stay consistent.
+function toClothingBody(input: NewClothingInput) {
+  return {
     name: input.name.trim(),
     brand: input.brand.trim(),
     category: CATEGORY_MAP[input.category.toLowerCase()] ?? 'other',
@@ -413,9 +413,26 @@ export function createClothing(
     condition: input.condition ?? 'Good',
     notes: input.notes?.trim() || undefined,
   };
+}
+
+export function createClothing(
+  token: string,
+  input: NewClothingInput,
+): Promise<Clothing> {
   return apiFetch<Clothing>('/api/clothing/upload', token, {
     method: 'POST',
-    body,
+    body: toClothingBody(input),
+  });
+}
+
+// Batch add (BR5: max 50 per request). Posts an array to the bulk endpoint.
+export function bulkCreateClothing(
+  token: string,
+  items: NewClothingInput[],
+): Promise<Clothing[]> {
+  return apiFetch<Clothing[]>('/api/clothing/bulk-upload', token, {
+    method: 'POST',
+    body: items.map(toClothingBody),
   });
 }
 
@@ -742,6 +759,37 @@ export function getExportHistory(token: string): Promise<ExportRecord[]> {
 // ── Forgotten items ─────────────────────────────────────────────────────────
 export function getForgottenItems(token: string): Promise<Clothing[]> {
   return apiFetch<Clothing[]>('/api/clothing/forgotten-items', token);
+}
+
+// ── Annual style recap ──────────────────────────────────────────────────────
+export interface RecapItem {
+  rank: number;
+  id: string;
+  name: string;
+  imageUrl: string;
+  wearCount: number;
+}
+
+export interface AnnualRecap {
+  year: number;
+  totalClothingItems: number;
+  totalOutfits: number;
+  totalWearCount: number;
+  topItems: RecapItem[];
+  activeItems: number;
+  utilizationRate: number;
+  mostWornItem: RecapItem | null;
+}
+
+// Throws with err.status === 422 (code RECAP_NOT_ENOUGH_LOGS) when the user
+// hasn't logged enough outfits for the year — the screen branches on that.
+// `year` opens a specific (e.g. completed) year; omitted = live current year.
+export function getAnnualRecap(
+  token: string,
+  year?: number,
+): Promise<AnnualRecap> {
+  const query = year != null ? `?year=${year}` : '';
+  return apiFetch<AnnualRecap>(`/api/analytics/annual-recap${query}`, token);
 }
 
 // ── Thoughtful purchasing ───────────────────────────────────────────────────

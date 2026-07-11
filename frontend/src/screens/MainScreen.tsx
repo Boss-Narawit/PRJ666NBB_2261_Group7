@@ -19,7 +19,9 @@ import { useAuth } from '../context/AuthContext';
 import {
   getDashboardSummary,
   createWearLog,
+  getAnnualRecap,
   DashboardSummary,
+  AnnualRecap,
 } from '../services/api';
 import { FEATURED_CATEGORIES } from '../constants/categories';
 import { localDateString } from '../utils/date';
@@ -31,6 +33,7 @@ function formatLastWorn(lastWornAt?: string) {
 export default function MainScreen({ navigation }: any) {
   const { token } = useAuth();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [recap, setRecap] = useState<AnnualRecap | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,6 +49,15 @@ export default function MainScreen({ navigation }: any) {
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
+    }
+    // The recap banner is eligibility-gated: only show it when the recap
+    // actually renders (≥30 logs this year). A separate try so a recap failure
+    // (incl. the 422 "not enough logs") just hides the banner and never
+    // disturbs the dashboard above.
+    try {
+      setRecap(await getAnnualRecap(token));
+    } catch {
+      setRecap(null);
     }
   }, [token]);
 
@@ -218,25 +230,29 @@ export default function MainScreen({ navigation }: any) {
         </TouchableOpacity>
       </View>
 
-      {/* 🎉 STYLE RECAP BANNER - ADDED HERE */}
-      <TouchableOpacity
-        style={styles.recapBanner}
-        onPress={() => navigation.navigate('StyleRecap')}
-        activeOpacity={0.9}
-      >
-        <View style={styles.recapBannerContent}>
-          <Text style={styles.recapBannerTitle}>🎉 2025 RECAP</Text>
-          <Text style={styles.recapBannerSubtitle}>
-            Your 2025 Style Recap is Here!
-          </Text>
-          <Text style={styles.recapBannerDescription}>
-            Discover your most worn items, sustainability stats, and more.
-          </Text>
-          <View style={styles.recapBannerButton}>
-            <Text style={styles.recapBannerButtonText}>View Your Recap →</Text>
+      {/* 🎉 Style Recap banner — only shown once the recap is eligible */}
+      {recap && (
+        <TouchableOpacity
+          style={styles.recapBanner}
+          onPress={() => navigation.navigate('StyleRecap')}
+          activeOpacity={0.9}
+        >
+          <View style={styles.recapBannerContent}>
+            <Text style={styles.recapBannerTitle}>🎉 {recap.year} RECAP</Text>
+            <Text style={styles.recapBannerSubtitle}>
+              Your {recap.year} Style Recap is Here!
+            </Text>
+            <Text style={styles.recapBannerDescription}>
+              Discover your most worn items, sustainability stats, and more.
+            </Text>
+            <View style={styles.recapBannerButton}>
+              <Text style={styles.recapBannerButtonText}>
+                View Your Recap →
+              </Text>
+            </View>
           </View>
-        </View>
-      </TouchableOpacity>
+        </TouchableOpacity>
+      )}
 
       {/* My Wardrobe Section */}
       <View style={styles.section}>

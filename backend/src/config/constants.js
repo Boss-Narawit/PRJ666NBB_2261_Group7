@@ -21,6 +21,8 @@ const NOTIFICATION_TYPES = Object.freeze([
   'similarity_alert',
   'recap_ready',
   'export_update',
+  'repair_reminder',
+  'repurpose_suggestion',
 ]);
 
 const EXPORT_TYPES = Object.freeze(['sale', 'donation', 'upcycle', 'resale']);
@@ -37,7 +39,8 @@ const FORGOTTEN_ITEM_MIN_THRESHOLD_DAYS = 7; // BR12
 const FORGOTTEN_ITEM_DEFAULT_THRESHOLD_DAYS = 30; // default preference value
 const FORGOTTEN_ITEM_RENOTIFY_DAYS = 7; // BR13
 const UTILIZATION_WINDOW_DAYS = 90; // BR24
-const ANNUAL_RECAP_MIN_LOGS = 30; // BR25
+const REPURPOSE_UNWORN_DAYS = 180; // idle-item threshold for the repurpose (resell/donate) nudge
+const ANNUAL_RECAP_MIN_LOGS = 1; // TEMP: lowered for demo — BR25 is 30, revert before submission
 const DELETE_GRACE_PERIOD_DAYS = 30; // BR3
 const MAX_CLOTHING_BATCH = 50; // BR5
 const DASHBOARD_FORGOTTEN_PREVIEW_LIMIT = 5; // forgotten-items preview on main dashboard
@@ -64,6 +67,7 @@ module.exports = {
   FORGOTTEN_ITEM_DEFAULT_THRESHOLD_DAYS,
   FORGOTTEN_ITEM_RENOTIFY_DAYS,
   UTILIZATION_WINDOW_DAYS,
+  REPURPOSE_UNWORN_DAYS,
   ANNUAL_RECAP_MIN_LOGS,
   DELETE_GRACE_PERIOD_DAYS,
   MAX_CLOTHING_BATCH,

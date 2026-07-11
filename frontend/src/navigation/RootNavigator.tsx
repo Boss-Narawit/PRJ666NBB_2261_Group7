@@ -28,7 +28,7 @@ export type RootStackParamList = {
   Settings: undefined;
   EditProfile: undefined;
   NotificationSettings: undefined;
-  StyleRecap: undefined;
+  StyleRecap: { year?: number } | undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();

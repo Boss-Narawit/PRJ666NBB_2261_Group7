@@ -257,12 +257,20 @@ export default function WardrobeScreen({ navigation, route }: Props) {
           <Icon name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Wardrobe</Text>
-        <TouchableOpacity
-          onPress={() => navigation.navigate('AddCloth')}
-          style={styles.addButton}
-        >
-          <Icon name="add-circle-outline" size={28} color={colors.primary} />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('BatchAdd')}
+            style={styles.addButton}
+          >
+            <Icon name="albums-outline" size={24} color={colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('AddCloth')}
+            style={styles.addButton}
+          >
+            <Icon name="add-circle-outline" size={28} color={colors.primary} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -436,6 +444,10 @@ const styles = StyleSheet.create({
   },
   addButton: {
     padding: 8,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   searchContainer: {
     flexDirection: 'row',

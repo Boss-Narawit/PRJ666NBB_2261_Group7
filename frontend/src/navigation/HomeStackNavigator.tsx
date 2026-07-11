@@ -2,6 +2,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import MainScreen from '../screens/MainScreen';
 import WardrobeScreen from '../screens/WardrobeScreen';
 import AddClothScreen from '../screens/AddClothScreen';
+import BatchAddScreen from '../screens/BatchAddScreen';
 import WearHistoryScreen from '../screens/WearHistoryScreen';
 import WearLogDetailScreen from '../screens/WearLogDetailScreen';
 import EditWearLogScreen from '../screens/EditWearLogScreen';
@@ -27,6 +28,7 @@ export type HomeStackParamList = {
         // Prefill from an approved Thoughtful Purchase ("Buy it" → wardrobe).
         prefill?: { name?: string; imageUrl?: string; notes?: string };
       };
+  BatchAdd: undefined;
   WearLog: undefined;
   LogOutfit: undefined;
   WearLogDetail: {
@@ -66,6 +68,7 @@ export default function HomeStackNavigator() {
       <Stack.Screen name="Dashboard" component={MainScreen} />
       <Stack.Screen name="Wardrobe" component={WardrobeScreen} />
       <Stack.Screen name="AddCloth" component={AddClothScreen} />
+      <Stack.Screen name="BatchAdd" component={BatchAddScreen} />
       <Stack.Screen name="WearLog" component={WearHistoryScreen} />
       <Stack.Screen name="WearLogDetail" component={WearLogDetailScreen} />
       <Stack.Screen name="EditWearLog" component={EditWearLogScreen} />

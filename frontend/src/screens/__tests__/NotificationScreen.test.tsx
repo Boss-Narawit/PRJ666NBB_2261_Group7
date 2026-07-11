@@ -13,6 +13,7 @@ jest.mock('@react-navigation/native', () => ({
       callback();
     }, [callback]);
   },
+  useNavigation: () => ({ navigate: jest.fn() }),
 }));
 
 // Mock Auth Context
