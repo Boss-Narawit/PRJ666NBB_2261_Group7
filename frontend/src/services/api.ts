@@ -13,126 +13,67 @@ export function setOnUnauthorized(handler: (() => void) | null) {
   onUnauthorized = handler;
 }
 
-export async function register(payload: {
+// Unauthenticated auth endpoints: no Bearer token, and a 401 here means bad
+// credentials — never a dead session — so onUnauthorized is NOT called. Copies
+// data.code onto the error (e.g. ACCOUNT_PENDING_DELETION) for UI branching.
+async function authFetch(path: string, payload: unknown, fallback: string) {
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    throw new Error('Unable to reach the server. Check your connection.');
+  }
+
+  const contentType = res.headers.get('content-type') ?? '';
+  const data = contentType.includes('application/json')
+    ? await res.json()
+    : { message: `Server error (${res.status})` };
+
+  if (!res.ok) {
+    const err: any = new Error(data.message || fallback);
+    // Soft-deleted account: lets the UI route to reactivation instead of a plain error.
+    if (data.code) err.code = data.code;
+    throw err;
+  }
+  return data;
+}
+
+export function register(payload: {
   name: string;
   email: string;
   password: string;
 }) {
-  let res: Response;
-  try {
-    res = await fetch(`${BASE_URL}/api/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-  } catch {
-    throw new Error('Unable to reach the server. Check your connection.');
-  }
-
-  const contentType = res.headers.get('content-type') ?? '';
-  const data = contentType.includes('application/json')
-    ? await res.json()
-    : { message: `Server error (${res.status})` };
-
-  if (!res.ok) {
-    const err: any = new Error(data.message || 'Registration failed');
-    // Soft-deleted email: lets the UI route the user to login to reactivate.
-    if (data.code) err.code = data.code;
-    throw err;
-  }
-  return data;
+  return authFetch('/api/auth/register', payload, 'Registration failed');
 }
 
-export async function login(payload: { email: string; password: string }) {
-  let res: Response;
-  try {
-    res = await fetch(`${BASE_URL}/api/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-  } catch {
-    throw new Error('Unable to reach the server. Check your connection.');
-  }
-
-  const contentType = res.headers.get('content-type') ?? '';
-  const data = contentType.includes('application/json')
-    ? await res.json()
-    : { message: `Server error (${res.status})` };
-
-  if (!res.ok) {
-    const err: any = new Error(data.message || 'Login failed');
-    // Soft-deleted account: lets the UI offer reactivation instead of a plain error.
-    if (data.code) err.code = data.code;
-    throw err;
-  }
-  return data; // Returns flat { _id, name, email, token }
+// Returns flat { _id, name, email, token }
+export function login(payload: { email: string; password: string }) {
+  return authFetch('/api/auth/login', payload, 'Login failed');
 }
 
-export async function reactivate(payload: { email: string; password: string }) {
-  let res: Response;
-  try {
-    res = await fetch(`${BASE_URL}/api/auth/reactivate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-  } catch {
-    throw new Error('Unable to reach the server. Check your connection.');
-  }
-
-  const contentType = res.headers.get('content-type') ?? '';
-  const data = contentType.includes('application/json')
-    ? await res.json()
-    : { message: `Server error (${res.status})` };
-
-  if (!res.ok) throw new Error(data.message || 'Reactivation failed');
-  return data; // Returns { _id, name, email, token }
+// Returns { _id, name, email, token }
+export function reactivate(payload: { email: string; password: string }) {
+  return authFetch('/api/auth/reactivate', payload, 'Reactivation failed');
 }
 
-export async function deleteAccount(token: string) {
-  let res: Response;
-  try {
-    res = await fetch(`${BASE_URL}/api/auth/delete-account`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` },
-    });
-  } catch {
-    throw new Error('Unable to reach the server. Check your connection.');
-  }
-
-  const contentType = res.headers.get('content-type') ?? '';
-  const data = contentType.includes('application/json')
-    ? await res.json()
-    : { message: `Server error (${res.status})` };
-
-  if (res.status === 401) onUnauthorized?.();
-  if (!res.ok) throw new Error(data.message || 'Failed to delete account');
-  return data;
+export function deleteAccount(token: string) {
+  return apiFetch('/api/auth/delete-account', token, {
+    method: 'DELETE',
+    fallback: 'Failed to delete account',
+  });
 }
 
-export async function getProfile(token: string) {
-  let res: Response;
-  try {
-    res = await fetch(`${BASE_URL}/api/users/me`, {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${token}` },
-    });
-  } catch {
-    throw new Error('Unable to reach the server. Check your connection.');
-  }
-
-  const contentType = res.headers.get('content-type') ?? '';
-  const data = contentType.includes('application/json')
-    ? await res.json()
-    : { message: `Server error (${res.status})` };
-
-  if (res.status === 401) onUnauthorized?.();
-  if (!res.ok) throw new Error(data.message || 'Failed to fetch profile');
-  return data;
+export function getProfile(token: string) {
+  return apiFetch<any>('/api/users/me', token, {
+    fallback: 'Failed to fetch profile',
+  });
 }
 
-export async function updateProfile(
+export function updateProfile(
   token: string,
   payload: {
     name?: string;
@@ -140,28 +81,11 @@ export async function updateProfile(
     forgottenItemThresholdDays?: number;
   },
 ) {
-  let res: Response;
-  try {
-    res = await fetch(`${BASE_URL}/api/users/me`, {
-      method: 'PATCH',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
-  } catch {
-    throw new Error('Unable to reach the server. Check your connection.');
-  }
-
-  const contentType = res.headers.get('content-type') ?? '';
-  const data = contentType.includes('application/json')
-    ? await res.json()
-    : { message: `Server error (${res.status})` };
-
-  if (res.status === 401) onUnauthorized?.();
-  if (!res.ok) throw new Error(data.message || 'Failed to update profile');
-  return data;
+  return apiFetch<any>('/api/users/me', token, {
+    method: 'PATCH',
+    body: payload,
+    fallback: 'Failed to update profile',
+  });
 }
 
 export interface NotificationPreferences {
@@ -171,59 +95,29 @@ export interface NotificationPreferences {
   forgottenItemAlertEnabled: boolean;
 }
 
-export async function getNotificationPreferences(
+export function getNotificationPreferences(
   token: string,
 ): Promise<NotificationPreferences> {
-  let res: Response;
-  try {
-    res = await fetch(`${BASE_URL}/api/notifications/preferences`, {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${token}` },
-    });
-  } catch {
-    throw new Error('Unable to reach the server. Check your connection.');
-  }
-
-  const contentType = res.headers.get('content-type') ?? '';
-  const data = contentType.includes('application/json')
-    ? await res.json()
-    : { message: `Server error (${res.status})` };
-
-  if (res.status === 401) onUnauthorized?.();
-  if (!res.ok)
-    throw new Error(data.message || 'Failed to fetch notification preferences');
-  return data;
+  return apiFetch<NotificationPreferences>(
+    '/api/notifications/preferences',
+    token,
+    { fallback: 'Failed to fetch notification preferences' },
+  );
 }
 
-export async function updateNotificationPreferences(
+export function updateNotificationPreferences(
   token: string,
   payload: Partial<NotificationPreferences>,
 ): Promise<NotificationPreferences> {
-  let res: Response;
-  try {
-    res = await fetch(`${BASE_URL}/api/notifications/preferences`, {
+  return apiFetch<NotificationPreferences>(
+    '/api/notifications/preferences',
+    token,
+    {
       method: 'PATCH',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
-  } catch {
-    throw new Error('Unable to reach the server. Check your connection.');
-  }
-
-  const contentType = res.headers.get('content-type') ?? '';
-  const data = contentType.includes('application/json')
-    ? await res.json()
-    : { message: `Server error (${res.status})` };
-
-  if (res.status === 401) onUnauthorized?.();
-  if (!res.ok)
-    throw new Error(
-      data.message || 'Failed to update notification preferences',
-    );
-  return data;
+      body: payload,
+      fallback: 'Failed to update notification preferences',
+    },
+  );
 }
 export interface AppNotification {
   _id: string;
@@ -246,6 +140,10 @@ export interface DashboardSummary {
   totalItems: number;
   wornThisMonth: number;
   forgottenCount: number;
+  // BR24 utilization: % of Available items worn in the trailing window
+  utilizationRate: number;
+  wornInWindow: number;
+  utilizationWindowDays: number;
   forgottenItems: {
     _id: string;
     name: string;
@@ -281,51 +179,16 @@ export interface Clothing {
   createdAt?: string;
 }
 
-export async function getClothing(token: string): Promise<Clothing[]> {
-  let res: Response;
-  try {
-    res = await fetch(`${BASE_URL}/api/clothing`, {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${token}` },
-    });
-  } catch {
-    throw new Error('Unable to reach the server. Check your connection.');
-  }
-
-  const contentType = res.headers.get('content-type') ?? '';
-  const data = contentType.includes('application/json')
-    ? await res.json()
-    : { message: `Server error (${res.status})` };
-
-  if (res.status === 401) onUnauthorized?.();
-  if (!res.ok)
-    throw new Error(data.message || data.error || 'Failed to fetch wardrobe');
-  return data;
+export function getClothing(token: string): Promise<Clothing[]> {
+  return apiFetch<Clothing[]>('/api/clothing', token, {
+    fallback: 'Failed to fetch wardrobe',
+  });
 }
 
-export async function getClothingById(
-  token: string,
-  id: string,
-): Promise<Clothing> {
-  let res: Response;
-  try {
-    res = await fetch(`${BASE_URL}/api/clothing/${id}`, {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${token}` },
-    });
-  } catch {
-    throw new Error('Unable to reach the server. Check your connection.');
-  }
-
-  const contentType = res.headers.get('content-type') ?? '';
-  const data = contentType.includes('application/json')
-    ? await res.json()
-    : { message: `Server error (${res.status})` };
-
-  if (res.status === 401) onUnauthorized?.();
-  if (!res.ok)
-    throw new Error(data.message || data.error || 'Failed to fetch item');
-  return data;
+export function getClothingById(token: string, id: string): Promise<Clothing> {
+  return apiFetch<Clothing>(`/api/clothing/${id}`, token, {
+    fallback: 'Failed to fetch item',
+  });
 }
 
 // Uploads a picked photo to Cloudinary via the backend and returns the hosted
@@ -490,7 +353,7 @@ export interface WearLogList {
   limit: number;
 }
 
-export async function getWearLogs(
+export function getWearLogs(
   token: string,
   page = 1,
   range?: { startDate?: string; endDate?: string },
@@ -498,25 +361,9 @@ export async function getWearLogs(
   const params = new URLSearchParams({ page: String(page) });
   if (range?.startDate) params.set('startDate', range.startDate);
   if (range?.endDate) params.set('endDate', range.endDate);
-  let res: Response;
-  try {
-    res = await fetch(`${BASE_URL}/api/wear-logs?${params.toString()}`, {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${token}` },
-    });
-  } catch {
-    throw new Error('Unable to reach the server. Check your connection.');
-  }
-
-  const contentType = res.headers.get('content-type') ?? '';
-  const data = contentType.includes('application/json')
-    ? await res.json()
-    : { message: `Server error (${res.status})` };
-
-  if (res.status === 401) onUnauthorized?.();
-  if (!res.ok)
-    throw new Error(data.message || data.error || 'Failed to fetch wear logs');
-  return data;
+  return apiFetch<WearLogList>(`/api/wear-logs?${params.toString()}`, token, {
+    fallback: 'Failed to fetch wear logs',
+  });
 }
 
 export interface CreateWearLogPayload {
@@ -573,94 +420,38 @@ export function deleteWearLog(
   });
 }
 
-export async function getDashboardSummary(
-  token: string,
-): Promise<DashboardSummary> {
-  let res: Response;
-  try {
-    res = await fetch(`${BASE_URL}/api/dashboard/summary`, {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${token}` },
-    });
-  } catch {
-    throw new Error('Unable to reach the server. Check your connection.');
-  }
-
-  const contentType = res.headers.get('content-type') ?? '';
-  const data = contentType.includes('application/json')
-    ? await res.json()
-    : { message: `Server error (${res.status})` };
-
-  if (res.status === 401) onUnauthorized?.();
-  // errorHandler-mapped errors arrive as { error }, not { message }
-  if (!res.ok)
-    throw new Error(
-      data.message || data.error || 'Failed to fetch dashboard summary',
-    );
-  return data;
+export function getDashboardSummary(token: string): Promise<DashboardSummary> {
+  return apiFetch<DashboardSummary>('/api/dashboard/summary', token, {
+    fallback: 'Failed to fetch dashboard summary',
+  });
 }
 
-export async function getNotifications(
+export function getNotifications(
   token: string,
   page = 1,
 ): Promise<NotificationList> {
-  let res: Response;
-  try {
-    res = await fetch(`${BASE_URL}/api/notifications?page=${page}`, {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${token}` },
-    });
-  } catch {
-    throw new Error('Unable to reach the server. Check your connection.');
-  }
-
-  const contentType = res.headers.get('content-type') ?? '';
-  const data = contentType.includes('application/json')
-    ? await res.json()
-    : { message: `Server error (${res.status})` };
-
-  if (res.status === 401) onUnauthorized?.();
-  if (!res.ok)
-    throw new Error(
-      data.message || data.error || 'Failed to fetch notifications',
-    );
-  return data;
+  return apiFetch<NotificationList>(`/api/notifications?page=${page}`, token, {
+    fallback: 'Failed to fetch notifications',
+  });
 }
 
-export async function markNotificationRead(
+export function markNotificationRead(
   token: string,
   id: string,
 ): Promise<AppNotification> {
-  let res: Response;
-  try {
-    res = await fetch(`${BASE_URL}/api/notifications/${id}/read`, {
-      method: 'PATCH',
-      headers: { Authorization: `Bearer ${token}` },
-    });
-  } catch {
-    throw new Error('Unable to reach the server. Check your connection.');
-  }
-
-  const contentType = res.headers.get('content-type') ?? '';
-  const data = contentType.includes('application/json')
-    ? await res.json()
-    : { message: `Server error (${res.status})` };
-
-  if (res.status === 401) onUnauthorized?.();
-  if (!res.ok)
-    throw new Error(
-      data.message || data.error || 'Failed to mark notification as read',
-    );
-  return data;
+  return apiFetch<AppNotification>(`/api/notifications/${id}/read`, token, {
+    method: 'PATCH',
+    fallback: 'Failed to mark notification as read',
+  });
 }
 
-// ── Shared fetch helper (used by the export / forgotten / thoughtful-purchase
-// endpoints below). Older functions above keep their inline form. Reads both
-// error shapes: self-handled controllers return { message }, errorHandler { error }.
+// ── Shared fetch helper — every authenticated JSON endpoint goes through here
+// (only uploadClothingImage stays inline: multipart body). Reads both error
+// shapes: self-handled controllers return { message }, errorHandler { error }.
 async function apiFetch<T>(
   path: string,
   token: string,
-  options: { method?: string; body?: unknown } = {},
+  options: { method?: string; body?: unknown; fallback?: string } = {},
 ): Promise<T> {
   let res: Response;
   try {
@@ -686,8 +477,11 @@ async function apiFetch<T>(
 
   if (!res.ok) {
     if (res.status === 401) onUnauthorized?.();
-    const err: any = new Error(data.message || data.error || 'Request failed');
+    const err: any = new Error(
+      data.message || data.error || options.fallback || 'Request failed',
+    );
     err.status = res.status; // lets callers branch on the HTTP code (e.g. 409 BR8)
+    if (data.code) err.code = data.code; // machine-readable code, when the API sends one
     throw err;
   }
   return data as T;
@@ -700,12 +494,13 @@ export interface Partner {
   type: 'resale' | 'donation' | 'tailor' | 'upcycle';
   website?: string;
   description?: string;
+  location?: string; // local shops (tailor/upcycle directory)
   isActive: boolean;
 }
 
 export function listPartners(
   token: string,
-  type?: 'resale' | 'donation',
+  type?: Partner['type'],
 ): Promise<Partner[]> {
   const query = type ? `?type=${type}` : '';
   return apiFetch<Partner[]>(`/api/partners${query}`, token);

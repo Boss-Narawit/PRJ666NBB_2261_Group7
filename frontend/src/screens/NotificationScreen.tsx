@@ -112,6 +112,12 @@ export default function NotificationScreen() {
       navigation.navigate('StyleRecap', { year });
       return;
     }
+    // repair_reminder taps through to the local tailor/upcycling directory.
+    // Cross-tab jump, so the nested form targets the Home stack.
+    if (item.type === 'repair_reminder') {
+      navigation.navigate('Home', { screen: 'CareDirectory' });
+      return;
+    }
     // Everything else opens the full-detail card with read state as-is at tap.
     setSelected(item);
   };

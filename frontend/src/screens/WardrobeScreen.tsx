@@ -89,50 +89,58 @@ export default function WardrobeScreen({ navigation, route }: Props) {
     }, [load]),
   );
 
-  // Overflow "⋮" menu for a wardrobe item: view details or archive.
-  const openItemMenu = (item: Clothing) => {
-    Alert.alert(item.name, undefined, [
-      {
-        text: 'View Details',
-        onPress: () => navigation.navigate('ItemDetail', { itemId: item._id }),
-      },
-      {
-        text: 'Archive',
-        style: 'destructive',
-        onPress: () => confirmArchive(item),
-      },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
-  };
-
   // Archive (BR23) instead of deleting — preserves wear-log history. Archived
   // items are hidden from the wardrobe below; refetch on success surfaces that.
-  const confirmArchive = (item: Clothing) => {
-    Alert.alert(
-      'Archive Item',
-      `Archive "${item.name}"? It will be hidden from your wardrobe but its history is kept.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
+  // (Defined before openItemMenu — its useCallback deps reference this.)
+  const confirmArchive = useCallback(
+    (item: Clothing) => {
+      Alert.alert(
+        'Archive Item',
+        `Archive "${item.name}"? It will be hidden from your wardrobe but its history is kept.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Archive',
+            style: 'destructive',
+            onPress: async () => {
+              if (!token) return;
+              try {
+                await updateClothing(token, item._id, { status: 'Archived' });
+              } catch (err: any) {
+                Alert.alert(
+                  'Archive Item',
+                  err.message || 'Could not archive item.',
+                );
+                return;
+              }
+              load();
+            },
+          },
+        ],
+      );
+    },
+    [token, load],
+  );
+
+  // Overflow "⋮" menu for a wardrobe item: view details or archive.
+  const openItemMenu = useCallback(
+    (item: Clothing) => {
+      Alert.alert(item.name, undefined, [
+        {
+          text: 'View Details',
+          onPress: () =>
+            navigation.navigate('ItemDetail', { itemId: item._id }),
+        },
         {
           text: 'Archive',
           style: 'destructive',
-          onPress: async () => {
-            if (!token) return;
-            try {
-              await updateClothing(token, item._id, { status: 'Archived' });
-            } catch (err: any) {
-              Alert.alert(
-                'Archive Item',
-                err.message || 'Could not archive item.',
-              );
-              return;
-            }
-            load();
-          },
+          onPress: () => confirmArchive(item),
         },
-      ],
-    );
-  };
+        { text: 'Cancel', style: 'cancel' },
+      ]);
+    },
+    [navigation, confirmArchive],
+  );
 
   // Only active-wardrobe items show here — Archived (BR23) and Exported items
   // have left the wardrobe (exported items live under Export History).
@@ -176,72 +184,87 @@ export default function WardrobeScreen({ navigation, route }: Props) {
       </View>
     ) : null;
 
-  const renderGridItem = ({ item }: { item: Clothing }) => (
-    <TouchableOpacity
-      style={styles.gridCard}
-      onPress={() => navigation.navigate('ItemDetail', { itemId: item._id })}
-    >
-      <View style={styles.gridImage}>
-        {item.imageUrl ? (
-          <Image source={{ uri: item.imageUrl }} style={styles.thumbnail} />
-        ) : (
-          <Icon name="shirt-outline" size={40} color={colors.textSecondary} />
-        )}
-      </View>
-      <Text style={styles.gridItemName}>{item.name}</Text>
-      <Text style={styles.gridItemBrand}>{item.brand}</Text>
-      <Text style={styles.gridItemWearCount}>
-        Worn {wearCountOf(item)} times
-      </Text>
-    </TouchableOpacity>
-  );
-
-  const renderListItem = ({ item }: { item: Clothing }) => (
-    <TouchableOpacity
-      style={styles.listCard}
-      onPress={() => navigation.navigate('ItemDetail', { itemId: item._id })}
-    >
-      <View style={styles.listImage}>
-        {item.imageUrl ? (
-          <Image source={{ uri: item.imageUrl }} style={styles.thumbnail} />
-        ) : (
-          <Icon name="shirt-outline" size={30} color={colors.textSecondary} />
-        )}
-      </View>
-      <View style={styles.listInfo}>
-        <Text style={styles.listItemName}>{item.name}</Text>
-        <Text style={styles.listItemBrand}>{item.brand}</Text>
-        <Text style={styles.listItemDetails}>
-          {item.category} • {item.colors?.[0] ?? '—'} • Worn {wearCountOf(item)}{' '}
-          times
-        </Text>
-      </View>
+  // Renderers are memoized so FlatList rows don't all re-render when
+  // unrelated state (search text, modals) changes the parent.
+  const renderGridItem = useCallback(
+    ({ item }: { item: Clothing }) => (
       <TouchableOpacity
-        style={styles.moreButton}
-        onPress={() => openItemMenu(item)}
+        style={styles.gridCard}
+        onPress={() => navigation.navigate('ItemDetail', { itemId: item._id })}
       >
-        <Icon name="ellipsis-vertical" size={20} color={colors.textSecondary} />
+        <View style={styles.gridImage}>
+          {item.imageUrl ? (
+            <Image source={{ uri: item.imageUrl }} style={styles.thumbnail} />
+          ) : (
+            <Icon name="shirt-outline" size={40} color={colors.textSecondary} />
+          )}
+        </View>
+        <Text style={styles.gridItemName}>{item.name}</Text>
+        <Text style={styles.gridItemBrand}>{item.brand}</Text>
+        <Text style={styles.gridItemWearCount}>
+          Worn {wearCountOf(item)} times
+        </Text>
       </TouchableOpacity>
-    </TouchableOpacity>
+    ),
+    [navigation],
   );
 
-  const renderRecentItem = ({ item }: { item: Clothing }) => (
-    <TouchableOpacity
-      style={styles.recentCard}
-      onPress={() => navigation.navigate('ItemDetail', { itemId: item._id })}
-    >
-      <View style={styles.recentImage}>
-        {item.imageUrl ? (
-          <Image source={{ uri: item.imageUrl }} style={styles.thumbnail} />
-        ) : (
-          <Icon name="shirt-outline" size={24} color={colors.textSecondary} />
-        )}
-      </View>
-      <Text style={styles.recentItemName}>{item.name}</Text>
-      <Text style={styles.recentItemWearCount}>
-        Worn {wearCountOf(item)} times
-      </Text>
-    </TouchableOpacity>
+  const renderListItem = useCallback(
+    ({ item }: { item: Clothing }) => (
+      <TouchableOpacity
+        style={styles.listCard}
+        onPress={() => navigation.navigate('ItemDetail', { itemId: item._id })}
+      >
+        <View style={styles.listImage}>
+          {item.imageUrl ? (
+            <Image source={{ uri: item.imageUrl }} style={styles.thumbnail} />
+          ) : (
+            <Icon name="shirt-outline" size={30} color={colors.textSecondary} />
+          )}
+        </View>
+        <View style={styles.listInfo}>
+          <Text style={styles.listItemName}>{item.name}</Text>
+          <Text style={styles.listItemBrand}>{item.brand}</Text>
+          <Text style={styles.listItemDetails}>
+            {item.category} • {item.colors?.[0] ?? '—'} • Worn{' '}
+            {wearCountOf(item)} times
+          </Text>
+        </View>
+        <TouchableOpacity
+          style={styles.moreButton}
+          onPress={() => openItemMenu(item)}
+        >
+          <Icon
+            name="ellipsis-vertical"
+            size={20}
+            color={colors.textSecondary}
+          />
+        </TouchableOpacity>
+      </TouchableOpacity>
+    ),
+    [navigation, openItemMenu],
+  );
+
+  const renderRecentItem = useCallback(
+    ({ item }: { item: Clothing }) => (
+      <TouchableOpacity
+        style={styles.recentCard}
+        onPress={() => navigation.navigate('ItemDetail', { itemId: item._id })}
+      >
+        <View style={styles.recentImage}>
+          {item.imageUrl ? (
+            <Image source={{ uri: item.imageUrl }} style={styles.thumbnail} />
+          ) : (
+            <Icon name="shirt-outline" size={24} color={colors.textSecondary} />
+          )}
+        </View>
+        <Text style={styles.recentItemName}>{item.name}</Text>
+        <Text style={styles.recentItemWearCount}>
+          Worn {wearCountOf(item)} times
+        </Text>
+      </TouchableOpacity>
+    ),
+    [navigation],
   );
 
   return (

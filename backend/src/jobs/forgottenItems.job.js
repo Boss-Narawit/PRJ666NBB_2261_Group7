@@ -42,19 +42,24 @@ const run = async () => {
         ],
       });
 
-      for (const item of items) {
-        await Notification.create({
-          userId: user._id,
-          type: 'forgotten_item',
-          message: `You haven't worn your ${item.brand} ${item.name} in a while. Still loving it?`,
-          relatedId: item._id,
-        });
-        // Targeted update, not item.save() — a full-document save re-validates
-        // every path, so a single legacy doc that fails a newer validator (e.g.
-        // colors: []) would abort the whole sweep after its Notification was
-        // already created, and the unstamped lastNotifiedAt would re-notify daily.
-        await Clothing.updateOne({ _id: item._id }, { $set: { 'analytics.lastNotifiedAt': now } });
-        notificationsCreated += 1;
+      if (items.length > 0) {
+        // Batched: one insertMany + one updateMany per user instead of two
+        // round-trips per item. Targeted update, not item.save() — a full-
+        // document save re-validates every path, so a single legacy doc that
+        // fails a newer validator (e.g. colors: []) would abort the sweep.
+        await Notification.insertMany(
+          items.map((item) => ({
+            userId: user._id,
+            type: 'forgotten_item',
+            message: `You haven't worn your ${item.brand} ${item.name} in a while. Still loving it?`,
+            relatedId: item._id,
+          }))
+        );
+        await Clothing.updateMany(
+          { _id: { $in: items.map((i) => i._id) } },
+          { $set: { 'analytics.lastNotifiedAt': now } }
+        );
+        notificationsCreated += items.length;
       }
     } catch (err) {
       // One user's failure must not starve the rest of the daily sweep.

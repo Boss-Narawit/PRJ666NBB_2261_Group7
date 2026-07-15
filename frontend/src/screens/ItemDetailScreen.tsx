@@ -457,6 +457,31 @@ export default function ItemDetailScreen({ navigation, route }: Props) {
               </View>
             )}
 
+            {/* Damaged → referral to the local tailor/upcycling directory */}
+            {!isLocked && item.condition === 'Damaged' && (
+              <TouchableOpacity
+                style={styles.repairBanner}
+                onPress={() => navigation.navigate('CareDirectory')}
+              >
+                <Icon
+                  name="construct-outline"
+                  size={22}
+                  color={colors.primary}
+                />
+                <View style={styles.repairBannerText}>
+                  <Text style={styles.repairBannerTitle}>Needs a repair?</Text>
+                  <Text style={styles.repairBannerSub}>
+                    Find local tailors & upcycling shops
+                  </Text>
+                </View>
+                <Icon
+                  name="chevron-forward"
+                  size={20}
+                  color={colors.textSecondary}
+                />
+              </TouchableOpacity>
+            )}
+
             {/* Details Card */}
             <View style={styles.card}>
               {renderField('Name', item.name, 'name')}
@@ -819,6 +844,31 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   archivedBannerSub: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  repairBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    padding: 14,
+    borderRadius: 12,
+    backgroundColor: colors.primary + '12',
+    borderWidth: 1,
+    borderColor: colors.primary + '40',
+  },
+  repairBannerText: {
+    flex: 1,
+  },
+  repairBannerTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  repairBannerSub: {
     fontSize: 14,
     color: colors.textSecondary,
     marginTop: 2,

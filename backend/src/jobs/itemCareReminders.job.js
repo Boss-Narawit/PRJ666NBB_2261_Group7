@@ -1,7 +1,7 @@
 const User = require('../models/User');
 const Clothing = require('../models/Clothing');
 const Notification = require('../models/Notification');
-const { MS_PER_DAY } = require('../services/dashboard.service');
+const { forgottenFilter, MS_PER_DAY } = require('../services/dashboard.service');
 const { REPURPOSE_UNWORN_DAYS } = require('../config/constants');
 
 // Emit at most one notification of `type` per item — look up the ids already
@@ -54,16 +54,12 @@ const run = async () => {
         condition: 'Damaged',
       });
 
-      // Still-wearable items gone cold — never-worn ones count once older than
-      // the cutoff, same "no lastWornAt → fall back to createdAt" rule as BR11.
+      // Still-wearable items gone cold — reuses the canonical BR11 filter
+      // (its "no lastWornAt → fall back to createdAt" rule covers never-worn
+      // items) so this job can never drift from the dashboard's definition.
       const idle = await Clothing.find({
-        userId: user._id,
-        status: 'Available',
+        ...forgottenFilter(user._id, cutoff),
         condition: { $ne: 'Damaged' },
-        $or: [
-          { 'analytics.lastWornAt': { $lt: cutoff } },
-          { 'analytics.lastWornAt': null, createdAt: { $lt: cutoff } },
-        ],
       });
 
       notificationsCreated += await notifyNew(

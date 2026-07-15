@@ -5,6 +5,7 @@ const WearLog = require('../models/WearLog');
 const {
   FORGOTTEN_ITEM_DEFAULT_THRESHOLD_DAYS,
   DASHBOARD_FORGOTTEN_PREVIEW_LIMIT,
+  UTILIZATION_WINDOW_DAYS,
 } = require('../config/constants');
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -35,8 +36,10 @@ const getSummary = async (userId) => {
   const cutoff = new Date(now.getTime() - thresholdDays * MS_PER_DAY);
   // logDate is stored as midnight UTC, so the month boundary is UTC too.
   const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  // BR24: utilization looks at the trailing window, not the calendar month.
+  const windowStart = new Date(now.getTime() - UTILIZATION_WINDOW_DAYS * MS_PER_DAY);
 
-  const [totalItems, forgottenCount, forgottenItems, wornAgg] = await Promise.all([
+  const [totalItems, forgottenCount, forgottenItems, wornAgg, windowAgg] = await Promise.all([
     // Must agree with the wardrobe view, which shows only Available items —
     // archived/exported items would otherwise inflate the home stat.
     Clothing.countDocuments({ userId, status: 'Available' }),
@@ -56,7 +59,27 @@ const getSummary = async (userId) => {
       { $group: { _id: '$clothingWorn.itemId' } },
       { $count: 'count' },
     ]),
+    WearLog.aggregate([
+      {
+        $match: {
+          userId: new mongoose.Types.ObjectId(String(userId)),
+          logDate: { $gte: windowStart },
+        },
+      },
+      { $unwind: '$clothingWorn' },
+      { $group: { _id: '$clothingWorn.itemId' } },
+    ]),
   ]);
+
+  // BR23/BR24: utilization = share of the *active* wardrobe worn in the window.
+  // An item worn then archived/exported no longer belongs to the wardrobe the
+  // rate describes, so worn ids are re-checked against status: 'Available' —
+  // same convention as the annual recap's utilizationRate.
+  const wornIds = windowAgg.map((d) => d._id);
+  const wornInWindow = wornIds.length
+    ? await Clothing.countDocuments({ userId, status: 'Available', _id: { $in: wornIds } })
+    : 0;
+  const utilizationRate = totalItems ? Math.round((wornInWindow / totalItems) * 100) : 0;
 
   return {
     userName: user.name,
@@ -64,6 +87,9 @@ const getSummary = async (userId) => {
     wornThisMonth: wornAgg[0]?.count ?? 0,
     forgottenCount,
     forgottenItems,
+    utilizationRate,
+    wornInWindow,
+    utilizationWindowDays: UTILIZATION_WINDOW_DAYS,
   };
 };
 

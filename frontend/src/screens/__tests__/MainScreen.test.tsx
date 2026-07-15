@@ -26,6 +26,8 @@ jest.mock('../../context/AuthContext', () => ({
 // Mock API calls
 jest.mock('../../services/api', () => ({
   getDashboardSummary: jest.fn(),
+  // Rejects by default — the screen hides the recap banner on failure.
+  getAnnualRecap: jest.fn().mockRejectedValue(new Error('no recap')),
 }));
 
 const mockNavigation = {
@@ -55,6 +57,9 @@ describe('MainScreen Component', () => {
       totalItems: 12,
       wornThisMonth: 6,
       forgottenCount: 2,
+      utilizationRate: 58,
+      wornInWindow: 7,
+      utilizationWindowDays: 90,
       forgottenItems: [
         {
           _id: 'item1',
@@ -96,5 +101,16 @@ describe('MainScreen Component', () => {
     // Check forgotten item details render
     expect(textValues.some(text => text.includes('Floral Dress'))).toBe(true);
     expect(textValues.some(text => text.includes('Zara'))).toBe(true);
+
+    // Check the utilization card renders (BR24 window stats)
+    expect(textValues.some(text => text.includes('Wardrobe Utilization'))).toBe(
+      true,
+    );
+    expect(textValues.some(text => text.includes('58%'))).toBe(true);
+    expect(
+      textValues.some(text =>
+        text.includes('7 of 12 items worn in the last 90 days'),
+      ),
+    ).toBe(true);
   });
 });

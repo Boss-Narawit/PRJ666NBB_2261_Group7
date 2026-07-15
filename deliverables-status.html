@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ReDrobe — Deliverables Status Report (2026-07-12)</title>
+<style>
+  :root {
+    --done: #16a34a; --done-bg: #f0fdf4;
+    --partial: #d97706; --partial-bg: #fffbeb;
+    --missing: #dc2626; --missing-bg: #fef2f2;
+    --ink: #1f2937; --muted: #6b7280; --line: #e5e7eb;
+    --accent: #7c3aed;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--ink); margin: 0; background: #f9fafb; line-height: 1.55; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 32px 24px 64px; }
+  header { background: var(--accent); color: #fff; padding: 28px 24px; }
+  header h1 { margin: 0 0 4px; font-size: 26px; }
+  header p { margin: 0; opacity: .85; font-size: 14px; }
+  .scoreboard { display: flex; gap: 16px; margin: 24px 0 8px; flex-wrap: wrap; }
+  .score { flex: 1; min-width: 160px; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 16px 20px; }
+  .score .num { font-size: 32px; font-weight: 700; }
+  .score .lbl { font-size: 13px; color: var(--muted); }
+  .num.g { color: var(--done); } .num.y { color: var(--partial); } .num.r { color: var(--missing); }
+  h2 { margin: 36px 0 12px; font-size: 20px; border-bottom: 2px solid var(--accent); padding-bottom: 6px; }
+  table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; font-size: 14px; }
+  th { background: #f3f4f6; text-align: left; padding: 10px 12px; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  td { padding: 12px; border-top: 1px solid var(--line); vertical-align: top; }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .b-done { color: var(--done); background: var(--done-bg); border: 1px solid #bbf7d0; }
+  .b-partial { color: var(--partial); background: var(--partial-bg); border: 1px solid #fde68a; }
+  .b-missing { color: var(--missing); background: var(--missing-bg); border: 1px solid #fecaca; }
+  code { background: #f3f4f6; padding: 1px 5px; border-radius: 4px; font-size: 12.5px; }
+  .evidence { color: var(--muted); font-size: 13px; }
+  .todo-card { background: #fff; border: 1px solid var(--line); border-left: 5px solid var(--missing); border-radius: 8px; padding: 16px 20px; margin: 12px 0; }
+  .todo-card.warn { border-left-color: var(--partial); }
+  .todo-card h3 { margin: 0 0 6px; font-size: 16px; }
+  .todo-card .effort { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; }
+  ul { margin: 8px 0; padding-left: 22px; }
+  li { margin: 4px 0; }
+  .footnote { margin-top: 40px; font-size: 12.5px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 12px; }
+  .prof { font-style: italic; color: var(--accent); font-size: 12.5px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>ReDrobe — Deliverables Status Report</h1>
+  <p>PRJ666 NBB Group 7 · Audited against the deliverables checklist · 2026-07-12 · Verified by full-codebase audit (159 backend + 42 frontend tests passing, 86.5% coverage)</p>
+</header>
+
+<div class="wrap">
+
+  <div class="scoreboard">
+    <div class="score"><div class="num g">13</div><div class="lbl">Fully done &amp; verified</div></div>
+    <div class="score"><div class="num y">0</div><div class="lbl">Partially done</div></div>
+    <div class="score"><div class="num r">1</div><div class="lbl">Not done (demo blocker)</div></div>
+    <div class="score"><div class="num">14</div><div class="lbl">Total deliverables</div></div>
+  </div>
+
+  <h2>Deliverable-by-Deliverable Status</h2>
+  <table>
+    <thead><tr><th style="width:36px">#</th><th style="width:34%">Deliverable</th><th style="width:90px">Status</th><th>Evidence in codebase / What's missing</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>1</td><td>Catalog clothing items</td><td><span class="badge b-done">✅ Done</span></td>
+        <td class="evidence">Full clothing CRUD: <code>WardrobeScreen</code> (grid/list, category filter, search), <code>ItemDetailScreen</code> (per-field editing with server persistence), archive via ⋮ menus (BR23). Auth-gated, user-scoped, validated (BR4/BR7). Tested.</td>
+      </tr>
+      <tr>
+        <td>2</td><td>Photos and metadata of clothing items</td><td><span class="badge b-done">✅ Done</span></td>
+        <td class="evidence"><code>AddClothScreen</code> → photo picked → Cloudinary upload (<code>POST /api/clothing/upload-image</code>) → item created with name/brand/category/colors/size/condition/notes. Image renders in wardrobe &amp; detail views.</td>
+      </tr>
+      <tr>
+        <td>3</td><td>Daily wear log</td><td><span class="badge b-done">✅ Done</span></td>
+        <td class="evidence">Full vertical slice: <code>wearLog.service.js</code> with transactional writes, multiple named outfits per day (BR8), editable past logs (BR10), wear counts derived from logs (BR9). Screens: <code>WearHistory</code>, <code>LogOutfit</code>, <code>WearLogDetail</code>, <code>EditWearLog</code>.</td>
+      </tr>
+      <tr>
+        <td>4</td><td>AI-driven analysis to identify forgotten / underutilized items <span class="prof">(prof: "use own algorithm")</span></td><td><span class="badge b-done">✅ Done</span></td>
+        <td class="evidence">Own algorithm as the professor approved: threshold-based <code>forgottenFilter</code> in <code>dashboard.service.js</code> (unworn ≥ user threshold, BR11/BR12), shared with <code>forgottenItems.job.js</code>. Surfaced in <code>ForgottenItemsScreen</code> + dashboard preview + daily notifications.</td>
+      </tr>
+      <tr>
+        <td>5</td><td>Proactive notifications — wear, repurpose, or repair reminders</td><td><span class="badge b-done">✅ Done</span></td>
+        <td class="evidence">All three reminder kinds have live emitters: <strong>wear</strong> = <code>forgotten_item</code> (daily 08:00), <strong>repair</strong> = <code>repair_reminder</code> (Damaged items) and <strong>repurpose</strong> = <code>repurpose_suggestion</code> (unworn ≥180d) via <code>itemCareReminders.job.js</code> (daily 09:00). Plus <code>cooldown_reminder</code> + <code>recap_ready</code>. Preferences respected (BR28), 7-day renotify cooldown (BR13).</td>
+      </tr>
+      <tr>
+        <td>6</td><td>Helps users resale or donate unwanted items</td><td><span class="badge b-done">✅ Done</span></td>
+        <td class="evidence"><code>ExportScreen</code> + <code>QualityChecklistScreen</code> → <code>POST /api/exports/resale|donation</code> with checklist + consent (BR17/BR20), no damaged→resale (BR21), selected-fields-only sharing (BR22), item flips to <code>Exported</code> transactionally. <code>ExportHistoryScreen</code> lists past exports.</td>
+      </tr>
+      <tr>
+        <td>7</td><td>Secure profiles, log in, save wardrobe data &amp; preferences</td><td><span class="badge b-done">✅ Done</span></td>
+        <td class="evidence">JWT + bcrypt auth, password rules (BR2), unique email (BR1), soft-delete with reactivation flow (BR3), profile editing (<code>GET/PATCH /api/users/me</code>), notification preferences, app-global auth gating in <code>AuthContext</code>. No IDOR / scoping bugs found in audit.</td>
+      </tr>
+      <tr>
+        <td>8</td><td>Cooling-off timer before buying a new item</td><td><span class="badge b-done">✅ Done</span></td>
+        <td class="evidence"><code>ThoughtfulPurchasingScreen</code> + <code>CartScreen</code> → thoughtful-purchase CRUD with ≥24h cooldown (BR14), can't-confirm-early guard (BR15), <code>expireTimers.job.js</code> emits <code>cooldown_reminder</code> every 15 min when timers lapse. <em>The timer feature itself is fully real — only the similarity check inside that screen is fake (see #9).</em></td>
+      </tr>
+      <tr>
+        <td>9</td><td>AI compares a new-item photo against the closet for similarity <span class="prof">(prof: "need a pre-built AI")</span></td><td><span class="badge b-missing">❌ Not done</span></td>
+        <td class="evidence"><strong>Fake end-to-end — the one demo blocker.</strong> <code>ai-service/</code> contains only <code>.env.example</code> (no FastAPI, no fashion-clip); <code>similarityRoutes.js</code> returns hardcoded stub messages; the purchase flow never runs a check (BR16/BR18/BR19 unwired); <code>ThoughtfulPurchasingScreen.tsx:41</code> hardcodes <code>similarityScore = 75</code>. The pre-built model (fashion-clip) is chosen and the <code>SimilarityCheck</code> schema, unique-pair index, and <code>AI_SERVICE_URL</code> env var all exist waiting — but nothing is connected.</td>
+      </tr>
+      <tr>
+        <td>10</td><td>Picks least-used clothes → send info to external resale/donation sites <span class="prof">(prof: "mock data" ok)</span></td><td><span class="badge b-done">✅ Done</span></td>
+        <td class="evidence">Wired end-to-end with mock partner data as the professor approved: <code>ForgottenItemsScreen</code> (least-used) has an <strong>Export/Donate</strong> button that navigates straight into the Export flow (<code>ForgottenItemsScreen.tsx:124</code>); partner directory served by real <code>GET /api/partners</code> from seeded partner records. No live external-site API integration — by design per the team/prof agreement.</td>
+      </tr>
+      <tr>
+        <td>11</td><td>Display wardrobe utilization stats &amp; sustainability progress</td><td><span class="badge b-done">✅ Done</span></td>
+        <td class="evidence"><em>Completed 2026-07-12:</em> <code>GET /api/dashboard/summary</code> now computes <code>utilizationRate</code> (BR24 90-day window, BR23 Available-only — same math as the recap) and <code>MainScreen</code> renders an everyday <strong>Wardrobe Utilization</strong> card (rate + progress bar + "X of Y items worn in the last 90 days"). Plus the existing recap stats. Backend + frontend tests cover it.</td>
+      </tr>
+      <tr>
+        <td>12</td><td>End-of-year visual report of fashion habits</td><td><span class="badge b-done">✅ Done</span></td>
+        <td class="evidence"><code>StyleRecapScreen</code> calls the real <code>GET /api/analytics/annual-recap?year=</code> (outfits, utilization %, top-3 most-worn, share button); <code>annualRecap.job.js</code> emits <code>recap_ready</code> every Jan 1 (BR26) and the notification taps through to the correct year. <strong>⚠️ One flag:</strong> <code>ANNUAL_RECAP_MIN_LOGS = 1</code> in <code>constants.js:43</code> is a temp demo hack — revert to 30 (BR25) before final submission.</td>
+      </tr>
+      <tr>
+        <td>13</td><td>Referral directory of local tailors / upcycling shops for repair <span class="prof">(prof: "manual mock-up data" ok)</span></td><td><span class="badge b-done">✅ Done</span></td>
+        <td class="evidence"><em>Completed 2026-07-12:</em> new <code>CareDirectoryScreen</code> lists local tailor/upcycle partners (name, type badge, location, description, website link) from the real <code>GET /api/partners</code>. Manually curated local shops seeded (<code>seed/carePartners.js</code>, already upserted into the dev DB). Reachable from a <code>repair_reminder</code> notification tap <em>and</em> a "Needs a repair?" banner on Damaged items in <code>ItemDetail</code>. Pairs with the existing <code>repair_reminder</code> emitter.</td>
+      </tr>
+      <tr>
+        <td>14</td><td>Batch uploads of clothing items</td><td><span class="badge b-done">✅ Done</span></td>
+        <td class="evidence"><code>BatchAddScreen</code> (staging list → single <code>POST /api/clothing/bulk-upload</code>), max-50 enforced client and server side (BR5), userId stamped server-side, validation errors → 422. Reachable from the Wardrobe header. Tested.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>What Needs To Be Done</h2>
+
+  <div class="todo-card">
+    <h3>1. Deliverable #9 — Build the AI similarity vertical slice <span class="effort">· blocker · ~2–3 days</span></h3>
+    <p>The only deliverable that is genuinely missing, and the only place the app shows fabricated data (a hardcoded 75%). The professor approved a pre-built AI — fashion-clip is exactly that. Everything around it already exists (schema, unique-pair index, env var, thresholds in <code>constants.js</code>):</p>
+    <ul>
+      <li><strong>ai-service:</strong> minimal FastAPI app on port 8000 with one endpoint — <code>POST /embed</code> (image URL → 512-dim fashion-clip vector). Verify with curl.</li>
+      <li><strong>Backend:</strong> <code>similarity.service.js</code> — embed the candidate photo, embed-or-read-cache <code>Clothing.aiEmbedding</code>, cosine-compare against <code>status: 'Available'</code> items (BR19), persist <code>SimilarityCheck</code> docs (BR18), reject when no imageUrl (BR6), emit <code>similarity_alert</code> at ≥ 0.70 (BR16). Replace the stub <code>similarityRoutes.js</code> with a real auth-gated route. Test with the AI service mocked at the HTTP boundary (nock).</li>
+      <li><strong>Frontend:</strong> replace the hardcoded 75 in <code>ThoughtfulPurchasingScreen.tsx:41</code> with the real endpoint call; keep the existing ≥70% messaging branch; show an error (not a fake score) if the AI service is down.</li>
+    </ul>
+  </div>
+
+  <div class="todo-card warn">
+    <h3>2. Before final submission (not demo) <span class="effort">· minutes</span></h3>
+    <ul>
+      <li>Revert <code>ANNUAL_RECAP_MIN_LOGS</code> from <code>1</code> → <code>30</code> in <code>backend/src/config/constants.js:43</code> (temp demo hack; BR25 requires ≥30 logs).</li>
+      <li>Don't demo the remaining stub routes (<code>/sync</code>, <code>/extension</code>, <code>/auth/refresh</code>, partner admin writes) — they return misleading success messages.</li>
+    </ul>
+  </div>
+
+  <h2>Overall Health (from the 2026-07-12 audit)</h2>
+  <ul>
+    <li><strong>Tests:</strong> 159/159 backend + 42/42 frontend passing; coverage 86.5% (gate: 80%). TypeScript compiles clean in all app code.</li>
+    <li><strong>API contract:</strong> every frontend API call verified against its backend route — zero mismatches.</li>
+    <li><strong>Business rules:</strong> 22 of 30 fully enforced; the unenforced ones are either the missing similarity slice (BR6/16/18/19) or known accepted gaps (BR27 slots, BR29 partner admin, BR3 purge job).</li>
+    <li><strong>Ops:</strong> backend boots clean, env complete, 4 cron jobs registered, iOS pods installed, git tree clean.</li>
+  </ul>
+
+  <p class="footnote">Generated from a three-agent codebase audit (backend business-rule audit, frontend + API-contract audit, ops readiness check) with all headline findings independently verified against source. Repo: PRJ566NBB_2261_Group7 · main @ caa1f49.</p>
+
+</div>
+</body>
+</html>

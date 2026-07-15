@@ -94,6 +94,41 @@ describe('Dashboard API (/api/dashboard/summary)', () => {
     expect(res.body.totalItems).toBe(0);
     expect(res.body.forgottenCount).toBe(0);
     expect(res.body.forgottenItems).toEqual([]);
+    // Empty active wardrobe → 0%, not NaN
+    expect(res.body.utilizationRate).toBe(0);
+  });
+
+  test('utilization counts Available items worn in the 90-day window (BR23/BR24)', async () => {
+    const worn = await Clothing.create(makeItem({ name: 'WornRecently' }));
+    const stale = await Clothing.create(makeItem({ name: 'WornLongAgo' }));
+    const archived = await Clothing.create(makeItem({ name: 'ArchivedWorn', status: 'Archived' }));
+    await Clothing.create(makeItem({ name: 'NeverWorn' }));
+
+    // Inside the window: one Available item + one since-archived item
+    await WearLog.create({
+      userId,
+      logDate: midnightUTC(daysAgo(5)),
+      clothingWorn: [{ itemId: worn._id }, { itemId: archived._id }],
+    });
+    // Outside the 90-day window — must not count
+    await WearLog.create({
+      userId,
+      logDate: midnightUTC(daysAgo(100)),
+      clothingWorn: [{ itemId: stale._id }],
+    });
+
+    const res = await request(app)
+      .get('/api/dashboard/summary')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.statusCode).toBe(200);
+    // Active wardrobe: WornRecently, WornLongAgo, NeverWorn (archived excluded)
+    expect(res.body.totalItems).toBe(3);
+    // Only WornRecently counts: the archived wear is excluded (BR23),
+    // the 100-day-old wear is outside the window (BR24)
+    expect(res.body.wornInWindow).toBe(1);
+    expect(res.body.utilizationRate).toBe(33);
+    expect(res.body.utilizationWindowDays).toBe(90);
   });
 
   test('wornThisMonth counts distinct items worn this month', async () => {

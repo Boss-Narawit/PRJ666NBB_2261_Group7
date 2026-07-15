@@ -40,6 +40,12 @@ export default function MainScreen({ navigation }: any) {
 
   const loadSummary = useCallback(async () => {
     if (!token) return;
+    // The recap banner is eligibility-gated: only show it when the recap
+    // actually renders (≥30 logs this year). Fired concurrently with the
+    // summary (its .catch is attached immediately) — a recap failure (incl.
+    // the 422 "not enough logs") just hides the banner and never disturbs
+    // the dashboard below.
+    const recapPromise = getAnnualRecap(token).catch(() => null);
     try {
       const data = await getDashboardSummary(token);
       setSummary(data);
@@ -50,15 +56,7 @@ export default function MainScreen({ navigation }: any) {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-    // The recap banner is eligibility-gated: only show it when the recap
-    // actually renders (≥30 logs this year). A separate try so a recap failure
-    // (incl. the 422 "not enough logs") just hides the banner and never
-    // disturbs the dashboard above.
-    try {
-      setRecap(await getAnnualRecap(token));
-    } catch {
-      setRecap(null);
-    }
+    setRecap(await recapPromise);
   }, [token]);
 
   // Refetch whenever the dashboard tab regains focus — stats change after
@@ -230,6 +228,34 @@ export default function MainScreen({ navigation }: any) {
         </TouchableOpacity>
       </View>
 
+      {/* Wardrobe utilization — % of active items worn in the trailing
+          90-day window (BR24), served by the dashboard summary */}
+      {summary && (
+        <View style={styles.utilizationCard}>
+          <View style={styles.utilizationHeader}>
+            <Text style={styles.utilizationTitle}>Wardrobe Utilization</Text>
+            <Text style={[styles.utilizationRate, { color: colors.primary }]}>
+              {summary.utilizationRate ?? 0}%
+            </Text>
+          </View>
+          <View style={styles.utilizationTrack}>
+            <View
+              style={[
+                styles.utilizationFill,
+                {
+                  backgroundColor: colors.primary,
+                  width: `${Math.min(summary.utilizationRate ?? 0, 100)}%`,
+                },
+              ]}
+            />
+          </View>
+          <Text style={styles.utilizationSub}>
+            {summary.wornInWindow ?? 0} of {summary.totalItems} items worn in
+            the last {summary.utilizationWindowDays ?? 90} days
+          </Text>
+        </View>
+      )}
+
       {/* 🎉 Style Recap banner — only shown once the recap is eligible */}
       {recap && (
         <TouchableOpacity
@@ -396,6 +422,48 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 4,
     textAlign: 'center',
+  },
+  utilizationCard: {
+    backgroundColor: '#fff',
+    marginHorizontal: 20,
+    marginBottom: 8,
+    padding: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  utilizationHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  utilizationTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+  },
+  utilizationRate: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  utilizationTrack: {
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#F0F0F0',
+    overflow: 'hidden',
+  },
+  utilizationFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  utilizationSub: {
+    fontSize: 11,
+    color: '#999',
+    marginTop: 8,
   },
   // 🎉 STYLE RECAP BANNER STYLES - ADDED HERE
   recapBanner: {

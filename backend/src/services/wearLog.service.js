@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const WearLog = require('../models/WearLog');
 const Clothing = require('../models/Clothing');
 const { withTransaction } = require('../config/db');
@@ -31,21 +32,52 @@ const dedupeWornByItemId = (clothingWorn) => {
 // authoritative source rather than incrementally drifting the cached values.
 // Must run AFTER the triggering create/delete so the change is reflected.
 const recomputeItemAnalytics = async (userId, itemIds, session) => {
-  for (const itemId of itemIds) {
-    const logs = await WearLog.find({ userId, 'clothingWorn.itemId': itemId }, 'logDate', {
-      session,
-    }).sort({ logDate: -1 });
-    await Clothing.updateOne(
-      { _id: itemId, userId },
-      {
-        $set: {
-          'analytics.wearCount': logs.length,
-          'analytics.lastWornAt': logs[0] ? logs[0].logDate : null,
-        },
+  if (itemIds.length === 0) return;
+  // aggregate() does not auto-cast like find() — convert ids explicitly.
+  const userObjectId = new mongoose.Types.ObjectId(String(userId));
+  const itemObjectIds = itemIds.map((id) => new mongoose.Types.ObjectId(String(id)));
+
+  // One pass over the logs instead of a find+update per item. BR9 counts log
+  // *documents* — the double $group collapses any legacy duplicate itemId
+  // entries within a single log before counting.
+  const stats = await WearLog.aggregate([
+    { $match: { userId: userObjectId, 'clothingWorn.itemId': { $in: itemObjectIds } } },
+    { $unwind: '$clothingWorn' },
+    { $match: { 'clothingWorn.itemId': { $in: itemObjectIds } } },
+    {
+      $group: {
+        _id: { logId: '$_id', itemId: '$clothingWorn.itemId' },
+        logDate: { $first: '$logDate' },
       },
-      { session }
-    );
-  }
+    },
+    {
+      $group: {
+        _id: '$_id.itemId',
+        wearCount: { $sum: 1 },
+        lastWornAt: { $max: '$logDate' },
+      },
+    },
+  ]).session(session);
+
+  const statsByItemId = new Map(stats.map((s) => [String(s._id), s]));
+  // Items with no remaining logs (e.g. after a delete) reset to 0 / null.
+  await Clothing.bulkWrite(
+    itemObjectIds.map((itemId) => {
+      const s = statsByItemId.get(String(itemId));
+      return {
+        updateOne: {
+          filter: { _id: itemId, userId: userObjectId },
+          update: {
+            $set: {
+              'analytics.wearCount': s ? s.wearCount : 0,
+              'analytics.lastWornAt': s ? s.lastWornAt : null,
+            },
+          },
+        },
+      };
+    }),
+    { session }
+  );
 };
 
 const listWearLogs = async (userId, { page, limit, startDate, endDate } = {}) => {

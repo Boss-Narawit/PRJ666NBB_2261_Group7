@@ -60,5 +60,47 @@ describe('Notification Preferences API (/api/notifications/preferences)', () => 
 
       expect(res.statusCode).toBe(401);
     });
+
+    test('accepts up to 3 notification slots and returns them (BR27)', async () => {
+      const res = await request(app)
+        .patch('/api/notifications/preferences')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ notificationSlots: ['08:00', '12:30', '20:00'] });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.notificationSlots).toEqual(['08:00', '12:30', '20:00']);
+
+      const get = await request(app)
+        .get('/api/notifications/preferences')
+        .set('Authorization', `Bearer ${token}`);
+      expect(get.body.notificationSlots).toEqual(['08:00', '12:30', '20:00']);
+    });
+
+    test('rejects more than 3 notification slots with 422 (BR27)', async () => {
+      const res = await request(app)
+        .patch('/api/notifications/preferences')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ notificationSlots: ['08:00', '12:00', '16:00', '20:00'] });
+
+      expect(res.statusCode).toBe(422);
+    });
+
+    test('rejects a non-array notificationSlots with 422 (BR27)', async () => {
+      const res = await request(app)
+        .patch('/api/notifications/preferences')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ notificationSlots: '08:00' });
+
+      expect(res.statusCode).toBe(422);
+    });
+
+    test('rejects non-string slot entries with 422, not 500 (BR27)', async () => {
+      const res = await request(app)
+        .patch('/api/notifications/preferences')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ notificationSlots: [{ hour: 8 }] });
+
+      expect(res.statusCode).toBe(422);
+    });
   });
 });

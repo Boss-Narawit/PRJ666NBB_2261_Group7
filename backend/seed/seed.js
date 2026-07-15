@@ -190,6 +190,7 @@ async function seed() {
       type: 'tailor',
       website: 'https://www.tailorco.com',
       description: 'Upcycle and alter your clothes',
+      location: 'Yorkville, Toronto',
       isActive: false,
     }, // BR30: hidden
     {
@@ -232,6 +233,7 @@ async function seed() {
       website: 'https://remake.world',
       email: 'hello@remake.world',
       description: 'Ethical fashion upcycling service',
+      location: 'Distillery District, Toronto',
       isActive: true,
     },
     {
@@ -240,12 +242,16 @@ async function seed() {
       website: 'https://www.stitchfix.com',
       email: 'partners@stitchfix.com',
       description: 'Personal styling and alterations',
+      location: 'Downtown Toronto',
       isActive: true,
     },
   ]);
   const [thredUpId, goodwillId, realRealId, , poshmarkId, depopId, , salvationArmyId, remakeId] =
     partners.map((p) => p._id);
-  console.log('Partners: 10');
+  // Local tailor/upcycle directory entries (repair-referral deliverable) —
+  // appended after the destructured ten so the indices above stay stable.
+  await Partner.insertMany(require('./carePartners'));
+  console.log('Partners: 14');
 
   // ─────────────────────────────────────────────────────────────────────────────
   // CLOTHING — Jane (16 items)   indices: jC[0]…jC[15]

@@ -16,8 +16,6 @@ const similarityRoutes = require('./routes/similarityRoutes');
 const exportRoutes = require('./routes/exportRoutes');
 const partnerRoutes = require('./routes/partnerRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
-const syncRoutes = require('./routes/syncRoutes');
-const extensionRoutes = require('./routes/extensionRoutes');
 
 const app = express();
 
@@ -37,8 +35,6 @@ app.use('/api/similarity', similarityRoutes);
 app.use('/api/exports', exportRoutes);
 app.use('/api/partners', partnerRoutes);
 app.use('/api/notifications', notificationRoutes);
-app.use('/api/sync', syncRoutes);
-app.use('/api/extension', extensionRoutes);
 
 app.use(errorHandler);
 

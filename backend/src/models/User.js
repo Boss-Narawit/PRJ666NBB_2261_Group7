@@ -4,6 +4,7 @@ const {
   USER_ROLES,
   FORGOTTEN_ITEM_MIN_THRESHOLD_DAYS,
   FORGOTTEN_ITEM_DEFAULT_THRESHOLD_DAYS,
+  BCRYPT_SALT_ROUNDS,
 } = require('../config/constants');
 
 const userSchema = new mongoose.Schema(
@@ -39,7 +40,7 @@ const userSchema = new mongoose.Schema(
 // Hash password before saving
 userSchema.pre('save', async function () {
   if (!this.isModified('password')) return;
-  const salt = await bcrypt.genSalt(10);
+  const salt = await bcrypt.genSalt(BCRYPT_SALT_ROUNDS);
   this.password = await bcrypt.hash(this.password, salt);
 });
 

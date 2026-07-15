@@ -12,6 +12,7 @@ import QualityChecklistScreen from '../screens/QualityChecklistScreen';
 import ForgottenItemsScreen from '../screens/ForgottenItemsScreen';
 import ItemDetailScreen from '../screens/ItemDetailScreen';
 import ExportHistoryScreen from '../screens/ExportHistoryScreen';
+import CareDirectoryScreen from '../screens/CareDirectoryScreen';
 import { Clothing } from '../services/api';
 
 // Screens nested inside the Home tab. Route names + params match what they were
@@ -57,6 +58,7 @@ export type HomeStackParamList = {
     itemId?: string;
   };
   ExportHistory: undefined;
+  CareDirectory: undefined;
 };
 
 const Stack = createNativeStackNavigator<HomeStackParamList>();
@@ -81,6 +83,7 @@ export default function HomeStackNavigator() {
       <Stack.Screen name="ForgottenItems" component={ForgottenItemsScreen} />
       <Stack.Screen name="ItemDetail" component={ItemDetailScreen} />
       <Stack.Screen name="ExportHistory" component={ExportHistoryScreen} />
+      <Stack.Screen name="CareDirectory" component={CareDirectoryScreen} />
     </Stack.Navigator>
   );
 }

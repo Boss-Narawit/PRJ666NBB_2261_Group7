@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const notificationService = require('../services/notification.service');
+const { NOTIFICATION_MAX_SLOTS } = require('../config/constants');
 
 // @desc    List the user's notifications (newest first, paginated)
 // @route   GET /api/notifications
@@ -42,6 +43,7 @@ const getPreferences = async (req, res) => {
       notificationFrequency: user.preferences.notificationFrequency || 'Daily',
       itemStatusChangeEnabled: user.preferences.itemStatusChangeEnabled !== false,
       forgottenItemAlertEnabled: user.preferences.forgottenItemAlertEnabled !== false,
+      notificationSlots: user.notificationSlots ?? [],
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -58,7 +60,25 @@ const updatePreferences = async (req, res) => {
       notificationFrequency,
       itemStatusChangeEnabled,
       forgottenItemAlertEnabled,
+      notificationSlots,
     } = req.body;
+
+    // BR27: at most NOTIFICATION_MAX_SLOTS notification time slots per day.
+    if (notificationSlots !== undefined) {
+      // Entries must be strings — an object entry would throw a CastError on
+      // save, which this controller's catch maps to 500, not 422.
+      if (
+        !Array.isArray(notificationSlots) ||
+        notificationSlots.some((slot) => typeof slot !== 'string')
+      ) {
+        return res.status(422).json({ message: 'notificationSlots must be an array of strings' });
+      }
+      if (notificationSlots.length > NOTIFICATION_MAX_SLOTS) {
+        return res.status(422).json({
+          message: `At most ${NOTIFICATION_MAX_SLOTS} notification slots are allowed`,
+        });
+      }
+    }
 
     const user = await User.findById(req.user.userId);
     if (!user) {
@@ -77,6 +97,9 @@ const updatePreferences = async (req, res) => {
     if (forgottenItemAlertEnabled !== undefined) {
       user.preferences.forgottenItemAlertEnabled = forgottenItemAlertEnabled;
     }
+    if (notificationSlots !== undefined) {
+      user.notificationSlots = notificationSlots;
+    }
 
     await user.save();
 
@@ -85,6 +108,7 @@ const updatePreferences = async (req, res) => {
       notificationFrequency: user.preferences.notificationFrequency,
       itemStatusChangeEnabled: user.preferences.itemStatusChangeEnabled,
       forgottenItemAlertEnabled: user.preferences.forgottenItemAlertEnabled,
+      notificationSlots: user.notificationSlots,
     });
   } catch (error) {
     // An out-of-enum frequency is bad input, not a server fault.

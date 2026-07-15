@@ -11,7 +11,7 @@ import {
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
 import { getStoredUser } from '../services/session';
-import { deleteAccount } from '../services/api';
+import { deleteAccount, getProfile } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 type Props = {
@@ -55,12 +55,25 @@ export default function ProfileScreen({ navigation }: Props) {
   const isFocused = useIsFocused();
 
   useEffect(() => {
-    if (isFocused) {
-      getStoredUser()
-        .then(setUser)
-        .catch(() => setUser({ name: '', email: '' }));
+    if (!isFocused) return;
+    // AsyncStorage copy paints immediately (it's the login-time snapshot),
+    // then the server copy replaces it so edits made in EditProfile show
+    // without a re-login. On fetch failure the snapshot simply stays.
+    getStoredUser()
+      .then(setUser)
+      .catch(() => setUser({ name: '', email: '' }));
+    if (token) {
+      getProfile(token)
+        .then(fresh => {
+          if (fresh?.name || fresh?.email) {
+            setUser({ name: fresh.name ?? '', email: fresh.email ?? '' });
+          }
+        })
+        .catch(() => {
+          // offline / server error — keep the stored snapshot
+        });
     }
-  }, [isFocused]);
+  }, [isFocused, token]);
 
   const comingSoon = () =>
     Alert.alert('Coming soon', 'This feature is not available yet.');

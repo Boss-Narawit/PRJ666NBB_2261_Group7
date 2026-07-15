@@ -48,6 +48,10 @@ const NOTIFICATION_PAGE_SIZE = 20; // default + max page size for the notificati
 const WEARLOG_PAGE_SIZE = 20; // default + max page size for the wear-log history list
 const UPLOAD_MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // image upload cap — file buffers in memory before Cloudinary
 const CRON_TIMEZONE = 'America/Toronto'; // node-cron defaults to the host TZ — pin BR11's "daily 08:00" to local time
+// Cost 10 in production; 4 under Jest — hashing dominates suite runtime otherwise
+// (~56ms/register at cost 10). Login/compare still verify: bcrypt embeds the cost
+// in the hash, so mixed-cost hashes coexist safely.
+const BCRYPT_SALT_ROUNDS = process.env.NODE_ENV === 'test' ? 4 : 10;
 
 module.exports = {
   CLOTHING_CATEGORIES,
@@ -76,4 +80,5 @@ module.exports = {
   WEARLOG_PAGE_SIZE,
   UPLOAD_MAX_FILE_SIZE_BYTES,
   CRON_TIMEZONE,
+  BCRYPT_SALT_ROUNDS,
 };

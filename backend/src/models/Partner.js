@@ -8,6 +8,7 @@ const partnerSchema = new mongoose.Schema(
     website: { type: String },
     email: { type: String, trim: true, lowercase: true },
     description: { type: String },
+    location: { type: String, trim: true }, // local shops (tailor/upcycle directory)
     apiEndpoint: { type: String }, // programmatic integration URL
     isActive: { type: Boolean, default: true }, // BR30: inactive partners hidden from export options
   },

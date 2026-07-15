@@ -59,6 +59,11 @@ export default function ForgottenItemsScreen({ navigation }: Props) {
 
   const load = useCallback(async () => {
     if (!token) return;
+    // Seed the modal from the saved preference — fired concurrently with the
+    // items fetch (its .catch is attached immediately) so a profile fetch
+    // failure never blocks the items list; on failure the box just keeps
+    // whatever value it already had.
+    const profilePromise = getProfile(token).catch(() => null);
     try {
       const data = await getForgottenItems(token);
       setItems(data);
@@ -69,16 +74,9 @@ export default function ForgottenItemsScreen({ navigation }: Props) {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-    // Seed the modal from the saved preference — a separate try/catch so a
-    // profile fetch failure never blocks the items list above; on failure the
-    // box just keeps whatever value it already had.
-    try {
-      const user = await getProfile(token);
-      if (user?.preferences?.forgottenItemThresholdDays != null) {
-        setThresholdDays(String(user.preferences.forgottenItemThresholdDays));
-      }
-    } catch {
-      // keep current value silently
+    const user = await profilePromise;
+    if (user?.preferences?.forgottenItemThresholdDays != null) {
+      setThresholdDays(String(user.preferences.forgottenItemThresholdDays));
     }
   }, [token]);
 
