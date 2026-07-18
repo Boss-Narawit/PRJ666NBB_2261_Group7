@@ -47,7 +47,7 @@ export default function SettingsScreen({ navigation }: Props) {
 
       <TouchableOpacity
         style={styles.settingButton}
-        onPress={() => comingSoon('Privacy')}
+        onPress={() => navigation.navigate('Privacy')}
         activeOpacity={0.8}
       >
         <Icon
@@ -81,7 +81,7 @@ export default function SettingsScreen({ navigation }: Props) {
 
       <TouchableOpacity
         style={styles.settingButton}
-        onPress={() => comingSoon('FAQ')}
+        onPress={() => navigation.navigate('FAQ')}
         activeOpacity={0.8}
       >
         <Icon
@@ -95,7 +95,7 @@ export default function SettingsScreen({ navigation }: Props) {
 
       <TouchableOpacity
         style={styles.settingButton}
-        onPress={() => comingSoon('Announcement')}
+        onPress={() => navigation.navigate('Announcements')}
         activeOpacity={0.8}
       >
         <Icon
@@ -109,7 +109,7 @@ export default function SettingsScreen({ navigation }: Props) {
 
       <TouchableOpacity
         style={styles.settingButton}
-        onPress={() => comingSoon('About ReDrobe')}
+        onPress={() => navigation.navigate('About')}
         activeOpacity={0.8}
       >
         <Icon

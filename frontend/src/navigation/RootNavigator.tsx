@@ -13,6 +13,10 @@ import NotificationSettingsScreen from '../screens/NotificationSettingsScreen';
 import StyleRecapScreen from '../screens/StyleRecapScreen';
 import { LoginScreen } from '../screens/LoginScreen';
 import SignUpScreen from '../screens/auth/SignUpScreen';
+import PrivacyScreen from '../screens/PrivacyScreen';
+import FAQScreen from '../screens/FAQScreen';
+import AnnouncementScreen from '../screens/AnnouncementScreen';
+import AboutScreen from '../screens/AboutScreen';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { colors } from '../theme';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -28,6 +32,10 @@ export type RootStackParamList = {
   Settings: undefined;
   EditProfile: undefined;
   NotificationSettings: undefined;
+  Privacy: undefined;
+  FAQ: undefined;
+  Announcements: undefined;
+  About: undefined;
   StyleRecap: { year?: number } | undefined;
 };
 
@@ -131,6 +139,26 @@ function RootStacks() {
             <Stack.Screen
               name="StyleRecap"
               component={StyleRecapScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+              name="Privacy"
+              component={PrivacyScreen}
+              options={{ headerShown: false }} 
+            />
+            <Stack.Screen 
+              name="FAQ"
+              component={FAQScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="Announcements"
+              component={AnnouncementScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="About"
+              component={AboutScreen}
               options={{ headerShown: false }}
             />
           </>
