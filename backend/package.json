@@ -7,7 +7,8 @@
     "test": "cross-env NODE_ENV=test jest -c jest.config.js --runInBand --",
     "test:watch": "cross-env NODE_ENV=test jest -c jest.config.js --runInBand --watch --",
     "coverage": "cross-env NODE_ENV=test jest -c jest.config.js --runInBand --coverage",
-    "dev": "nodemon src/server.js"
+    "dev": "nodemon src/server.js",
+    "backfill:embeddings": "node scripts/backfillEmbeddings.js"
   },
   "keywords": [],
   "author": "",
