@@ -39,13 +39,13 @@ print("Model loaded successfully!")
 def _embed_image(pil_image: Image.Image) -> list:
     # fclip.encode_images() uses datasets.Dataset + DataLoader which breaks
     # with datasets>=5.0 when passed PIL objects. We also avoid get_image_features()
-    # because transformers 5.x changed its return type to BaseModelOutputWithPooling
-    # instead of a plain tensor. We replicate its internal logic explicitly:
+    # because transformers now always returns BaseModelOutputWithPooling and no
+    # longer accepts a return_dict kwarg. We replicate its internal logic explicitly:
     # vision_model → pooler_output → visual_projection → L2 normalize.
     inputs = fclip.preprocess(images=[pil_image], return_tensors='pt')
     pixel_values = inputs['pixel_values'].to(fclip.device)
     with torch.no_grad():
-        vision_out = fclip.model.vision_model(pixel_values=pixel_values, return_dict=True)
+        vision_out = fclip.model.vision_model(pixel_values=pixel_values)
         features = fclip.model.visual_projection(vision_out.pooler_output)
     features = features / features.norm(dim=-1, keepdim=True)
     return features[0].cpu().tolist()
@@ -62,7 +62,7 @@ def _embed_text(text: str) -> list:
     attention_mask = inputs['attention_mask'].to(fclip.device)
     with torch.no_grad():
         text_out = fclip.model.text_model(
-            input_ids=input_ids, attention_mask=attention_mask, return_dict=True
+            input_ids=input_ids, attention_mask=attention_mask
         )
         features = fclip.model.text_projection(text_out.pooler_output)
     features = features / features.norm(dim=-1, keepdim=True)
