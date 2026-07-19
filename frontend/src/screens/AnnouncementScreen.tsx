@@ -26,47 +26,59 @@ const announcements: Announcement[] = [
     id: '1',
     title: '🎉 2025 Style Recap is Here!',
     date: 'December 20, 2025',
-    content: 'Your 2025 Style Recap is now available! Discover your most worn items, sustainability stats, and more. Check it out from your dashboard!',
+    content:
+      'Your 2025 Style Recap is now available! Discover your most worn items, sustainability stats, and more. Check it out from your dashboard!',
     type: 'feature',
   },
   {
     id: '2',
     title: 'New Export Partners Added',
     date: 'November 15, 2025',
-    content: 'We\'ve added 3 new resale partners and 2 donation centers to our export network. You can now reach even more platforms directly from ReDrobe.',
+    content:
+      "We've added 3 new resale partners and 2 donation centers to our export network. You can now reach even more platforms directly from ReDrobe.",
     type: 'update',
   },
   {
     id: '3',
     title: 'Thoughtful Purchasing Beta',
     date: 'October 1, 2025',
-    content: 'The Thoughtful Purchasing feature is now in beta! Upload images of items you\'re considering and get AI-powered similarity checks to help you make conscious fashion choices.',
+    content:
+      "The Thoughtful Purchasing feature is now in beta! Upload images of items you're considering and get AI-powered similarity checks to help you make conscious fashion choices.",
     type: 'feature',
   },
   {
     id: '4',
     title: 'Forgotten Items Custom Threshold',
     date: 'September 10, 2025',
-    content: 'You can now customize the forgotten items threshold! Set your preferred days (minimum 7 days) to control when items appear in your forgotten items list.',
+    content:
+      'You can now customize the forgotten items threshold! Set your preferred days (minimum 7 days) to control when items appear in your forgotten items list.',
     type: 'update',
   },
 ];
 
 const getTypeColor = (type: string) => {
   switch (type) {
-    case 'feature': return colors.primary;
-    case 'update': return '#D69E2E';
-    case 'event': return '#38A169';
-    default: return colors.textSecondary;
+    case 'feature':
+      return colors.primary;
+    case 'update':
+      return '#D69E2E';
+    case 'event':
+      return '#38A169';
+    default:
+      return colors.textSecondary;
   }
 };
 
 const getTypeLabel = (type: string) => {
   switch (type) {
-    case 'feature': return 'New Feature';
-    case 'update': return 'Update';
-    case 'event': return 'Event';
-    default: return type;
+    case 'feature':
+      return 'New Feature';
+    case 'update':
+      return 'Update';
+    case 'event':
+      return 'Event';
+    default:
+      return type;
   }
 };
 
@@ -87,7 +99,7 @@ export default function AnnouncementScreen({ navigation }: Props) {
 
       {/* Content */}
       <View style={styles.content}>
-        {announcements.map((item) => (
+        {announcements.map(item => (
           <View key={item.id} style={styles.announcementCard}>
             <View style={styles.announcementHeader}>
               <View style={styles.announcementType}>

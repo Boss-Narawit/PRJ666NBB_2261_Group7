@@ -51,9 +51,10 @@ export default function AboutScreen({ navigation }: Props) {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>What is ReDrobe?</Text>
           <Text style={styles.sectionDescription}>
-            ReDrobe is a digital wardrobe platform that helps you manage your clothing sustainably. 
-            We integrate wardrobe inventory, wear tracking, analytics, and intelligent reminders to 
-            help you make the most of your existing garments.
+            ReDrobe is a digital wardrobe platform that helps you manage your
+            clothing sustainably. We integrate wardrobe inventory, wear
+            tracking, analytics, and intelligent reminders to help you make the
+            most of your existing garments.
           </Text>
         </View>
 
@@ -61,8 +62,9 @@ export default function AboutScreen({ navigation }: Props) {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Our Mission</Text>
           <Text style={styles.sectionDescription}>
-            To minimize fashion waste and impulsive spending by empowering users to develop 
-            and maintain an organized wardrobe while making better use of their clothes.
+            To minimize fashion waste and impulsive spending by empowering users
+            to develop and maintain an organized wardrobe while making better
+            use of their clothes.
           </Text>
         </View>
 
@@ -70,16 +72,26 @@ export default function AboutScreen({ navigation }: Props) {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>The Team</Text>
           <Text style={styles.sectionDescription}>
-            ReDrobe was built by a passionate team of 5 developers as part of the PRJ666 
-            course project, combining expertise in mobile development, backend engineering, 
-            AI, and UX design.
+            ReDrobe was built by a passionate team of 5 developers as part of
+            the PRJ666 course project, combining expertise in mobile
+            development, backend engineering, AI, and UX design.
           </Text>
           <View style={styles.teamList}>
-            <Text style={styles.teamMember}>• Nada Khan — Lead UI/UX Designer & Frontend Developer</Text>
-            <Text style={styles.teamMember}>• Narawit Sawatdecha — Project Manager & Backend Developer</Text>
-            <Text style={styles.teamMember}>• Trinity Ma — QA & Analytics Developer</Text>
-            <Text style={styles.teamMember}>• Beomgu Jeon — Technical Lead & System Architect</Text>
-            <Text style={styles.teamMember}>• Seulgi Lee — Data & AI / Algorithm Developer</Text>
+            <Text style={styles.teamMember}>
+              • Nada Khan — Lead UI/UX Designer & Frontend Developer
+            </Text>
+            <Text style={styles.teamMember}>
+              • Narawit Sawatdecha — Project Manager & Backend Developer
+            </Text>
+            <Text style={styles.teamMember}>
+              • Trinity Ma — QA & Analytics Developer
+            </Text>
+            <Text style={styles.teamMember}>
+              • Beomgu Jeon — Technical Lead & System Architect
+            </Text>
+            <Text style={styles.teamMember}>
+              • Seulgi Lee — Data & AI / Algorithm Developer
+            </Text>
           </View>
         </View>
 
@@ -111,11 +123,15 @@ export default function AboutScreen({ navigation }: Props) {
 
         {/* Footer Links */}
         <View style={styles.footerLinks}>
-          <TouchableOpacity onPress={() => openLink('https://github.com/your-repo')}>
+          <TouchableOpacity
+            onPress={() => openLink('https://github.com/your-repo')}
+          >
             <Text style={styles.footerLink}>GitHub</Text>
           </TouchableOpacity>
           <Text style={styles.footerDivider}>•</Text>
-          <TouchableOpacity onPress={() => openLink('mailto:privacy@redrobe.com')}>
+          <TouchableOpacity
+            onPress={() => openLink('mailto:privacy@redrobe.com')}
+          >
             <Text style={styles.footerLink}>Contact</Text>
           </TouchableOpacity>
           <Text style={styles.footerDivider}>•</Text>

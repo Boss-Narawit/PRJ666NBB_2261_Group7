@@ -34,24 +34,34 @@ export default function PrivacyScreen({ navigation }: Props) {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Data Collection</Text>
           <Text style={styles.sectionDescription}>
-            ReDrobe collects the following data to provide you with a personalized wardrobe management experience:
+            ReDrobe collects the following data to provide you with a
+            personalized wardrobe management experience:
           </Text>
           <View style={styles.bulletList}>
             <View style={styles.bulletItem}>
               <View style={styles.bulletDot} />
-              <Text style={styles.bulletText}>Clothing photos and metadata (brand, category, color, size, material)</Text>
+              <Text style={styles.bulletText}>
+                Clothing photos and metadata (brand, category, color, size,
+                material)
+              </Text>
             </View>
             <View style={styles.bulletItem}>
               <View style={styles.bulletDot} />
-              <Text style={styles.bulletText}>Wear history and outfit logs</Text>
+              <Text style={styles.bulletText}>
+                Wear history and outfit logs
+              </Text>
             </View>
             <View style={styles.bulletItem}>
               <View style={styles.bulletDot} />
-              <Text style={styles.bulletText}>Account information (name, email)</Text>
+              <Text style={styles.bulletText}>
+                Account information (name, email)
+              </Text>
             </View>
             <View style={styles.bulletItem}>
               <View style={styles.bulletDot} />
-              <Text style={styles.bulletText}>Export history for resale/donation partners</Text>
+              <Text style={styles.bulletText}>
+                Export history for resale/donation partners
+              </Text>
             </View>
           </View>
         </View>
@@ -62,19 +72,27 @@ export default function PrivacyScreen({ navigation }: Props) {
           <View style={styles.bulletList}>
             <View style={styles.bulletItem}>
               <View style={styles.bulletDot} />
-              <Text style={styles.bulletText}>To manage and organize your digital wardrobe</Text>
+              <Text style={styles.bulletText}>
+                To manage and organize your digital wardrobe
+              </Text>
             </View>
             <View style={styles.bulletItem}>
               <View style={styles.bulletDot} />
-              <Text style={styles.bulletText}>To provide personalized insights and forgotten item alerts</Text>
+              <Text style={styles.bulletText}>
+                To provide personalized insights and forgotten item alerts
+              </Text>
             </View>
             <View style={styles.bulletItem}>
               <View style={styles.bulletDot} />
-              <Text style={styles.bulletText}>To enable export to your chosen resale/donation partners</Text>
+              <Text style={styles.bulletText}>
+                To enable export to your chosen resale/donation partners
+              </Text>
             </View>
             <View style={styles.bulletItem}>
               <View style={styles.bulletDot} />
-              <Text style={styles.bulletText}>To generate your annual Style Recap</Text>
+              <Text style={styles.bulletText}>
+                To generate your annual Style Recap
+              </Text>
             </View>
           </View>
         </View>
@@ -83,12 +101,19 @@ export default function PrivacyScreen({ navigation }: Props) {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Data Sharing</Text>
           <Text style={styles.sectionDescription}>
-            Your data is never sold to third parties. We only share your selected clothing metadata with external partners when you explicitly choose to export an item.
+            Your data is never sold to third parties. We only share your
+            selected clothing metadata with external partners when you
+            explicitly choose to export an item.
           </Text>
           <View style={styles.infoBox}>
-            <Icon name="shield-checkmark-outline" size={20} color={colors.primary} />
+            <Icon
+              name="shield-checkmark-outline"
+              size={20}
+              color={colors.primary}
+            />
             <Text style={styles.infoBoxText}>
-              You control what metadata (brand, condition, wear count) is shared with each partner.
+              You control what metadata (brand, condition, wear count) is shared
+              with each partner.
             </Text>
           </View>
         </View>
@@ -97,20 +122,27 @@ export default function PrivacyScreen({ navigation }: Props) {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account Deletion</Text>
           <Text style={styles.sectionDescription}>
-            You can delete your account at any time from your profile settings. When you delete your account:
+            You can delete your account at any time from your profile settings.
+            When you delete your account:
           </Text>
           <View style={styles.bulletList}>
             <View style={styles.bulletItem}>
               <View style={styles.bulletDot} />
-              <Text style={styles.bulletText}>Your account will be scheduled for deletion</Text>
+              <Text style={styles.bulletText}>
+                Your account will be scheduled for deletion
+              </Text>
             </View>
             <View style={styles.bulletItem}>
               <View style={styles.bulletDot} />
-              <Text style={styles.bulletText}>All your data will be permanently removed after 30 days</Text>
+              <Text style={styles.bulletText}>
+                All your data will be permanently removed after 30 days
+              </Text>
             </View>
             <View style={styles.bulletItem}>
               <View style={styles.bulletDot} />
-              <Text style={styles.bulletText}>You can reactivate your account within the 30-day period</Text>
+              <Text style={styles.bulletText}>
+                You can reactivate your account within the 30-day period
+              </Text>
             </View>
           </View>
         </View>
@@ -119,7 +151,8 @@ export default function PrivacyScreen({ navigation }: Props) {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Contact Us</Text>
           <Text style={styles.sectionDescription}>
-            If you have any questions about your privacy or how your data is handled, please contact us:
+            If you have any questions about your privacy or how your data is
+            handled, please contact us:
           </Text>
           <TouchableOpacity style={styles.contactItem}>
             <Icon name="mail-outline" size={20} color={colors.primary} />

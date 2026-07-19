@@ -141,12 +141,12 @@ function RootStacks() {
               component={StyleRecapScreen}
               options={{ headerShown: false }}
             />
-            <Stack.Screen 
+            <Stack.Screen
               name="Privacy"
               component={PrivacyScreen}
-              options={{ headerShown: false }} 
+              options={{ headerShown: false }}
             />
-            <Stack.Screen 
+            <Stack.Screen
               name="FAQ"
               component={FAQScreen}
               options={{ headerShown: false }}

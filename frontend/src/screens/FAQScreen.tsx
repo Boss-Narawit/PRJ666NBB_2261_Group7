@@ -23,32 +23,38 @@ const faqData: FAQItem[] = [
   {
     id: '1',
     question: 'How do I add clothes to my wardrobe?',
-    answer: 'Tap the "+" button on the Wardrobe screen or the "Add New Cloth" button. You can upload photos, add brand, category, color, size, and other details about your clothing item.',
+    answer:
+      'Tap the "+" button on the Wardrobe screen or the "Add New Cloth" button. You can upload photos, add brand, category, color, size, and other details about your clothing item.',
   },
   {
     id: '2',
     question: 'What is the "Thoughtful Purchasing" feature?',
-    answer: 'This feature helps you avoid impulse buying. Upload an image of an item you\'re considering purchasing, and our AI will check if you already own something similar. You can also set a cooling-off period (minimum 24-hours) before making a purchase.',
+    answer:
+      "This feature helps you avoid impulse buying. Upload an image of an item you're considering purchasing, and our AI will check if you already own something similar. You can also set a cooling-off period (minimum 24-hours) before making a purchase.",
   },
   {
     id: '3',
     question: 'How does the "Forgotten Items" feature work?',
-    answer: 'ReDrobe tracks when you last wore each item. If an item hasn\'t been worn for 21+ days (you can customize this threshold), it appears in your Forgotten Items list, helping you rediscover clothes you might have forgotten about.',
+    answer:
+      "ReDrobe tracks when you last wore each item. If an item hasn't been worn for 21+ days (you can customize this threshold), it appears in your Forgotten Items list, helping you rediscover clothes you might have forgotten about.",
   },
   {
     id: '4',
     question: 'Can I export my clothes for resale or donation?',
-    answer: 'Yes! Select items from your wardrobe, choose a resale platform or donation center, complete the quality checklist, and export. Your item details will be shared with your chosen partner.',
+    answer:
+      'Yes! Select items from your wardrobe, choose a resale platform or donation center, complete the quality checklist, and export. Your item details will be shared with your chosen partner.',
   },
   {
     id: '5',
     question: 'How is my data protected?',
-    answer: 'We take your privacy seriously. Your data is encrypted and never sold to third parties. You control what information is shared when exporting items. You can also delete your account at any time.',
+    answer:
+      'We take your privacy seriously. Your data is encrypted and never sold to third parties. You control what information is shared when exporting items. You can also delete your account at any time.',
   },
   {
     id: '6',
     question: 'What happens when I delete my account?',
-    answer: 'Your account will be scheduled for deletion. All your data will be permanently removed after 30 days. You can reactivate your account within that period.',
+    answer:
+      'Your account will be scheduled for deletion. All your data will be permanently removed after 30 days. You can reactivate your account within that period.',
   },
 ];
 
@@ -75,7 +81,7 @@ export default function FAQScreen({ navigation }: Props) {
 
       {/* Content */}
       <View style={styles.content}>
-        {faqData.map((item) => (
+        {faqData.map(item => (
           <TouchableOpacity
             key={item.id}
             style={styles.faqItem}
