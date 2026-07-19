@@ -32,7 +32,7 @@ exports.checkSimilarity = async (req, res) => {
           path: 'aiEmbedding',
           queryVector: wishlistEmbedding,
           numCandidates: 100,
-          limit: 20,
+          limit: 1,
           filter: { userId: new mongoose.Types.ObjectId(userId) },
         },
       },
@@ -56,19 +56,20 @@ exports.checkSimilarity = async (req, res) => {
       },
     ]);
 
-    // 5. Format the results for the React Native frontend
-    const formattedMatches = results.map((item) => ({
-      id: item._id,
-      name: item.name,
-      imageUrl: item.imageUrl,
-      // Convert 0.8542 to "85%" for easy UI rendering
-      similarityRate: `${Math.round(item.score * 100)}%`,
-    }));
+    // 5. Return the single best match for the React Native frontend (formatting is done client-side)
+    const bestMatch = results[0]
+      ? {
+          id: results[0]._id,
+          name: results[0].name,
+          imageUrl: results[0].imageUrl,
+          score: results[0].score,
+        }
+      : null;
 
     return res.status(200).json({
       message: 'Similarity check complete',
-      matchesFound: formattedMatches.length > 0,
-      matches: formattedMatches,
+      matchesFound: !!bestMatch,
+      match: bestMatch,
     });
   } catch (error) {
     console.error('Similarity Check Error:', error);
