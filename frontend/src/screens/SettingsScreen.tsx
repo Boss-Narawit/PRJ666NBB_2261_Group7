@@ -1,11 +1,5 @@
 import React from 'react';
-import {
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  Alert,
-} from 'react-native';
+import { Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import { colors } from '../theme';
@@ -14,10 +8,6 @@ import Icon from 'react-native-vector-icons/Ionicons';
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 
 export default function SettingsScreen({ navigation }: Props) {
-  const comingSoon = (feature: string) => {
-    Alert.alert('Coming soon', `${feature} setting is not available yet.`);
-  };
-
   const handleNavigateToEditProfile = () => {
     navigation.navigate('EditProfile' as any);
   };
