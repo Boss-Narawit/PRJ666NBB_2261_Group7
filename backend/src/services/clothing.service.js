@@ -1,6 +1,7 @@
 const Clothing = require('../models/Clothing');
 const User = require('../models/User');
 const { forgottenFilter, MS_PER_DAY } = require('./dashboard.service');
+const { embedImageUrl } = require('./similarity.service');
 const { MAX_CLOTHING_BATCH } = require('../config/constants');
 
 // Only these fields are client-writable — userId, analytics (BR9), aiEmbedding,
@@ -39,13 +40,41 @@ const httpError = (status, message) => {
   return e;
 };
 
-const createClothing = (userId, body) =>
-  Clothing.create({
+// Fetches each item's image and stamps Clothing.aiEmbedding via the AI service
+// so new items are visible to the similarity check's vector search. Runs
+// fire-and-forget after create responds — a create must never fail or slow down
+// because the AI service is down; items that miss embedding here are picked up
+// by scripts/backfillEmbeddings.js. Sequential on purpose: a bulk create (up to
+// BR5's 50 items) would otherwise stampede the single-worker AI service.
+const embedNewItems = async (items) => {
+  for (const item of items) {
+    try {
+      const embedding = await embedImageUrl(item.imageUrl);
+      await Clothing.updateOne({ _id: item._id }, { aiEmbedding: embedding });
+    } catch (error) {
+      console.error(`AI embedding failed for clothing ${item._id}: ${error.message}`);
+    }
+  }
+};
+
+// The fire-and-forget call is skipped under test (same precedent as the
+// NODE_ENV=test bcrypt rounds): no AI service runs there, and dangling requests
+// would outlive the per-test DB wipes. embedNewItems is exported and tested
+// directly instead.
+const scheduleEmbedding = (items) => {
+  if (process.env.NODE_ENV !== 'test') embedNewItems(items);
+};
+
+const createClothing = async (userId, body) => {
+  const clothing = await Clothing.create({
     ...pickEditableFields(body),
     userId,
   });
+  scheduleEmbedding([clothing]);
+  return clothing;
+};
 
-const bulkCreateClothing = (userId, items) => {
+const bulkCreateClothing = async (userId, items) => {
   if (!Array.isArray(items) || items.length === 0) {
     throw httpError(422, 'Request body must be a non-empty array of items');
   }
@@ -54,12 +83,14 @@ const bulkCreateClothing = (userId, items) => {
     throw httpError(422, `Cannot add more than ${MAX_CLOTHING_BATCH} items per batch`);
   }
   // Items always belong to the requester — never trust a client-sent userId.
-  return Clothing.insertMany(
+  const created = await Clothing.insertMany(
     items.map((item) => ({
       ...pickEditableFields(item),
       userId,
     }))
   );
+  scheduleEmbedding(created);
+  return created;
 };
 
 const getWardrobe = (userId) => Clothing.find({ userId });
@@ -92,6 +123,11 @@ const updateClothingItem = async (userId, id, body) => {
     filter.status = { $ne: 'Exported' };
   }
 
+  // A changed image invalidates the cached fashion-clip vector — clear it in
+  // the same write (never let similarity match against a replaced photo) and
+  // re-embed in the background below.
+  if (update.imageUrl !== undefined) update.aiEmbedding = [];
+
   const updated = await Clothing.findOneAndUpdate(filter, update, {
     new: true,
     runValidators: true, // reject invalid enum/required values instead of saving silently (BR4/BR7)
@@ -107,6 +143,7 @@ const updateClothingItem = async (userId, id, body) => {
     }
     throw httpError(404, 'Clothing item not found');
   }
+  if (update.imageUrl !== undefined) scheduleEmbedding([updated]);
   return updated;
 };
 
@@ -130,6 +167,7 @@ const getForgottenItemsForUser = async (userId) => {
 module.exports = {
   createClothing,
   bulkCreateClothing,
+  embedNewItems,
   getWardrobe,
   getClothingItem,
   updateClothingItem,

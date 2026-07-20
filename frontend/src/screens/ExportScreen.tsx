@@ -34,8 +34,11 @@ export default function ExportScreen({ navigation, route }: Props) {
     null,
   );
   // Fetch failures must be distinguishable from genuinely-empty lists — a dead
-  // backend used to render as "No items available to export."
+  // backend used to render as "No items available to export." Loading is a
+  // third state: without it the empty-list copy flashes during the fetch.
+  const [itemsLoading, setItemsLoading] = useState(true);
   const [itemsError, setItemsError] = useState<string | null>(null);
+  const [partnersLoading, setPartnersLoading] = useState(true);
   const [partnersError, setPartnersError] = useState<string | null>(null);
 
   // Only Available items can be exported (BR23 keeps archived out).
@@ -47,7 +50,8 @@ export default function ExportScreen({ navigation, route }: Props) {
       .catch(err => {
         setClothing([]);
         setItemsError(err.message || 'Could not load your wardrobe.');
-      });
+      })
+      .finally(() => setItemsLoading(false));
   }, [token]);
 
   // Partners are filtered by destination type; reset the pick when the tab flips.
@@ -55,12 +59,14 @@ export default function ExportScreen({ navigation, route }: Props) {
     if (!token) return;
     setSelectedPartnerId(null);
     setPartnersError(null);
+    setPartnersLoading(true);
     listPartners(token, selectedTab)
       .then(setPartners)
       .catch(err => {
         setPartners([]);
         setPartnersError(err.message || 'Could not load partners.');
-      });
+      })
+      .finally(() => setPartnersLoading(false));
   }, [token, selectedTab]);
 
   const toggleItemSelection = (itemId: string) => {
@@ -126,7 +132,7 @@ export default function ExportScreen({ navigation, route }: Props) {
         >
           <Icon name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Export Item</Text>
+        <Text style={styles.headerTitle}>Export Items</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -173,7 +179,9 @@ export default function ExportScreen({ navigation, route }: Props) {
               <Text
                 style={[styles.emptyText, !!itemsError && styles.errorText]}
               >
-                {itemsError ?? 'No items available to export.'}
+                {itemsLoading
+                  ? 'Loading your wardrobe…'
+                  : (itemsError ?? 'No items available to export.')}
               </Text>
             }
           />
@@ -193,7 +201,9 @@ export default function ExportScreen({ navigation, route }: Props) {
               <Text
                 style={[styles.emptyText, !!partnersError && styles.errorText]}
               >
-                {partnersError ?? `No ${selectedTab} partners available.`}
+                {partnersLoading
+                  ? 'Loading partners…'
+                  : (partnersError ?? `No ${selectedTab} partners available.`)}
               </Text>
             }
           />

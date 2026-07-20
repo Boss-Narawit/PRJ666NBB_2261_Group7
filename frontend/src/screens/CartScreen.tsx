@@ -9,10 +9,11 @@ import {
   RefreshControl,
   Alert,
 } from 'react-native';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
 import { useAuth } from '../context/AuthContext';
+import { useFocusedFetch } from '../hooks/useFocusedFetch';
 import {
   getPurchases,
   approvePurchase,
@@ -37,33 +38,19 @@ function cooldownLabel(endsAt: string) {
 export default function CartScreen() {
   const { token } = useAuth();
   const navigation = useNavigation<any>();
-  const [purchases, setPurchases] = useState<ThoughtfulPurchase[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   // Purchase currently being decided — blocks double-taps ("Buy it" also
   // navigates, so a second tap used to fire the whole flow twice).
   const [decidingId, setDecidingId] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    if (!token) return;
-    try {
-      const data = await getPurchases(token);
-      setPurchases(data);
-      setError(null);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load your cart.');
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
-  }, [token]);
-
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load]),
-  );
+  const fetchPurchases = useCallback((t: string) => getPurchases(t), []);
+  const {
+    data: purchases,
+    setData: setPurchases,
+    isLoading,
+    isRefreshing,
+    error,
+    refresh,
+  } = useFocusedFetch(token, fetchPurchases, 'Failed to load your cart.', []);
 
   const handleApprove = async (item: ThoughtfulPurchase) => {
     if (!token || decidingId) return;
@@ -196,10 +183,7 @@ export default function CartScreen() {
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
-              onRefresh={() => {
-                setIsRefreshing(true);
-                load();
-              }}
+              onRefresh={refresh}
               tintColor={colors.primary}
             />
           }

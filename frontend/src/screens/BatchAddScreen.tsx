@@ -86,17 +86,23 @@ export default function BatchAddScreen({ navigation }: Props) {
       .split(',')
       .map(c => c.trim())
       .some(Boolean);
-    if (
-      !name.trim() ||
-      !brand.trim() ||
-      !category ||
-      !hasColor ||
-      !size ||
-      !photo?.uri
-    ) {
+    // Name the exact missing fields so a failed add says what to fix.
+    const missing = [
+      !name.trim() && 'Name',
+      !brand.trim() && 'Brand',
+      !category && 'Category',
+      !hasColor && 'Color',
+      !size && 'Size',
+      !photo?.uri && 'Photo',
+    ].filter(Boolean);
+    // The photo check is part of `missing`; repeating it here narrows `photo`
+    // to non-null for the code below.
+    if (!photo?.uri || missing.length > 0) {
       Alert.alert(
         'Error',
-        'Please fill all required fields (Name, Brand, Category, Color, Size, and Photo)',
+        `Please fill the required field${
+          missing.length > 1 ? 's' : ''
+        }: ${missing.join(', ')}`,
       );
       return;
     }

@@ -191,18 +191,23 @@ export function getClothingById(token: string, id: string): Promise<Clothing> {
   });
 }
 
-// Uploads a picked photo to Cloudinary via the backend and returns the hosted
-// secure_url. Uses an inline multipart fetch (NOT apiFetch, which forces a JSON
-// Content-Type) — the runtime must set the multipart boundary itself. The field
-// name 'image' matches the server's upload.single('image').
-export async function uploadClothingImage(
+export interface PickedPhoto {
+  uri?: string | null;
+  type?: string | null;
+  fileName?: string | null;
+}
+
+// Multipart POST of a picked photo, shared by the upload and similarity-check
+// fetchers. Inline fetch (NOT apiFetch, which forces a JSON Content-Type) — the
+// runtime must set the multipart boundary itself. The field name 'image'
+// matches the server's upload.single('image'). Returns the parsed JSON body.
+async function postPhoto(
+  path: string,
   token: string,
-  photo: {
-    uri?: string | null;
-    type?: string | null;
-    fileName?: string | null;
-  },
-): Promise<string> {
+  photo: PickedPhoto,
+  extraFields: Record<string, string>,
+  fallbackError: string,
+): Promise<any> {
   if (!photo.uri) throw new Error('No photo selected');
   const form = new FormData();
   form.append('image', {
@@ -210,10 +215,13 @@ export async function uploadClothingImage(
     type: photo.type || 'image/jpeg',
     name: photo.fileName || 'photo.jpg',
   } as any);
+  for (const [key, value] of Object.entries(extraFields)) {
+    form.append(key, value);
+  }
 
   let res: Response;
   try {
-    res = await fetch(`${BASE_URL}/api/clothing/upload-image`, {
+    res = await fetch(`${BASE_URL}${path}`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
       body: form,
@@ -228,9 +236,51 @@ export async function uploadClothingImage(
     : { message: `Server error (${res.status})` };
 
   if (res.status === 401) onUnauthorized?.();
-  if (!res.ok)
-    throw new Error(data.message || data.error || 'Image upload failed');
+  if (!res.ok) throw new Error(data.message || data.error || fallbackError);
+  return data;
+}
+
+// Uploads a picked photo to Cloudinary via the backend and returns the hosted
+// secure_url.
+export async function uploadClothingImage(
+  token: string,
+  photo: PickedPhoto,
+): Promise<string> {
+  const data = await postPhoto(
+    '/api/clothing/upload-image',
+    token,
+    photo,
+    {},
+    'Image upload failed',
+  );
   return data.imageUrl;
+}
+
+// Best wardrobe match from the AI similarity check. `score` is true cosine
+// similarity in [0,1] (clamped at 0 for anti-correlated vectors) — multiply by
+// 100 for display.
+export interface SimilarityMatch {
+  id: string;
+  name: string;
+  imageUrl: string;
+  score: number;
+}
+
+// Runs the AI similarity check: uploads the picked photo and returns the single
+// closest wardrobe item unconditionally (the client owns the ≥70% messaging),
+// or null when nothing in the wardrobe has an embedding.
+export async function checkSimilarity(
+  token: string,
+  photo: PickedPhoto,
+): Promise<SimilarityMatch | null> {
+  const data = await postPhoto(
+    '/api/similarity/check',
+    token,
+    photo,
+    {},
+    'Similarity check failed',
+  );
+  return data.match ?? null;
 }
 
 // Raw values straight from the Add form. createClothing reconciles them to the

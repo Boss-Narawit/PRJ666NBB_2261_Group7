@@ -17,6 +17,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
 import { useAuth } from '../context/AuthContext';
+import { useFocusedFetch } from '../hooks/useFocusedFetch';
 import {
   getForgottenItems,
   createWearLog,
@@ -48,42 +49,38 @@ type Props = {
 
 export default function ForgottenItemsScreen({ navigation }: Props) {
   const { token } = useAuth();
-  const [items, setItems] = useState<Clothing[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [thresholdDays, setThresholdDays] = useState('21');
   const [selectedItem, setSelectedItem] = useState<Clothing | null>(null);
   const [showItemDetail, setShowItemDetail] = useState(false);
 
-  const load = useCallback(async () => {
-    if (!token) return;
-    // Seed the modal from the saved preference — fired concurrently with the
-    // items fetch (its .catch is attached immediately) so a profile fetch
-    // failure never blocks the items list; on failure the box just keeps
-    // whatever value it already had.
-    const profilePromise = getProfile(token).catch(() => null);
-    try {
-      const data = await getForgottenItems(token);
-      setItems(data);
-      setError(null);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load forgotten items.');
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
-    const user = await profilePromise;
-    if (user?.preferences?.forgottenItemThresholdDays != null) {
-      setThresholdDays(String(user.preferences.forgottenItemThresholdDays));
-    }
-  }, [token]);
+  const fetchItems = useCallback((t: string) => getForgottenItems(t), []);
+  const {
+    data: items,
+    isLoading,
+    isRefreshing,
+    error,
+    reload,
+    refresh,
+  } = useFocusedFetch(token, fetchItems, 'Failed to load forgotten items.', []);
 
+  // Seed the settings modal from the saved preference — fetched on focus,
+  // concurrently with the items fetch above (separate focus effects), so a
+  // profile fetch failure never blocks the items list; on failure the box
+  // just keeps whatever value it already had.
   useFocusEffect(
     useCallback(() => {
-      load();
-    }, [load]),
+      if (!token) return;
+      getProfile(token)
+        .then(user => {
+          if (user?.preferences?.forgottenItemThresholdDays != null) {
+            setThresholdDays(
+              String(user.preferences.forgottenItemThresholdDays),
+            );
+          }
+        })
+        .catch(() => null);
+    }, [token]),
   );
 
   const handleItemPress = (item: Clothing) => {
@@ -111,7 +108,7 @@ export default function ForgottenItemsScreen({ navigation }: Props) {
           setShowItemDetail(false);
           Alert.alert('Success', `${item.name} logged as worn today!`);
           // Worn today → no longer forgotten; refetch drops it from the list.
-          load();
+          reload();
         },
       },
     ]);
@@ -141,7 +138,7 @@ export default function ForgottenItemsScreen({ navigation }: Props) {
       `Forgotten item threshold set to ${days} days`,
     );
     // New threshold changes which items count as forgotten — refetch.
-    load();
+    reload();
   };
 
   const renderForgottenItem = ({ item }: { item: Clothing }) => (
@@ -196,10 +193,7 @@ export default function ForgottenItemsScreen({ navigation }: Props) {
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
-            onRefresh={() => {
-              setIsRefreshing(true);
-              load();
-            }}
+            onRefresh={refresh}
             tintColor={colors.primary}
           />
         }

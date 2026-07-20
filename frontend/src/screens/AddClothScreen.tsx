@@ -85,17 +85,21 @@ export default function AddClothScreen({ navigation, route }: Props) {
       .split(',')
       .map(c => c.trim())
       .some(Boolean);
-    if (
-      !name.trim() ||
-      !brand.trim() ||
-      !category ||
-      !hasColor ||
-      !size ||
-      (!photo?.uri && !prefillImageUrl)
-    ) {
+    // Name the exact missing fields so a failed save says what to fix.
+    const missing = [
+      !name.trim() && 'Name',
+      !brand.trim() && 'Brand',
+      !category && 'Category',
+      !hasColor && 'Color',
+      !size && 'Size',
+      !photo?.uri && !prefillImageUrl && 'Photo',
+    ].filter(Boolean);
+    if (missing.length > 0) {
       Alert.alert(
         'Error',
-        'Please fill all required fields (Name, Brand, Category, Color, Size, and Photo)',
+        `Please fill the required field${
+          missing.length > 1 ? 's' : ''
+        }: ${missing.join(', ')}`,
       );
       return;
     }

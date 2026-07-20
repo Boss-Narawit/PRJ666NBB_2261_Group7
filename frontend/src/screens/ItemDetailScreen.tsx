@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -11,10 +11,10 @@ import {
   TextInput,
   ActivityIndicator,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
 import { useAuth } from '../context/AuthContext';
+import { useFocusedFetch } from '../hooks/useFocusedFetch';
 import {
   getClothingById,
   updateClothing,
@@ -114,12 +114,6 @@ export function fieldToPatch(field: string, value: string): ClothingUpdate {
 export default function ItemDetailScreen({ navigation, route }: Props) {
   const { token } = useAuth();
   const itemId = route?.params?.itemId;
-  const [item, setItem] = useState<DisplayItem | null>(null);
-  // The raw API document, kept so "Export/Donate" can hand Export a real
-  // Clothing (Export preselects by _id — the display item only exposes `id`).
-  const [rawItem, setRawItem] = useState<Clothing | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
@@ -127,39 +121,33 @@ export default function ItemDetailScreen({ navigation, route }: Props) {
   const [pickerOptions, setPickerOptions] = useState<string[]>([]);
   const [pickerField, setPickerField] = useState<string>('');
 
+  // The raw API document is the fetched state, kept so "Export/Donate" can
+  // hand Export a real Clothing (Export preselects by _id — the display item
+  // only exposes `id`); mutations write the server response back via setRawItem.
+  const fetchItem = useCallback(
+    async (t: string): Promise<Clothing | null> => {
+      if (!itemId) throw new Error('Missing item reference.');
+      return getClothingById(t, itemId);
+    },
+    [itemId],
+  );
+  const {
+    data: rawItem,
+    setData: setRawItem,
+    isLoading,
+    error,
+  } = useFocusedFetch(token, fetchItem, 'Failed to load item.', null);
+
+  const item = useMemo(
+    () => (rawItem ? toDisplayItem(rawItem) : null),
+    [rawItem],
+  );
+
   // An item that has left the wardrobe (archived or exported) is fully
   // locked — no edits, no header menu, no wear/export actions. Exported
   // items additionally get a "where it went" banner (rendered below).
   const isLocked = item?.status !== 'Available';
   const isExported = item?.status === 'Exported';
-
-  useFocusEffect(
-    useCallback(() => {
-      if (!token || !itemId) {
-        setError('Missing item reference.');
-        setIsLoading(false);
-        return;
-      }
-      let cancelled = false;
-      getClothingById(token, itemId)
-        .then(data => {
-          if (!cancelled) {
-            setItem(toDisplayItem(data));
-            setRawItem(data);
-            setError(null);
-          }
-        })
-        .catch(err => {
-          if (!cancelled) setError(err.message || 'Failed to load item.');
-        })
-        .finally(() => {
-          if (!cancelled) setIsLoading(false);
-        });
-      return () => {
-        cancelled = true;
-      };
-    }, [token, itemId]),
-  );
 
   const handleEditField = (field: string, currentValue: string) => {
     // Category uses the picker modal (strict enum). Size is free text (with
@@ -187,7 +175,6 @@ export default function ItemDetailScreen({ navigation, route }: Props) {
         fieldToPatch(field, value),
       );
       // Size is free text now, so a category change never invalidates it.
-      setItem(toDisplayItem(updated));
       setRawItem(updated);
     } catch (err: any) {
       Alert.alert('Update failed', err.message || 'Could not save changes.');
@@ -270,7 +257,6 @@ export default function ItemDetailScreen({ navigation, route }: Props) {
           Alert.alert('Success', `${item.name} logged as worn today!`);
           try {
             const refreshed = await getClothingById(token, item.id);
-            setItem(toDisplayItem(refreshed));
             setRawItem(refreshed);
           } catch {
             // The next focus refetch will reconcile the displayed counts.

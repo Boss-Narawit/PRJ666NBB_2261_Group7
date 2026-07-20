@@ -20,10 +20,9 @@ const handleError = (res, error) => {
 };
 
 // Cloudinary streaming upload — infra, not Mongoose, so it stays here. Returns
-// the hosted secure_url only; nothing is persisted (client convention).
-
-const axios = require('axios');
-const FormData = require('form-data');
+// the hosted secure_url only; nothing is persisted (client convention). AI
+// embedding happens after item create in clothing.service.js, not here — an
+// uploaded image that never becomes an item needs no embedding.
 
 const uploadImage = async (req, res) => {
   try {
@@ -48,25 +47,9 @@ const uploadImage = async (req, res) => {
       streamifier.createReadStream(req.file.buffer).pipe(stream);
     });
 
-    // generate AI embedding using same file buffer
-    let embedding = [];
-    try {
-      const formData = new FormData();
-      formData.append('image_file', req.file.buffer, req.file.originalname);
-
-      const aiResponse = await axios.post(`${process.env.AI_SERVICE_URL}/api/ai/embed`, formData, {
-        headers: formData.getHeaders(),
-      });
-      embedding = aiResponse.data.embedding;
-    } catch (aiError) {
-      console.error('AI Embedding failed during upload:', aiError.message);
-      // catch error so the Cloudinary upload doesn't fail completely if AI service is temporarily down
-    }
-
     res.status(200).json({
       message: 'Image uploaded successfully',
       imageUrl: result.secure_url,
-      aiEmbedding: embedding,
     });
   } catch (error) {
     console.error(error);

@@ -15,10 +15,21 @@ import { colors } from '../theme';
 import { launchImageLibrary } from 'react-native-image-picker';
 import CustomDatePicker from '../components/CustomDatePicker';
 import { useAuth } from '../context/AuthContext';
-import { createPurchase, uploadClothingImage } from '../services/api';
+import {
+  checkSimilarity,
+  createPurchase,
+  uploadClothingImage,
+  SimilarityMatch,
+} from '../services/api';
 
 // BR14: the cooling-off period must be at least 24h (1440 min).
 const COOLDOWN_MIN_MINUTES = 1440;
+
+// BR16: similarity at or above this percentage triggers the warning branch.
+const SIMILARITY_ALERT_PERCENT = 70;
+
+// The server returns true cosine similarity in [0,1] — display as a percentage.
+const toSimilarityPercent = (score: number) => Math.round(score * 100);
 
 type Props = {
   navigation: any;
@@ -38,7 +49,11 @@ export default function ThoughtfulPurchasingScreen({ navigation }: Props) {
   const [endDate, setEndDate] = useState<Date>(tomorrow);
   const [showEndPicker, setShowEndPicker] = useState(false);
   const [showSimilarityResult, setShowSimilarityResult] = useState(false);
-  const [similarityScore] = useState<number>(75);
+  // null = the check found no wardrobe item to compare against (empty wardrobe
+  // or no embeddings yet); only meaningful while showSimilarityResult is true.
+  const [similarityMatch, setSimilarityMatch] =
+    useState<SimilarityMatch | null>(null);
+  const [checking, setChecking] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const formatDate = (date: Date) => {
@@ -67,12 +82,27 @@ export default function ThoughtfulPurchasingScreen({ navigation }: Props) {
     );
   };
 
-  const handleSimilarityCheck = () => {
+  const handleSimilarityCheck = async () => {
+    if (!token) return;
     if (!photo) {
       Alert.alert('Error', 'Please upload an image first');
       return;
     }
-    setShowSimilarityResult(true);
+    setChecking(true);
+    try {
+      const match = await checkSimilarity(token, { uri: photo });
+      setSimilarityMatch(match);
+      setShowSimilarityResult(true);
+    } catch (err: any) {
+      // AI service down or unreachable: surface the failure — never show a
+      // made-up score.
+      Alert.alert(
+        'Similarity Check Failed',
+        err.message || 'Could not run the similarity check. Please try again.',
+      );
+    } finally {
+      setChecking(false);
+    }
   };
 
   const handleStartTimer = async () => {
@@ -135,12 +165,18 @@ export default function ThoughtfulPurchasingScreen({ navigation }: Props) {
   };
 
   const renderSimilarityResult = () => {
-    const isSimilar = similarityScore >= 70;
+    const similarityScore = similarityMatch
+      ? toSimilarityPercent(similarityMatch.score)
+      : 0;
+    const isSimilar =
+      similarityMatch !== null && similarityScore >= SIMILARITY_ALERT_PERCENT;
     const iconName = isSimilar ? 'warning-outline' : 'checkmark-circle-outline';
     const iconColor = isSimilar ? '#e53e3e' : '#38A169';
-    const resultText = isSimilar
-      ? `This item is ${similarityScore}% similar to items in your wardrobe. Do you really need it?`
-      : `Great news! This item is only ${similarityScore}% similar to items in your wardrobe.`;
+    const resultText = !similarityMatch
+      ? 'No similar items found — your wardrobe has nothing to compare this against yet.'
+      : isSimilar
+        ? `This item is ${similarityScore}% similar to "${similarityMatch.name}" in your wardrobe. Do you really need it?`
+        : `Great news! Your closest match, "${similarityMatch.name}", is only ${similarityScore}% similar.`;
 
     return (
       <Modal
@@ -159,10 +195,23 @@ export default function ThoughtfulPurchasingScreen({ navigation }: Props) {
 
             <View style={styles.resultContainer}>
               <Icon name={iconName} size={80} color={iconColor} />
-              <Text style={[styles.resultScore, { color: iconColor }]}>
-                {similarityScore}%
-              </Text>
+              {similarityMatch && (
+                <Text style={[styles.resultScore, { color: iconColor }]}>
+                  {similarityScore}%
+                </Text>
+              )}
               <Text style={styles.resultText}>{resultText}</Text>
+              {similarityMatch && (
+                <View style={styles.matchRow}>
+                  <Image
+                    source={{ uri: similarityMatch.imageUrl }}
+                    style={styles.matchThumb}
+                  />
+                  <Text style={styles.matchName} numberOfLines={1}>
+                    {similarityMatch.name}
+                  </Text>
+                </View>
+              )}
             </View>
 
             {isSimilar && (
@@ -281,9 +330,12 @@ export default function ThoughtfulPurchasingScreen({ navigation }: Props) {
       <TouchableOpacity
         style={styles.similarityButton}
         onPress={handleSimilarityCheck}
+        disabled={checking}
       >
         <Icon name="scan-outline" size={24} color={colors.white} />
-        <Text style={styles.similarityButtonText}>AI Similarity Check</Text>
+        <Text style={styles.similarityButtonText}>
+          {checking ? 'Checking…' : 'AI Similarity Check'}
+        </Text>
       </TouchableOpacity>
 
       {/* Start Timer Button */}
@@ -494,6 +546,29 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 12,
     lineHeight: 22,
+  },
+  matchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    maxWidth: '100%',
+  },
+  matchThumb: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    backgroundColor: colors.inputBorder,
+  },
+  matchName: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.textPrimary,
   },
   warningContainer: {
     flexDirection: 'row',

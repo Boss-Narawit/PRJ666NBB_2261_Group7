@@ -1,150 +1,63 @@
-const ThoughtfulPurchase = require('../models/ThoughtfulPurchase');
-const { COOLDOWN_MIN_MINUTES } = require('../config/constants');
+const purchaseService = require('../services/thoughtfulPurchase.service');
+
+// Error → HTTP mapping shared by every handler below (same shape as
+// clothingController): service errors carry .status; Mongoose
+// ValidationError → 422, CastError → 400.
+const handleError = (res, error) => {
+  if (error.status) {
+    return res.status(error.status).json({ message: error.message });
+  }
+  if (error.name === 'ValidationError') {
+    return res.status(422).json({ message: error.message });
+  }
+  if (error.name === 'CastError') {
+    return res.status(400).json({ message: error.message });
+  }
+  res.status(500).json({ message: error.message });
+};
 
 const createPurchase = async (req, res) => {
   try {
-    const userId = req.user?.userId;
-
-    // BR14: the cooling-off period must be at least 24h (1440 min) from now.
-    const cooldownMinutes = Number(req.body.cooldownMinutes);
-    if (!Number.isFinite(cooldownMinutes) || cooldownMinutes < COOLDOWN_MIN_MINUTES) {
-      return res.status(400).json({
-        message: `cooldownMinutes must be at least ${COOLDOWN_MIN_MINUTES}`,
-      });
-    }
-    const cooldownEndsAt = new Date(Date.now() + cooldownMinutes * 60 * 1000);
-
-    const purchase = await ThoughtfulPurchase.create({
-      userId,
-      itemName: req.body.itemName,
-      description: req.body.description,
-      imageUrl: req.body.imageUrl,
-      estimatedPrice: req.body.estimatedPrice,
-      sourceUrl: req.body.sourceUrl,
-      cooldownEndsAt,
-      status: 'pending',
-    });
-
+    const purchase = await purchaseService.createPurchase(req.user.userId, req.body);
     res.status(201).json(purchase);
   } catch (error) {
-    res.status(500).json({
-      message: error.message,
-    });
+    handleError(res, error);
   }
 };
 
 const getAllPurchases = async (req, res) => {
   try {
-    const userId = req.user?.userId;
-
-    const purchases = await ThoughtfulPurchase.find({
-      userId,
-    }).sort({
-      createdAt: -1,
-    });
-
+    const purchases = await purchaseService.getPurchases(req.user.userId);
     res.status(200).json(purchases);
   } catch (error) {
-    res.status(500).json({
-      message: error.message,
-    });
+    handleError(res, error);
   }
 };
 
 const getPurchaseById = async (req, res) => {
   try {
-    const userId = req.user?.userId;
-
-    const purchase = await ThoughtfulPurchase.findOne({
-      _id: req.params.id,
-      userId,
-    });
-
-    if (!purchase) {
-      return res.status(404).json({
-        message: 'Purchase not found',
-      });
-    }
-
+    const purchase = await purchaseService.getPurchase(req.user.userId, req.params.id);
     res.status(200).json(purchase);
   } catch (error) {
-    res.status(500).json({
-      message: error.message,
-    });
+    handleError(res, error);
   }
 };
 
 const approvePurchase = async (req, res) => {
   try {
-    const userId = req.user?.userId;
-
-    const purchase = await ThoughtfulPurchase.findOne({
-      _id: req.params.id,
-      userId,
-    });
-
-    if (!purchase) {
-      return res.status(404).json({
-        message: 'Purchase not found',
-      });
-    }
-
-    // Only a pending purchase can be decided — a rejected purchase must not
-    // flip to approved (or vice versa).
-    if (purchase.status !== 'pending') {
-      return res.status(422).json({
-        message: 'Purchase has already been decided',
-      });
-    }
-
-    if (purchase.cooldownEndsAt > new Date()) {
-      return res.status(400).json({
-        message: 'Cooling-off period has not ended yet',
-      });
-    }
-
-    purchase.status = 'approved';
-
-    await purchase.save();
-
+    const purchase = await purchaseService.approvePurchase(req.user.userId, req.params.id);
     res.status(200).json(purchase);
   } catch (error) {
-    res.status(500).json({
-      message: error.message,
-    });
+    handleError(res, error);
   }
 };
 
 const rejectPurchase = async (req, res) => {
   try {
-    const userId = req.user?.userId;
-
-    const purchase = await ThoughtfulPurchase.findOne({
-      _id: req.params.id,
-      userId,
-    });
-
-    if (!purchase) {
-      return res.status(404).json({
-        message: 'Purchase not found',
-      });
-    }
-
-    if (purchase.status !== 'pending') {
-      return res.status(422).json({
-        message: 'Purchase has already been decided',
-      });
-    }
-
-    purchase.status = 'rejected';
-
-    await purchase.save();
-
+    const purchase = await purchaseService.rejectPurchase(req.user.userId, req.params.id);
     res.status(200).json(purchase);
   } catch (error) {
-    res.status(500).json({
-      message: error.message,
-    });
+    handleError(res, error);
   }
 };
 

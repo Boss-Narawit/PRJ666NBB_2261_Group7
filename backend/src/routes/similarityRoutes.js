@@ -7,14 +7,6 @@ const upload = require('../middlewares/upload');
 
 const similarityController = require('../controllers/similarityController');
 
-router.post('/analyze', (req, res) => {
-  res.json({ message: 'Analyze similarity' });
-});
-
-router.get('/:clothingId/similar', (req, res) => {
-  res.json({ message: 'Get similar items' });
-});
-
 router.post(
   '/check',
   authenticate, // ensure user is logged in via JWT

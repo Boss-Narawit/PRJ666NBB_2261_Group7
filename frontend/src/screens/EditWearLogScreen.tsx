@@ -91,6 +91,12 @@ export default function EditWearLogScreen({ navigation, route }: Props) {
       Alert.alert('Invalid date', 'Use the format YYYY-MM-DD.');
       return;
     }
+    // The regex only checks shape — V8 rejects impossible ISO dates like
+    // 2026-02-30, so catch them here instead of as a server cast error.
+    if (Number.isNaN(new Date(logDate.trim()).getTime())) {
+      Alert.alert('Invalid date', 'That date does not exist.');
+      return;
+    }
     if (selectedIds.length === 0) {
       Alert.alert('No items', 'Select at least one item worn.');
       return;

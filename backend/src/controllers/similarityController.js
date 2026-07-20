@@ -1,68 +1,29 @@
-const axios = require('axios');
-const FormData = require('form-data');
-const mongoose = require('mongoose');
-const Clothing = require('../models/Clothing');
+const similarityService = require('../services/similarity.service');
 
+// Manual "AI Similarity Check" from the thoughtful-purchase screen: embeds the
+// uploaded photo and returns the single best Available wardrobe match,
+// unconditionally (no score floor — the client owns the ≥70% messaging).
+// `score` is true cosine similarity in [0,1] (clamped at 0), same space as
+// persisted SimilarityChecks; the Atlas (1 + cos) / 2 normalization stays
+// internal to similarity.service.
 exports.checkSimilarity = async (req, res) => {
   try {
-    // 1. Get the requested threshold from the frontend, default to 70% (0.70)
-    const requestedThreshold = req.body.threshold ? parseFloat(req.body.threshold) : 0.7;
-    const userId = req.user.userId;
-
     if (!req.file) {
       return res.status(400).json({ message: 'Wishlist image is required for similarity check.' });
     }
 
-    // 2. Forward the image to your Python AI Microservice
-    const formData = new FormData();
-    formData.append('image_file', req.file.buffer, req.file.originalname);
+    const embedding = await similarityService.embedImageBuffer(
+      req.file.buffer,
+      req.file.originalname
+    );
+    const best = await similarityService.findBestMatch(req.user.userId, embedding, 0);
 
-    // Ensure this URL points to your running Python FastAPI service
-    const aiResponse = await axios.post(`${process.env.AI_SERVICE_URL}/api/ai/embed`, formData, {
-      headers: formData.getHeaders(),
-    });
-
-    const wishlistEmbedding = aiResponse.data.embedding;
-
-    // 3. Search the user's existing wardrobe using Atlas Vector Search
-    const results = await Clothing.aggregate([
-      {
-        $vectorSearch: {
-          index: 'vector_index',
-          path: 'aiEmbedding',
-          queryVector: wishlistEmbedding,
-          numCandidates: 100,
-          limit: 1,
-          filter: { userId: new mongoose.Types.ObjectId(userId) },
-        },
-      },
-      {
-        $project: {
-          name: 1,
-          imageUrl: 1,
-          category: 1,
-          // Extract the similarity score provided by MongoDB
-          score: { $meta: 'vectorSearchScore' },
-        },
-      },
-      {
-        // 4. Filter by the user's selected threshold (e.g., >= 0.70)
-        $match: {
-          score: { $gte: requestedThreshold },
-        },
-      },
-      {
-        $sort: { score: -1 }, // Sort highest match first
-      },
-    ]);
-
-    // 5. Return the single best match for the React Native frontend (formatting is done client-side)
-    const bestMatch = results[0]
+    const bestMatch = best
       ? {
-          id: results[0]._id,
-          name: results[0].name,
-          imageUrl: results[0].imageUrl,
-          score: results[0].score,
+          id: best._id,
+          name: best.name,
+          imageUrl: best.imageUrl,
+          score: similarityService.toCosine(best.score),
         }
       : null;
 

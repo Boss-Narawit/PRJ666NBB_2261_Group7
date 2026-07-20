@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,10 +8,10 @@ import {
   Image,
   ActivityIndicator,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
 import { useAuth } from '../context/AuthContext';
+import { useFocusedFetch } from '../hooks/useFocusedFetch';
 import { getExportHistory, ExportRecord } from '../services/api';
 
 type Props = {
@@ -23,27 +23,16 @@ const toTitle = (s: string) =>
 
 export default function ExportHistoryScreen({ navigation }: Props) {
   const { token } = useAuth();
-  const [records, setRecords] = useState<ExportRecord[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    if (!token) return;
-    try {
-      const data = await getExportHistory(token);
-      setRecords(data);
-      setError(null);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load export history.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [token]);
-
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load]),
+  const fetchHistory = useCallback((t: string) => getExportHistory(t), []);
+  const {
+    data: records,
+    isLoading,
+    error,
+  } = useFocusedFetch(
+    token,
+    fetchHistory,
+    'Failed to load export history.',
+    [],
   );
 
   // Tapping opens the item's (now read-only) detail. A hard-deleted item has a

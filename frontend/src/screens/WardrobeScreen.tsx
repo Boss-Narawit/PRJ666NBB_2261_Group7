@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -12,10 +12,10 @@ import {
   Alert,
   RefreshControl,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
 import { useAuth } from '../context/AuthContext';
+import { useFocusedFetch } from '../hooks/useFocusedFetch';
 import { getClothing, updateClothing, Clothing } from '../services/api';
 import { CLOTHING_CATEGORIES } from '../constants/categories';
 
@@ -34,10 +34,6 @@ type Props = {
 
 export default function WardrobeScreen({ navigation, route }: Props) {
   const { token } = useAuth();
-  const [items, setItems] = useState<Clothing[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(
     route?.params?.category ?? 'All',
@@ -54,40 +50,17 @@ export default function WardrobeScreen({ navigation, route }: Props) {
     }
   }, [route?.params]);
 
-  // Guard against setState after the screen unmounts mid-fetch (load runs on
-  // focus and after an archive action).
-  const mountedRef = useRef(true);
-  useEffect(() => {
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
-
-  const load = useCallback(async () => {
-    if (!token) return;
-    try {
-      const data = await getClothing(token);
-      if (mountedRef.current) {
-        setItems(data);
-        setError(null);
-      }
-    } catch (err: any) {
-      if (mountedRef.current)
-        setError(err.message || 'Failed to load wardrobe.');
-    } finally {
-      if (mountedRef.current) {
-        setIsLoading(false);
-        setIsRefreshing(false);
-      }
-    }
-  }, [token]);
-
-  // Refetch on focus — the wardrobe changes after adding/editing items elsewhere.
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load]),
-  );
+  // Refetches on focus — the wardrobe changes after adding/editing items
+  // elsewhere; reload also runs after an archive action.
+  const fetchWardrobe = useCallback((t: string) => getClothing(t), []);
+  const {
+    data: items,
+    isLoading,
+    isRefreshing,
+    error,
+    reload,
+    refresh,
+  } = useFocusedFetch(token, fetchWardrobe, 'Failed to load wardrobe.', []);
 
   // Archive (BR23) instead of deleting — preserves wear-log history. Archived
   // items are hidden from the wardrobe below; refetch on success surfaces that.
@@ -113,13 +86,13 @@ export default function WardrobeScreen({ navigation, route }: Props) {
                 );
                 return;
               }
-              load();
+              reload();
             },
           },
         ],
       );
     },
-    [token, load],
+    [token, reload],
   );
 
   // Overflow "⋮" menu for a wardrobe item: view details or archive.
@@ -302,10 +275,7 @@ export default function WardrobeScreen({ navigation, route }: Props) {
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
-            onRefresh={() => {
-              setIsRefreshing(true);
-              load();
-            }}
+            onRefresh={refresh}
             tintColor={colors.primary}
           />
         }

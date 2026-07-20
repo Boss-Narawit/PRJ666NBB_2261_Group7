@@ -2,7 +2,11 @@ import React from 'react';
 import renderer, { act } from 'react-test-renderer';
 import { Alert } from 'react-native';
 import ThoughtfulPurchasingScreen from '../ThoughtfulPurchasingScreen';
-import { createPurchase, uploadClothingImage } from '../../services/api';
+import {
+  checkSimilarity,
+  createPurchase,
+  uploadClothingImage,
+} from '../../services/api';
 import { launchImageLibrary } from 'react-native-image-picker';
 
 // Mock vector icons
@@ -25,6 +29,7 @@ jest.mock('react-native-image-picker', () => ({
 
 // Mock API
 jest.mock('../../services/api', () => ({
+  checkSimilarity: jest.fn(),
   createPurchase: jest.fn(),
   uploadClothingImage: jest.fn(),
 }));
@@ -138,6 +143,13 @@ describe('ThoughtfulPurchasingScreen Component', () => {
         callback({ assets: [{ uri: 'file://mock-photo.jpg' }] });
       },
     );
+    // Cosine 0.8 → the 80% "very similar" branch.
+    (checkSimilarity as jest.Mock).mockResolvedValue({
+      id: 'clothing-1',
+      name: 'Denim Jacket',
+      imageUrl: 'http://cloudinary.com/denim.jpg',
+      score: 0.8,
+    });
     (uploadClothingImage as jest.Mock).mockResolvedValue(
       'http://cloudinary.com/uploaded.jpg',
     );
@@ -181,6 +193,15 @@ describe('ThoughtfulPurchasingScreen Component', () => {
     await act(async () => {
       similarityBtn.props.onPress();
     });
+
+    // The real endpoint was called and the cosine percentage renders,
+    // alongside the matched item's name.
+    expect(checkSimilarity).toHaveBeenCalledWith('mock-token', {
+      uri: 'file://mock-photo.jpg',
+    });
+    const modalTexts = textValues(tree);
+    expect(modalTexts.some(t => t.includes('80%'))).toBe(true);
+    expect(modalTexts.some(t => t.includes('Denim Jacket'))).toBe(true);
 
     // Find the Text node with 'Start Timer' that has a 'Modal' ancestor
     const startTimerTextNodes = tree.root.findAll(
@@ -236,6 +257,102 @@ describe('ThoughtfulPurchasingScreen Component', () => {
     });
 
     expect(mockNavigation.navigate).toHaveBeenCalledWith('Cart');
+  });
+
+  it('shows the no-match result when the wardrobe has nothing to compare', async () => {
+    (launchImageLibrary as jest.Mock).mockImplementation(
+      (options, callback) => {
+        callback({ assets: [{ uri: 'file://mock-photo.jpg' }] });
+      },
+    );
+    (checkSimilarity as jest.Mock).mockResolvedValue(null);
+
+    let tree: any;
+    await act(async () => {
+      tree = renderer.create(
+        <ThoughtfulPurchasingScreen navigation={mockNavigation} />,
+      );
+    });
+
+    const uploadBtn = tree.root.find(
+      (node: any) =>
+        node.props.onPress &&
+        node.findAll(
+          (n: any) =>
+            n.type === 'Text' && n.props.children === 'Tap to upload image',
+        ).length > 0,
+    );
+    await act(async () => {
+      uploadBtn.props.onPress();
+    });
+
+    const similarityBtn = tree.root.find(
+      (node: any) =>
+        node.props.onPress &&
+        node.findAll(
+          (n: any) =>
+            n.type === 'Text' && n.props.children === 'AI Similarity Check',
+        ).length > 0,
+    );
+    await act(async () => {
+      similarityBtn.props.onPress();
+    });
+
+    const modalTexts = textValues(tree);
+    expect(modalTexts.some(t => t.includes('No similar items found'))).toBe(
+      true,
+    );
+    expect(modalTexts.some(t => t.includes('0%'))).toBe(false);
+  });
+
+  it('surfaces an error instead of a fake score when the check fails', async () => {
+    (launchImageLibrary as jest.Mock).mockImplementation(
+      (options, callback) => {
+        callback({ assets: [{ uri: 'file://mock-photo.jpg' }] });
+      },
+    );
+    (checkSimilarity as jest.Mock).mockRejectedValue(
+      new Error('AI service unavailable'),
+    );
+
+    let tree: any;
+    await act(async () => {
+      tree = renderer.create(
+        <ThoughtfulPurchasingScreen navigation={mockNavigation} />,
+      );
+    });
+
+    const uploadBtn = tree.root.find(
+      (node: any) =>
+        node.props.onPress &&
+        node.findAll(
+          (n: any) =>
+            n.type === 'Text' && n.props.children === 'Tap to upload image',
+        ).length > 0,
+    );
+    await act(async () => {
+      uploadBtn.props.onPress();
+    });
+
+    const similarityBtn = tree.root.find(
+      (node: any) =>
+        node.props.onPress &&
+        node.findAll(
+          (n: any) =>
+            n.type === 'Text' && n.props.children === 'AI Similarity Check',
+        ).length > 0,
+    );
+    await act(async () => {
+      similarityBtn.props.onPress();
+    });
+
+    expect(Alert.alert).toHaveBeenCalledWith(
+      'Similarity Check Failed',
+      'AI service unavailable',
+    );
+
+    const allTexts = textValues(tree);
+    expect(allTexts.some(t => t.includes('similar to'))).toBe(false);
   });
 
   it('validates cooldownMinutes >= 24h (BR14)', async () => {
