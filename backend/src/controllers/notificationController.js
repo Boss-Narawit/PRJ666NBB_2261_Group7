@@ -1,6 +1,20 @@
-const User = require('../models/User');
 const notificationService = require('../services/notification.service');
-const { NOTIFICATION_MAX_SLOTS } = require('../config/constants');
+
+// Error → HTTP mapping for the self-handling preference endpoints (preserves the
+// { message } body shape); service errors carry .status, ValidationError → 422,
+// CastError → 400.
+const handleError = (res, error) => {
+  if (error.status) {
+    return res.status(error.status).json({ message: error.message });
+  }
+  if (error.name === 'ValidationError') {
+    return res.status(422).json({ message: error.message });
+  }
+  if (error.name === 'CastError') {
+    return res.status(400).json({ message: error.message });
+  }
+  res.status(500).json({ message: error.message });
+};
 
 // @desc    List the user's notifications (newest first, paginated)
 // @route   GET /api/notifications
@@ -34,19 +48,10 @@ const markRead = async (req, res, next) => {
 // @access  Private
 const getPreferences = async (req, res) => {
   try {
-    const user = await User.findById(req.user.userId);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-    res.status(200).json({
-      notificationEnabled: user.notificationEnabled,
-      notificationFrequency: user.preferences.notificationFrequency || 'Daily',
-      itemStatusChangeEnabled: user.preferences.itemStatusChangeEnabled !== false,
-      forgottenItemAlertEnabled: user.preferences.forgottenItemAlertEnabled !== false,
-      notificationSlots: user.notificationSlots ?? [],
-    });
+    const preferences = await notificationService.getPreferences(req.user.userId);
+    res.status(200).json(preferences);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    handleError(res, error);
   }
 };
 
@@ -55,67 +60,10 @@ const getPreferences = async (req, res) => {
 // @access  Private
 const updatePreferences = async (req, res) => {
   try {
-    const {
-      notificationEnabled,
-      notificationFrequency,
-      itemStatusChangeEnabled,
-      forgottenItemAlertEnabled,
-      notificationSlots,
-    } = req.body;
-
-    // BR27: at most NOTIFICATION_MAX_SLOTS notification time slots per day.
-    if (notificationSlots !== undefined) {
-      // Entries must be strings — an object entry would throw a CastError on
-      // save, which this controller's catch maps to 500, not 422.
-      if (
-        !Array.isArray(notificationSlots) ||
-        notificationSlots.some((slot) => typeof slot !== 'string')
-      ) {
-        return res.status(422).json({ message: 'notificationSlots must be an array of strings' });
-      }
-      if (notificationSlots.length > NOTIFICATION_MAX_SLOTS) {
-        return res.status(422).json({
-          message: `At most ${NOTIFICATION_MAX_SLOTS} notification slots are allowed`,
-        });
-      }
-    }
-
-    const user = await User.findById(req.user.userId);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    if (notificationEnabled !== undefined) {
-      user.notificationEnabled = notificationEnabled;
-    }
-    if (notificationFrequency !== undefined) {
-      user.preferences.notificationFrequency = notificationFrequency;
-    }
-    if (itemStatusChangeEnabled !== undefined) {
-      user.preferences.itemStatusChangeEnabled = itemStatusChangeEnabled;
-    }
-    if (forgottenItemAlertEnabled !== undefined) {
-      user.preferences.forgottenItemAlertEnabled = forgottenItemAlertEnabled;
-    }
-    if (notificationSlots !== undefined) {
-      user.notificationSlots = notificationSlots;
-    }
-
-    await user.save();
-
-    res.status(200).json({
-      notificationEnabled: user.notificationEnabled,
-      notificationFrequency: user.preferences.notificationFrequency,
-      itemStatusChangeEnabled: user.preferences.itemStatusChangeEnabled,
-      forgottenItemAlertEnabled: user.preferences.forgottenItemAlertEnabled,
-      notificationSlots: user.notificationSlots,
-    });
+    const preferences = await notificationService.updatePreferences(req.user.userId, req.body);
+    res.status(200).json(preferences);
   } catch (error) {
-    // An out-of-enum frequency is bad input, not a server fault.
-    if (error.name === 'ValidationError') {
-      return res.status(422).json({ message: error.message });
-    }
-    res.status(500).json({ message: error.message });
+    handleError(res, error);
   }
 };
 

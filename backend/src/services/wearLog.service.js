@@ -141,16 +141,6 @@ const createWearLog = async (userId, data) => {
   }
 
   const itemIds = [...new Set(clothingWorn.map((c) => String(c.itemId)))];
-  // Items must belong to the requesting user's wardrobe.
-  const ownedCount = await Clothing.countDocuments({
-    _id: { $in: itemIds },
-    userId,
-  });
-  if (ownedCount !== itemIds.length) {
-    const e = new Error('One or more clothing items not found in your wardrobe');
-    e.status = 422;
-    throw e;
-  }
 
   // The same item worn twice in one outfit is meaningless — dedupe by itemId,
   // keeping the first occurrence (preserves any per-entry outfitId).
@@ -159,6 +149,18 @@ const createWearLog = async (userId, data) => {
   // BR8: each same-day log is its own document — always create a new one.
   // An item worn across two outfits the same day legitimately counts 2 wears (BR9).
   return withTransaction(async (session) => {
+    // Items must belong to the requesting user's wardrobe — checked inside the
+    // transaction so ownership is validated against the same snapshot as the write.
+    const ownedCount = await Clothing.countDocuments(
+      { _id: { $in: itemIds }, userId },
+      { session }
+    );
+    if (ownedCount !== itemIds.length) {
+      const e = new Error('One or more clothing items not found in your wardrobe');
+      e.status = 422;
+      throw e;
+    }
+
     const [log] = await WearLog.create(
       [{ userId, logDate, clothingWorn: dedupedWorn, occasion, notes, outfitName }],
       { session }

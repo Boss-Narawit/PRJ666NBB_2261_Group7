@@ -77,7 +77,7 @@ export function updateProfile(
   token: string,
   payload: {
     name?: string;
-    email?: string;
+    avatar?: string;
     forgottenItemThresholdDays?: number;
   },
 ) {
@@ -93,6 +93,7 @@ export interface NotificationPreferences {
   notificationFrequency: 'Daily' | 'Weekly' | 'Bi-Weekly' | 'Monthly';
   itemStatusChangeEnabled: boolean;
   forgottenItemAlertEnabled: boolean;
+  notificationSlots?: string[];
 }
 
 export function getNotificationPreferences(

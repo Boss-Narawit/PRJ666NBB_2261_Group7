@@ -42,6 +42,25 @@ describe('Thoughtful Purchase API (/api/thoughtful-purchase)', () => {
     expect(new Date(res.body.cooldownEndsAt).getTime()).toBeGreaterThan(Date.now());
   });
 
+  test('cannot approve before the cooling-off timer expires (BR15)', async () => {
+    // Pending purchase whose cooldown is still an hour out.
+    const purchase = await ThoughtfulPurchase.create({
+      userId,
+      itemName: 'Sneakers',
+      cooldownEndsAt: new Date(Date.now() + 60 * 60 * 1000),
+      status: 'pending',
+    });
+
+    const res = await request(app)
+      .patch(`/api/thoughtful-purchase/approve/${purchase._id}`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.statusCode).toBe(400);
+
+    // The guard must leave the purchase pending — not silently approved.
+    const reloaded = await ThoughtfulPurchase.findById(purchase._id);
+    expect(reloaded.status).toBe('pending');
+  });
+
   test('a decided purchase cannot be re-decided (approve/reject only from pending)', async () => {
     // Created directly with an already-expired cooldown to skip the BR14 minimum.
     const purchase = await ThoughtfulPurchase.create({
