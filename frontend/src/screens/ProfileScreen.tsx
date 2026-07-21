@@ -75,9 +75,6 @@ export default function ProfileScreen({ navigation }: Props) {
     }
   }, [isFocused, token]);
 
-  const comingSoon = () =>
-    Alert.alert('Coming soon', 'This feature is not available yet.');
-
   const openSettings = () => navigation.navigate('Settings' as never);
 
   const handleDeleteAccount = () =>
