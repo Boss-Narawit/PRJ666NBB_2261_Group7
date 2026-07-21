@@ -164,13 +164,13 @@ export default function ProfileScreen({ navigation }: Props) {
         <MenuRow
           icon="lock-closed-outline"
           label="Privacy Policy"
-          onPress={comingSoon}
+          onPress={() => navigation.navigate('Privacy')}
         />
         <View style={styles.separator} />
         <MenuRow
           icon="help-circle-outline"
           label="Help & Support"
-          onPress={comingSoon}
+          onPress={() => navigation.navigate('Help')}
         />
       </View>
 

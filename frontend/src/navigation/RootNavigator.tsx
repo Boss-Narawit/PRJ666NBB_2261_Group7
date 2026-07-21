@@ -17,6 +17,7 @@ import PrivacyScreen from '../screens/PrivacyScreen';
 import FAQScreen from '../screens/FAQScreen';
 import AnnouncementScreen from '../screens/AnnouncementScreen';
 import AboutScreen from '../screens/AboutScreen';
+import HelpScreen from '../screens/HelpScreen';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { colors } from '../theme';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -36,6 +37,7 @@ export type RootStackParamList = {
   FAQ: undefined;
   Announcements: undefined;
   About: undefined;
+  Help: undefined;
   StyleRecap: { year?: number } | undefined;
 };
 
@@ -159,6 +161,11 @@ function RootStacks() {
             <Stack.Screen
               name="About"
               component={AboutScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+              name="Help"
+              component={HelpScreen}
               options={{ headerShown: false }}
             />
           </>
