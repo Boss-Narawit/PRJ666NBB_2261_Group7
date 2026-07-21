@@ -29,10 +29,15 @@ export default function HelpScreen({ navigation }: Props) {
     Alert.alert(
       'Message Sent!',
       'Our support team will get back to you within 24 hours.',
-      [{ text: 'OK', onPress: () => {
-        setSubject('');
-        setMessage('');
-      }}]
+      [
+        {
+          text: 'OK',
+          onPress: () => {
+            setSubject('');
+            setMessage('');
+          },
+        },
+      ],
     );
   };
 
@@ -67,7 +72,9 @@ export default function HelpScreen({ navigation }: Props) {
           </View>
           <View style={styles.contactDivider} />
           <View style={styles.contactRow}>
-            <View style={[styles.contactIcon, { backgroundColor: colors.warning }]}>
+            <View
+              style={[styles.contactIcon, { backgroundColor: colors.warning }]}
+            >
               <Icon name="time-outline" size={22} color={colors.white} />
             </View>
             <View style={styles.contactInfo}>
@@ -86,7 +93,9 @@ export default function HelpScreen({ navigation }: Props) {
             <Icon name="book-outline" size={24} color={colors.primary} />
             <View style={styles.faqLinkText}>
               <Text style={styles.faqLinkTitle}>Browse FAQ</Text>
-              <Text style={styles.faqLinkSubtitle}>Find answers to common questions</Text>
+              <Text style={styles.faqLinkSubtitle}>
+                Find answers to common questions
+              </Text>
             </View>
           </View>
           <Icon name="chevron-forward" size={20} color={colors.textSecondary} />

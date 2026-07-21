@@ -163,7 +163,7 @@ function RootStacks() {
               component={AboutScreen}
               options={{ headerShown: false }}
             />
-            <Stack.Screen 
+            <Stack.Screen
               name="Help"
               component={HelpScreen}
               options={{ headerShown: false }}
