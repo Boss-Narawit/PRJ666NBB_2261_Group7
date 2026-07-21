@@ -15,7 +15,7 @@ import { colors } from '../theme';
 import { launchImageLibrary, Asset } from 'react-native-image-picker';
 import { useAuth } from '../context/AuthContext';
 import { uploadClothingImage, createClothing } from '../services/api';
-import { getSizeOptions } from '../constants/categories';
+import { CLOTHING_CATEGORIES, getSizeOptions } from '../constants/categories';
 
 type Props = {
   navigation: any;
@@ -40,15 +40,7 @@ export default function AddClothScreen({ navigation, route }: Props) {
   const [size, setSize] = useState('');
   const [description, setDescription] = useState(prefill?.notes ?? '');
 
-  const categories = [
-    'Tops',
-    'Bottoms',
-    'Dresses',
-    'Outerwear',
-    'Shoes',
-    'Accessories',
-    'Activewear',
-  ];
+  const categories = [...CLOTHING_CATEGORIES];
 
   // Size suggestions depend on the chosen category (alpha for tops, waist for
   // pants, numeric for shoes). These are quick-fill chips only — `size` is a

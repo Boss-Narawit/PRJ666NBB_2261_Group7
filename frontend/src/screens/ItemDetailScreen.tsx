@@ -22,7 +22,7 @@ import {
   ClothingUpdate,
   Clothing,
 } from '../services/api';
-import { getSizeOptions } from '../constants/categories';
+import { CLOTHING_CATEGORIES, getSizeOptions } from '../constants/categories';
 import { localDateString } from '../utils/date';
 
 type Props = {
@@ -76,15 +76,7 @@ function toDisplayItem(c: Clothing): DisplayItem {
 }
 
 // Title-cased labels of the model's category enum (mapped back to lowercase on save).
-const categories = [
-  'Tops',
-  'Bottoms',
-  'Dresses',
-  'Outerwear',
-  'Shoes',
-  'Accessories',
-  'Other',
-];
+const categories = [...CLOTHING_CATEGORIES];
 
 // The Clothing model's condition enum — used verbatim, no lossy remap.
 const conditions = ['Excellent', 'Good', 'Fair', 'Damaged'];

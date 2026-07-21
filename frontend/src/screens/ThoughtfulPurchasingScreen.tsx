@@ -28,6 +28,12 @@ const COOLDOWN_MIN_MINUTES = 1440;
 // BR16: similarity at or above this percentage triggers the warning branch.
 const SIMILARITY_ALERT_PERCENT = 70;
 
+// Below this floor the closest wardrobe item is effectively unrelated: CLIP's
+// cosine similarity between arbitrary images has a non-zero baseline (~0.2–0.45),
+// so a low "match" is noise. Treat it as no match and show the empty state
+// rather than a misleading percentage + thumbnail.
+const SIMILARITY_MIN_DISPLAY_PERCENT = 50;
+
 // The server returns true cosine similarity in [0,1] — display as a percentage.
 const toSimilarityPercent = (score: number) => Math.round(score * 100);
 
@@ -168,15 +174,22 @@ export default function ThoughtfulPurchasingScreen({ navigation }: Props) {
     const similarityScore = similarityMatch
       ? toSimilarityPercent(similarityMatch.score)
       : 0;
+    // A returned match below the display floor is treated as no match.
+    const hasMeaningfulMatch =
+      similarityMatch !== null &&
+      similarityScore >= SIMILARITY_MIN_DISPLAY_PERCENT;
     const isSimilar =
-      similarityMatch !== null && similarityScore >= SIMILARITY_ALERT_PERCENT;
+      hasMeaningfulMatch && similarityScore >= SIMILARITY_ALERT_PERCENT;
     const iconName = isSimilar ? 'warning-outline' : 'checkmark-circle-outline';
     const iconColor = isSimilar ? '#e53e3e' : '#38A169';
-    const resultText = !similarityMatch
-      ? 'No similar items found — your wardrobe has nothing to compare this against yet.'
-      : isSimilar
-        ? `This item is ${similarityScore}% similar to "${similarityMatch.name}" in your wardrobe. Do you really need it?`
-        : `Great news! Your closest match, "${similarityMatch.name}", is only ${similarityScore}% similar.`;
+    const resultText =
+      similarityMatch === null
+        ? 'No similar items found — your wardrobe has nothing to compare this against yet.'
+        : !hasMeaningfulMatch
+          ? 'No close match found — nothing in your wardrobe looks similar to this.'
+          : isSimilar
+            ? `This item is ${similarityScore}% similar to "${similarityMatch.name}" in your wardrobe. Do you really need it?`
+            : `Great news! Your closest match, "${similarityMatch.name}", is only ${similarityScore}% similar.`;
 
     return (
       <Modal
@@ -195,13 +208,13 @@ export default function ThoughtfulPurchasingScreen({ navigation }: Props) {
 
             <View style={styles.resultContainer}>
               <Icon name={iconName} size={80} color={iconColor} />
-              {similarityMatch && (
+              {hasMeaningfulMatch && similarityMatch && (
                 <Text style={[styles.resultScore, { color: iconColor }]}>
                   {similarityScore}%
                 </Text>
               )}
               <Text style={styles.resultText}>{resultText}</Text>
-              {similarityMatch && (
+              {hasMeaningfulMatch && similarityMatch && (
                 <View style={styles.matchRow}>
                   <Image
                     source={{ uri: similarityMatch.imageUrl }}

@@ -305,6 +305,59 @@ describe('ThoughtfulPurchasingScreen Component', () => {
     expect(modalTexts.some(t => t.includes('0%'))).toBe(false);
   });
 
+  it('hides the percentage for a below-floor match to avoid confusing the user', async () => {
+    (launchImageLibrary as jest.Mock).mockImplementation(
+      (options, callback) => {
+        callback({ assets: [{ uri: 'file://mock-photo.jpg' }] });
+      },
+    );
+    // Cosine 0.44 is below the 50% display floor: the closest item is unrelated
+    // (CLIP's baseline for arbitrary images), so no percentage/thumbnail shows.
+    (checkSimilarity as jest.Mock).mockResolvedValue({
+      id: 'clothing-1',
+      name: 'Wool Scarf',
+      imageUrl: 'http://cloudinary.com/scarf.jpg',
+      score: 0.44,
+    });
+
+    let tree: any;
+    await act(async () => {
+      tree = renderer.create(
+        <ThoughtfulPurchasingScreen navigation={mockNavigation} />,
+      );
+    });
+
+    const uploadBtn = tree.root.find(
+      (node: any) =>
+        node.props.onPress &&
+        node.findAll(
+          (n: any) =>
+            n.type === 'Text' && n.props.children === 'Tap to upload image',
+        ).length > 0,
+    );
+    await act(async () => {
+      uploadBtn.props.onPress();
+    });
+
+    const similarityBtn = tree.root.find(
+      (node: any) =>
+        node.props.onPress &&
+        node.findAll(
+          (n: any) =>
+            n.type === 'Text' && n.props.children === 'AI Similarity Check',
+        ).length > 0,
+    );
+    await act(async () => {
+      similarityBtn.props.onPress();
+    });
+
+    const modalTexts = textValues(tree);
+    expect(modalTexts.some(t => t.includes('No close match found'))).toBe(true);
+    // No percentage and no matched-item name leak through below the floor.
+    expect(modalTexts.some(t => t.includes('44%'))).toBe(false);
+    expect(modalTexts.some(t => t.includes('Wool Scarf'))).toBe(false);
+  });
+
   it('surfaces an error instead of a fake score when the check fails', async () => {
     (launchImageLibrary as jest.Mock).mockImplementation(
       (options, callback) => {

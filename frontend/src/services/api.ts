@@ -288,7 +288,7 @@ export async function checkSimilarity(
 export interface NewClothingInput {
   name: string;
   brand: string;
-  category: string; // display label, e.g. 'Tops' / 'Activewear'
+  category: string; // display label, e.g. 'Tops' / 'Other'
   color: string; // comma-separated, e.g. 'Black, White'
   size: string;
   imageUrl: string; // hosted URL from uploadClothingImage
@@ -296,8 +296,9 @@ export interface NewClothingInput {
   notes?: string;
 }
 
-// Form category labels → Clothing enum (lowercase). The form offers 'Activewear',
-// which has no model enum, so it maps to 'other'.
+// Form category labels → Clothing enum (lowercase). Labels are the title-cased
+// CLOTHING_CATEGORIES, so this is a lowercase identity map; the `?? 'other'`
+// fallback in toClothingBody guards anything unexpected.
 const CATEGORY_MAP: Record<string, string> = {
   tops: 'tops',
   bottoms: 'bottoms',
@@ -305,7 +306,6 @@ const CATEGORY_MAP: Record<string, string> = {
   outerwear: 'outerwear',
   shoes: 'shoes',
   accessories: 'accessories',
-  activewear: 'other',
   other: 'other',
 };
 

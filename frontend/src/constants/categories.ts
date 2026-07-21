@@ -1,7 +1,7 @@
 // Single source of truth for clothing categories. Backend stores these
 // lowercase; the UI displays them capitalized and compares case-insensitively.
-// 'Other' is a real backend enum value (and the bucket Activewear maps into),
-// so filters must offer it or those items are only reachable under "All".
+// 'Other' is a real backend enum value, so filters must offer it or those
+// items are only reachable under "All".
 export const CLOTHING_CATEGORIES = [
   'Tops',
   'Bottoms',
