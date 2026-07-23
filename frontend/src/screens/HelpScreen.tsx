@@ -10,6 +10,7 @@ import {
   Platform,
   Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
 
@@ -18,6 +19,7 @@ type Props = {
 };
 
 export default function HelpScreen({ navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
 
@@ -48,7 +50,7 @@ export default function HelpScreen({ navigation }: Props) {
     >
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top }]}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             style={styles.backButton}
@@ -148,7 +150,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: 60,
     paddingBottom: 16,
     backgroundColor: colors.background,
   },

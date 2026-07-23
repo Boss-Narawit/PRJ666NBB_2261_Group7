@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Share,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
@@ -23,6 +24,7 @@ type Props = {
 };
 
 export default function StyleRecapScreen({ navigation, route }: Props) {
+  const insets = useSafeAreaInsets();
   const { token } = useAuth();
   // Omitted → live current-year recap (dashboard banner). Set → a specific
   // completed year (opened from a recap_ready notification).
@@ -346,7 +348,7 @@ export default function StyleRecapScreen({ navigation, route }: Props) {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
@@ -372,7 +374,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: 60,
     paddingBottom: 16,
     backgroundColor: colors.background,
   },

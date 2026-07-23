@@ -10,6 +10,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
 import { launchImageLibrary, Asset } from 'react-native-image-picker';
@@ -23,6 +24,7 @@ type Props = {
 };
 
 export default function AddClothScreen({ navigation, route }: Props) {
+  const insets = useSafeAreaInsets();
   const { token } = useAuth();
   // Prefill carried over from an approved Thoughtful Purchase ("Buy it").
   const prefill = route?.params?.prefill;
@@ -135,7 +137,7 @@ export default function AddClothScreen({ navigation, route }: Props) {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top }]}>
         {/* Backing out mid-save would let the success alert's goBack pop
             whatever screen is on top by then — lock it while saving. */}
         <TouchableOpacity
@@ -337,7 +339,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: 60,
     paddingBottom: 16,
     backgroundColor: colors.background,
   },

@@ -55,7 +55,9 @@ export default function TabNavigator() {
           fontSize: 24,
           color: '#000000',
         },
-        headerTitle: 'ReDrobe',
+        // Per-screen headerTitle below — no global title, so tabs that show a
+        // header label it themselves and screens with their own in-page title
+        // hide the header entirely instead of all reading "ReDrobe".
         headerLeft: () =>
           navigation.canGoBack() ? (
             <TouchableOpacity
@@ -83,7 +85,12 @@ export default function TabNavigator() {
         // deeper route would otherwise stack two headers.
         options={({ route }) => {
           const routeName = getFocusedRouteNameFromRoute(route) ?? 'Dashboard';
-          return { headerShown: routeName === 'Dashboard' };
+          // "ReDrobe" branding only on the Dashboard root; pushed screens hide
+          // this header and render their own.
+          return {
+            headerShown: routeName === 'Dashboard',
+            headerTitle: 'ReDrobe',
+          };
         }}
         // Re-pressing the already-focused Home tab pops its nested stack back
         // to the Dashboard (bottom-tabs does not do this by default).
@@ -100,7 +107,8 @@ export default function TabNavigator() {
         name="ThoughtfulPurchasing"
         component={ThoughtfulPurchasing}
         options={{
-          tabBarLabel: 'ThoughtfulPurchasing', // Keep as 'Explore' or change to 'AI Check'
+          tabBarLabel: 'Thoughtful Purchase',
+          headerShown: false, // screen renders its own in-page title
           tabBarIcon: ({ focused, color, size }) => (
             <Icon
               name={focused ? 'compass' : 'compass-outline'}
@@ -110,13 +118,22 @@ export default function TabNavigator() {
           ),
         }}
       />
-      <Tab.Screen name="Cart" component={CartScreen} />
-      <Tab.Screen name="Notifications" component={NotificationScreen} />
+      <Tab.Screen
+        name="Cart"
+        component={CartScreen}
+        options={{ headerShown: false }}
+      />
+      <Tab.Screen
+        name="Notifications"
+        component={NotificationScreen}
+        options={{ headerShown: false }}
+      />
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}
         options={{
           tabBarButtonTestID: 'tab-profile',
+          headerShown: false,
         }}
       />
     </Tab.Navigator>

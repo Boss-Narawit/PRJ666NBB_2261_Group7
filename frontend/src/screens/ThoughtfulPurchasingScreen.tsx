@@ -10,6 +10,7 @@ import {
   Alert,
   Modal,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
 import { launchImageLibrary } from 'react-native-image-picker';
@@ -43,6 +44,7 @@ type Props = {
 
 export default function ThoughtfulPurchasingScreen({ navigation }: Props) {
   const { token } = useAuth();
+  const insets = useSafeAreaInsets();
   const [photo, setPhoto] = useState<string | null>(null);
   const [itemName, setItemName] = useState('');
 
@@ -261,127 +263,139 @@ export default function ThoughtfulPurchasingScreen({ navigation }: Props) {
   };
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Upload Image */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Upload Image</Text>
-        <TouchableOpacity style={styles.uploadContainer} onPress={selectPhoto}>
-          {photo ? (
-            <Image source={{ uri: photo }} style={styles.uploadedImage} />
-          ) : (
-            <View style={styles.uploadPlaceholder}>
-              <Icon
-                name="cloud-upload-outline"
-                size={48}
-                color={colors.textSecondary}
-              />
-              <Text style={styles.uploadText}>Tap to upload image</Text>
-              <Text style={styles.uploadSubtext}>JPG, PNG, WEBP supported</Text>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <Text style={styles.title}>Thoughtful Purchase</Text>
+      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+        {/* Upload Image */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Upload Image</Text>
+          <TouchableOpacity
+            style={styles.uploadContainer}
+            onPress={selectPhoto}
+          >
+            {photo ? (
+              <Image source={{ uri: photo }} style={styles.uploadedImage} />
+            ) : (
+              <View style={styles.uploadPlaceholder}>
+                <Icon
+                  name="cloud-upload-outline"
+                  size={48}
+                  color={colors.textSecondary}
+                />
+                <Text style={styles.uploadText}>Tap to upload image</Text>
+                <Text style={styles.uploadSubtext}>
+                  JPG, PNG, WEBP supported
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* Item Name */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Item Name</Text>
+          <TextInput
+            style={styles.nameInput}
+            placeholder="What are you considering buying?"
+            placeholderTextColor={colors.textSecondary}
+            value={itemName}
+            onChangeText={setItemName}
+          />
+        </View>
+
+        {/* Date Section */}
+        <View style={styles.section}>
+          <View style={styles.dateContainer}>
+            {/* Start Date - Disabled */}
+            <View style={styles.dateItem}>
+              <Text style={styles.dateLabel}>Start Date</Text>
+              <View style={[styles.dateInput, styles.dateInputDisabled]}>
+                <Icon
+                  name="calendar-outline"
+                  size={20}
+                  color={colors.textSecondary}
+                />
+                <Text style={[styles.dateText, styles.dateTextDisabled]}>
+                  {formatDate(startDate)}
+                </Text>
+              </View>
             </View>
-          )}
-        </TouchableOpacity>
-      </View>
 
-      {/* Item Name */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Item Name</Text>
-        <TextInput
-          style={styles.nameInput}
-          placeholder="What are you considering buying?"
-          placeholderTextColor={colors.textSecondary}
-          value={itemName}
-          onChangeText={setItemName}
-        />
-      </View>
-
-      {/* Date Section */}
-      <View style={styles.section}>
-        <View style={styles.dateContainer}>
-          {/* Start Date - Disabled */}
-          <View style={styles.dateItem}>
-            <Text style={styles.dateLabel}>Start Date</Text>
-            <View style={[styles.dateInput, styles.dateInputDisabled]}>
-              <Icon
-                name="calendar-outline"
-                size={20}
-                color={colors.textSecondary}
-              />
-              <Text style={[styles.dateText, styles.dateTextDisabled]}>
-                {formatDate(startDate)}
-              </Text>
+            {/* End Date - Editable with Custom Picker */}
+            <View style={styles.dateItem}>
+              <Text style={styles.dateLabel}>End Date</Text>
+              <TouchableOpacity
+                style={styles.dateInput}
+                onPress={() => setShowEndPicker(true)}
+              >
+                <Icon
+                  name="calendar-outline"
+                  size={20}
+                  color={colors.primary}
+                />
+                <Text style={styles.dateText}>{formatDate(endDate)}</Text>
+              </TouchableOpacity>
             </View>
-          </View>
-
-          {/* End Date - Editable with Custom Picker */}
-          <View style={styles.dateItem}>
-            <Text style={styles.dateLabel}>End Date</Text>
-            <TouchableOpacity
-              style={styles.dateInput}
-              onPress={() => setShowEndPicker(true)}
-            >
-              <Icon name="calendar-outline" size={20} color={colors.primary} />
-              <Text style={styles.dateText}>{formatDate(endDate)}</Text>
-            </TouchableOpacity>
           </View>
         </View>
-      </View>
 
-      {/* Custom Date Picker Modal */}
-      <CustomDatePicker
-        visible={showEndPicker}
-        onClose={() => setShowEndPicker(false)}
-        onConfirm={date => {
-          setEndDate(date);
-          setShowEndPicker(false);
-        }}
-        initialDate={endDate}
-        startDate={startDate} // ← Pass the start date to prevent selecting dates before it
-        mode="end"
-      />
-
-      {/* AI Similarity Check Button */}
-      <TouchableOpacity
-        style={styles.similarityButton}
-        onPress={handleSimilarityCheck}
-        disabled={checking}
-      >
-        <Icon name="scan-outline" size={24} color={colors.white} />
-        <Text style={styles.similarityButtonText}>
-          {checking ? 'Checking…' : 'AI Similarity Check'}
-        </Text>
-      </TouchableOpacity>
-
-      {/* Start Timer Button */}
-      <TouchableOpacity
-        style={styles.startTimerButton}
-        onPress={handleStartTimer}
-        disabled={submitting}
-      >
-        <Icon name="hourglass-outline" size={24} color={colors.white} />
-        <Text style={styles.startTimerButtonText}>
-          {submitting ? 'Starting…' : 'Start Timer'}
-        </Text>
-      </TouchableOpacity>
-
-      {/* Info Text */}
-      <View style={styles.infoContainer}>
-        <Icon
-          name="information-circle-outline"
-          size={20}
-          color={colors.textSecondary}
+        {/* Custom Date Picker Modal */}
+        <CustomDatePicker
+          visible={showEndPicker}
+          onClose={() => setShowEndPicker(false)}
+          onConfirm={date => {
+            setEndDate(date);
+            setShowEndPicker(false);
+          }}
+          initialDate={endDate}
+          startDate={startDate} // ← Pass the start date to prevent selecting dates before it
+          mode="end"
         />
-        <Text style={styles.infoText}>
-          Upload an image of an item you're considering purchasing. The AI will
-          compare it with your existing wardrobe and alert you if you already
-          own something similar.
-        </Text>
-      </View>
 
-      {/* Similarity Result Modal */}
-      {renderSimilarityResult()}
+        {/* AI Similarity Check Button */}
+        <TouchableOpacity
+          style={styles.similarityButton}
+          onPress={handleSimilarityCheck}
+          disabled={checking}
+        >
+          <Icon name="scan-outline" size={24} color={colors.white} />
+          <Text style={styles.similarityButtonText}>
+            {checking ? 'Checking…' : 'AI Similarity Check'}
+          </Text>
+        </TouchableOpacity>
 
-      <View style={styles.bottomPadding} />
-    </ScrollView>
+        {/* Start Timer Button */}
+        <TouchableOpacity
+          style={styles.startTimerButton}
+          onPress={handleStartTimer}
+          disabled={submitting}
+        >
+          <Icon name="hourglass-outline" size={24} color={colors.white} />
+          <Text style={styles.startTimerButtonText}>
+            {submitting ? 'Starting…' : 'Start Timer'}
+          </Text>
+        </TouchableOpacity>
+
+        {/* Info Text */}
+        <View style={styles.infoContainer}>
+          <Icon
+            name="information-circle-outline"
+            size={20}
+            color={colors.textSecondary}
+          />
+          <Text style={styles.infoText}>
+            Upload an image of an item you're considering purchasing. The AI
+            will compare it with your existing wardrobe and alert you if you
+            already own something similar.
+          </Text>
+        </View>
+
+        {/* Similarity Result Modal */}
+        {renderSimilarityResult()}
+
+        <View style={styles.bottomPadding} />
+      </ScrollView>
+    </View>
   );
 }
 
@@ -389,6 +403,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  scroll: {
+    flex: 1,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: colors.primary,
+    paddingHorizontal: 20,
+    paddingTop: 15,
+    paddingBottom: 12,
   },
   section: {
     marginHorizontal: 16,

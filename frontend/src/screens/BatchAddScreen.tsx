@@ -10,6 +10,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
 import { launchImageLibrary, Asset } from 'react-native-image-picker';
@@ -32,6 +33,7 @@ const MAX_BATCH = 50;
 type StagedItem = { input: NewClothingInput; previewUri: string };
 
 export default function BatchAddScreen({ navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const { token } = useAuth();
   const [staged, setStaged] = useState<StagedItem[]>([]);
   const [adding, setAdding] = useState(false); // uploading the current photo
@@ -159,7 +161,7 @@ export default function BatchAddScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
@@ -400,7 +402,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: 60,
     paddingBottom: 16,
     backgroundColor: colors.background,
   },

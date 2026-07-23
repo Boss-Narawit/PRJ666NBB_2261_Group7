@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
@@ -86,6 +87,7 @@ type Props = {
 };
 
 export default function WearHistoryScreen({ navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const { token } = useAuth();
   const [wearLogs, setWearLogs] = useState<WearLog[]>([]);
   const [page, setPage] = useState(1);
@@ -319,7 +321,7 @@ export default function WearHistoryScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
@@ -643,7 +645,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: 60,
     paddingBottom: 16,
     backgroundColor: colors.background,
   },

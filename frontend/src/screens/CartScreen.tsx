@@ -9,6 +9,7 @@ import {
   RefreshControl,
   Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
@@ -37,6 +38,7 @@ function cooldownLabel(endsAt: string) {
 
 export default function CartScreen() {
   const { token } = useAuth();
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   // Purchase currently being decided — blocks double-taps ("Buy it" also
   // navigates, so a second tap used to fire the whole flow twice).
@@ -160,7 +162,7 @@ export default function CartScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <Text style={styles.title}>Thoughtful Cart</Text>
       <Text style={styles.subtitle}>
         Items in their cooling-off period. Confirm once the timer ends.

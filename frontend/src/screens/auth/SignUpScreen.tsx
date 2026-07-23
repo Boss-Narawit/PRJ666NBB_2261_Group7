@@ -11,6 +11,7 @@ import {
   Platform,
   Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { register } from '../../services/api';
@@ -25,6 +26,7 @@ type Props = {
 const PASSWORD_REGEX = /^(?=.*[a-zA-Z])(?=.*\d).{8,}$/;
 
 export default function SignUpScreen({ navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const { signIn } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -93,7 +95,7 @@ export default function SignUpScreen({ navigation }: Props) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView
-        contentContainerStyle={styles.container}
+        contentContainerStyle={[styles.container, { paddingTop: insets.top }]}
         keyboardShouldPersistTaps="handled"
       >
         <Text style={styles.title}>Create Account</Text>
@@ -184,7 +186,6 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     paddingHorizontal: 24,
-    paddingTop: 60,
     paddingBottom: 80,
     backgroundColor: colors.background,
   },

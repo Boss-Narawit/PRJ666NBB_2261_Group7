@@ -69,7 +69,7 @@ async function seedDemo() {
     preferences: {
       favoriteColors: ['camel', 'black', 'white'],
       favoriteCategories: ['tops', 'outerwear'],
-      forgottenItemThresholdDays: 14, // low threshold so forgotten items show in the demo
+      forgottenItemThresholdDays: 60, // forgotten trio was last worn 65–75 days ago (see wear logs)
       forgottenItemAlertEnabled: true,
     },
   });
@@ -348,34 +348,28 @@ async function seedDemo() {
     'work'
   );
 
-  // Forgotten items: worn exactly once, well past the 14-day threshold
-  outfit(40, ['Silk Scarf', 'Camel Wool Coat', 'Black Slim Jeans']);
-  outfit(35, ['Corduroy Pants', 'White Oxford Shirt']);
+  // Forgotten items: worn exactly once, well past the 60-day threshold but still
+  // inside the 90-day utilization window, so they stay "utilized" while forgotten.
+  outfit(75, ['Silk Scarf']);
+  outfit(70, ['Corduroy Pants']);
+  outfit(65, ['Camel Wool Coat']);
 
   // Trench was worn before it was exported (history stays intact post-export)
   outfit(50, ['Beige Trench Coat', 'Black Turtleneck', 'Black Slim Jeans']);
 
-  // Regular rotation every 2 days across the last ~8 weeks (skips the special days above)
+  // Regular rotation every 2 days across the last ~8 weeks. Only "active" items
+  // appear here — the forgotten trio (Silk Scarf/Corduroy Pants/Camel Wool Coat)
+  // is deliberately excluded so their single old wear above stays their last wear.
   const rotation = [
     ['White Oxford Shirt', 'Black Slim Jeans', 'White Leather Sneakers'],
-    ['Black Turtleneck', 'Corduroy Pants', 'Gold Hoop Earrings'],
+    ['Black Turtleneck', 'Black Slim Jeans', 'Gold Hoop Earrings'],
     ['Navy Blazer', 'White Oxford Shirt', 'Black Slim Jeans'],
     ['Floral Midi Dress', 'White Leather Sneakers', 'Gold Hoop Earrings'],
-    ['Camel Wool Coat', 'Black Turtleneck', 'Black Slim Jeans'],
+    ['Black Turtleneck', 'Navy Blazer', 'White Leather Sneakers'],
   ];
-  // Rotation intentionally reuses Corduroy Pants/Camel Coat only on early days —
-  // keep forgotten items forgotten: skip combos containing them for recent days.
-  let combo = 0;
   for (let day = 2; day <= 56; day += 2) {
-    if ([35, 40, 50].includes(day)) continue;
-    let picked = rotation[combo % rotation.length];
-    combo++;
-    const wearsForgotten = picked.includes('Corduroy Pants') || picked.includes('Camel Wool Coat');
-    if (day < 20 && wearsForgotten) {
-      // within the forgotten window — swap to a safe combo
-      picked = rotation[0];
-    }
-    outfit(day, picked, undefined, 'casual');
+    if (day === 50) continue; // reserved for the exported-trench history log above
+    outfit(day, rotation[(day / 2) % rotation.length], undefined, 'casual');
   }
   await WearLog.insertMany(logs);
   console.log(`Wear logs: ${logs.length} (incl. 2 outfits today for the multi-outfit demo)`);
@@ -516,14 +510,14 @@ async function seedDemo() {
     {
       userId: DEMO_USER_ID,
       type: 'forgotten_item',
-      message: "You haven't worn your Silk Scarf in 40 days. Time to rediscover it!",
+      message: "You haven't worn your Silk Scarf in 75 days. Time to rediscover it!",
       isRead: false,
       relatedId: byName['Silk Scarf']._id,
     },
     {
       userId: DEMO_USER_ID,
       type: 'forgotten_item',
-      message: "Your Corduroy Pants haven't been worn in 35 days. Give them another chance!",
+      message: "Your Corduroy Pants haven't been worn in 70 days. Give them another chance!",
       isRead: true,
       relatedId: byName['Corduroy Pants']._id,
     },

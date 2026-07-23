@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import { login, reactivate } from '../services/api';
@@ -20,6 +21,7 @@ type Props = {
 };
 
 export const LoginScreen = ({ navigation }: Props) => {
+  const insets = useSafeAreaInsets();
   const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -84,7 +86,7 @@ export const LoginScreen = ({ navigation }: Props) => {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <View style={styles.content}>
+      <View style={[styles.content, { paddingTop: insets.top }]}>
         {/* Sign In Title */}
         <Text style={styles.title}>Sign In</Text>
         <Text style={styles.subtitle}>Enter your email to sign in</Text>
@@ -165,7 +167,6 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 60,
     paddingBottom: 30,
   },
   title: {

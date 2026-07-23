@@ -12,6 +12,7 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
@@ -45,6 +46,7 @@ function timeAgo(createdAt: string) {
 
 export default function NotificationScreen() {
   const { token } = useAuth();
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [page, setPage] = useState(1);
@@ -157,7 +159,7 @@ export default function NotificationScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <Text style={styles.title}>Notifications</Text>
       {error && <Text style={styles.errorText}>{error}</Text>}
       <FlatList

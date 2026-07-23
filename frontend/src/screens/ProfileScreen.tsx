@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
 import { getStoredUser } from '../services/session';
@@ -51,6 +52,7 @@ function MenuRow({ icon, label, onPress, danger }: RowProps) {
 
 export default function ProfileScreen({ navigation }: Props) {
   const { token, signOut } = useAuth();
+  const insets = useSafeAreaInsets();
   const [user, setUser] = useState({ name: '', email: '' });
   const isFocused = useIsFocused();
 
@@ -111,7 +113,10 @@ export default function ProfileScreen({ navigation }: Props) {
     ]);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={[styles.content, { paddingTop: insets.top + 24 }]}
+    >
       {/* Profile header */}
       <View style={styles.header}>
         <View style={styles.avatar}>

@@ -11,6 +11,7 @@ import {
   TextInput,
   ActivityIndicator,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
 import { useAuth } from '../context/AuthContext';
@@ -104,6 +105,7 @@ export function fieldToPatch(field: string, value: string): ClothingUpdate {
 }
 
 export default function ItemDetailScreen({ navigation, route }: Props) {
+  const insets = useSafeAreaInsets();
   const { token } = useAuth();
   const itemId = route?.params?.itemId;
   const [showEditModal, setShowEditModal] = useState(false);
@@ -338,7 +340,7 @@ export default function ItemDetailScreen({ navigation, route }: Props) {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
@@ -738,7 +740,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: 60,
     paddingBottom: 16,
     backgroundColor: colors.background,
   },

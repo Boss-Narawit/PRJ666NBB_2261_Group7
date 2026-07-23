@@ -63,7 +63,7 @@ _(slide 6 — "Know what you actually wear")_
    real life needs, not one slot."
 3. Tap into one outfit → **Wear Log Detail** → back out.
 4. Navigate to **Forgotten Items** (from Dashboard or wardrobe overflow). Point out
-   **Silk Scarf** (40 days) and **Corduroy Pants** (35 days) against the 14-day
+   **Silk Scarf** (75 days) and **Corduroy Pants** (70 days) against the 60-day
    threshold — say these counts are 100% derived from the logs you just saw, never
    hand-set (BR9).
 5. Tap the **bell icon** (Notifications tab) → show the two unread forgotten-item

@@ -12,6 +12,7 @@ import {
   Alert,
   RefreshControl,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
 import { useAuth } from '../context/AuthContext';
@@ -33,6 +34,7 @@ type Props = {
 };
 
 export default function WardrobeScreen({ navigation, route }: Props) {
+  const insets = useSafeAreaInsets();
   const { token } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(
@@ -245,7 +247,7 @@ export default function WardrobeScreen({ navigation, route }: Props) {
     // anchors to the scrolled content, so the button scrolled with the page.
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
@@ -423,7 +425,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: 60,
     paddingBottom: 16,
     backgroundColor: colors.background,
   },

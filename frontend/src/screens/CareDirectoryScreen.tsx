@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Linking,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
 import { useAuth } from '../context/AuthContext';
@@ -22,6 +23,7 @@ type Props = {
 // needs repair rather than export (repair_reminder tap-through + the Damaged
 // banner on ItemDetail). Data is the seeded partner list (manual mock data).
 export default function CareDirectoryScreen({ navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const { token } = useAuth();
   // Only care partners belong here; resale/donation live in the Export flow.
   const fetchPartners = useCallback(
@@ -91,7 +93,7 @@ export default function CareDirectoryScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
@@ -150,7 +152,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: 60,
     paddingBottom: 16,
     backgroundColor: colors.background,
   },
