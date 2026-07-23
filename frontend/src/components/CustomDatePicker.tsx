@@ -55,6 +55,9 @@ type Props = {
   initialDate?: Date;
   startDate?: Date; // Add this to pass the start date
   mode?: 'start' | 'end';
+  title?: string; // Overrides the mode-based header (e.g. for a wear-log date)
+  allowPastDates?: boolean; // Drop the today-minimum so past dates are selectable
+  maxDate?: Date; // Upper bound (e.g. today for a wear log — can't wear in future)
 };
 
 export default function CustomDatePicker({
@@ -64,6 +67,9 @@ export default function CustomDatePicker({
   initialDate = new Date(),
   startDate,
   mode = 'end',
+  title,
+  allowPastDates = false,
+  maxDate,
 }: Props) {
   const [selectedDate, setSelectedDate] = useState(initialDate);
 
@@ -106,8 +112,17 @@ export default function CustomDatePicker({
   const todayDay = String(today.getDate()).padStart(2, '0');
   const todayString = `${todayYear}-${todayMonth}-${todayDay}`;
 
-  // If startDate is provided, use it as minDate, otherwise use today
-  const minDateString = startDate ? formatDateKey(startDate) : todayString;
+  // If startDate is provided, use it as minDate, otherwise use today — unless the
+  // caller opts into past dates (a wear log can be dated in the past), where there
+  // is no lower bound at all.
+  const minDateString = allowPastDates
+    ? undefined
+    : startDate
+      ? formatDateKey(startDate)
+      : todayString;
+
+  // Optional upper bound (undefined = no cap, the existing behavior).
+  const maxDateString = maxDate ? formatDateKey(maxDate) : undefined;
 
   return (
     <Modal
@@ -121,7 +136,8 @@ export default function CustomDatePicker({
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.headerTitle}>
-              {mode === 'start' ? 'Select Start Date' : 'Select End Date'}
+              {title ??
+                (mode === 'start' ? 'Select Start Date' : 'Select End Date')}
             </Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <Icon name="close" size={24} color={colors.textPrimary} />
@@ -140,6 +156,7 @@ export default function CustomDatePicker({
               },
             }}
             minDate={minDateString}
+            maxDate={maxDateString}
             theme={{
               backgroundColor: colors.white,
               calendarBackground: colors.white,

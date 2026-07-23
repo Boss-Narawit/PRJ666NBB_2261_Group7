@@ -37,8 +37,8 @@ async function verify() {
   }
   check('demo password logs in (BR2)', await bcrypt.compare(DEMO_PASSWORD, user.password));
   check(
-    'forgotten threshold is 14d, alerts on',
-    user.preferences.forgottenItemThresholdDays === 14 &&
+    'forgotten threshold is 60d, alerts on',
+    user.preferences.forgottenItemThresholdDays === 60 &&
       user.preferences.forgottenItemAlertEnabled &&
       user.notificationEnabled
   );
@@ -97,12 +97,12 @@ async function verify() {
   check('analytics match wear logs on every item (BR9)', br9ok);
 
   // Forgotten items (deliverable: forgotten alerts, BR11)
-  const cutoff = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+  const cutoff = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
   const forgotten = items.filter(
     (i) => i.status === 'Available' && i.analytics.lastWornAt && i.analytics.lastWornAt < cutoff
   );
   check(
-    '≥2 forgotten items past the 14d threshold (BR11)',
+    '≥2 forgotten items past the 60d threshold (BR11)',
     forgotten.length >= 2,
     `got ${forgotten.length}`
   );

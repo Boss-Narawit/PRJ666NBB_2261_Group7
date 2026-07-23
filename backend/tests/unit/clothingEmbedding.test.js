@@ -17,7 +17,7 @@ describe('clothing.service embedNewItems', () => {
       colors: ['red'],
       size: 'M',
       condition: 'Good',
-      imageUrl: 'http://img.example/shirt.jpg',
+      imageUrl: 'https://img.example/shirt.jpg',
       userId: new mongoose.Types.ObjectId(),
     });
   };
@@ -31,7 +31,12 @@ describe('clothing.service embedNewItems', () => {
 
     const updatedItem = await Clothing.findById(item._id);
     expect(updatedItem.aiEmbedding).toEqual([0.1, 0.2, 0.3]);
-    expect(axios.get).toHaveBeenCalledWith(item.imageUrl, { responseType: 'arraybuffer' });
+    expect(axios.get).toHaveBeenCalledWith(item.imageUrl, {
+      responseType: 'arraybuffer',
+      timeout: 15000,
+      maxContentLength: 10 * 1024 * 1024,
+      maxRedirects: 0,
+    });
     expect(axios.post.mock.calls[0][0]).toBe('http://localhost:8000/api/ai/embed');
   });
 

@@ -26,7 +26,7 @@ describe('similarity.service runCheckForPurchase', () => {
     _id: new mongoose.Types.ObjectId(),
     userId: new mongoose.Types.ObjectId(),
     itemName: 'Cool Jacket',
-    imageUrl: 'http://img.example/jacket.jpg',
+    imageUrl: 'https://img.example/jacket.jpg',
     ...overrides,
   });
 

@@ -11,10 +11,19 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
+import CustomDatePicker from '../components/CustomDatePicker';
 import { colors } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { getClothing, createWearLog, Clothing } from '../services/api';
 import { localDateString } from '../utils/date';
+
+// Parse a 'YYYY-MM-DD' string into a LOCAL Date (new Date('YYYY-MM-DD') parses as
+// UTC midnight, which the picker would render as the previous day for users
+// behind UTC — the same shift localDateString() guards against on the way out).
+const parseLocalDate = (s: string): Date => {
+  const [y, m, d] = s.split('-').map(Number);
+  return new Date(y, m - 1, d);
+};
 
 type Props = {
   navigation: any;
@@ -29,6 +38,7 @@ export default function LogOutfitScreen({ navigation }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const [logDate, setLogDate] = useState(localDateString());
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [outfitName, setOutfitName] = useState('');
   const [occasion, setOccasion] = useState('');
   const [notes, setNotes] = useState('');
@@ -122,13 +132,25 @@ export default function LogOutfitScreen({ navigation }: Props) {
           contentContainerStyle={styles.bodyContent}
         >
           <Text style={styles.label}>Date</Text>
-          <TextInput
-            style={styles.input}
-            value={logDate}
-            onChangeText={setLogDate}
-            placeholder="YYYY-MM-DD"
-            placeholderTextColor={colors.textSecondary}
-            autoCapitalize="none"
+          <TouchableOpacity
+            style={styles.dateField}
+            onPress={() => setShowDatePicker(true)}
+            activeOpacity={0.7}
+          >
+            <Icon name="calendar-outline" size={20} color={colors.primary} />
+            <Text style={styles.dateText}>{logDate}</Text>
+          </TouchableOpacity>
+          <CustomDatePicker
+            visible={showDatePicker}
+            onClose={() => setShowDatePicker(false)}
+            onConfirm={date => {
+              setLogDate(localDateString(date));
+              setShowDatePicker(false);
+            }}
+            initialDate={parseLocalDate(logDate)}
+            title="Select Date"
+            allowPastDates
+            maxDate={new Date()}
           />
 
           <Text style={styles.label}>Outfit Name</Text>
@@ -257,6 +279,20 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
+    fontSize: 16,
+    color: colors.textPrimary,
+  },
+  dateField: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.inputBorder,
+    borderRadius: 12,
+    padding: 14,
+  },
+  dateText: {
     fontSize: 16,
     color: colors.textPrimary,
   },

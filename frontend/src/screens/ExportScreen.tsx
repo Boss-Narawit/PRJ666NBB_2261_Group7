@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
 import { useAuth } from '../context/AuthContext';
@@ -43,18 +44,21 @@ export default function ExportScreen({ navigation, route }: Props) {
   const [partnersLoading, setPartnersLoading] = useState(true);
   const [partnersError, setPartnersError] = useState<string | null>(null);
 
-  // Only Available items can be exported (BR23 keeps archived out).
-  useEffect(() => {
-    if (!token) return;
-    setItemsError(null);
-    getClothing(token)
-      .then(data => setClothing(data.filter(c => c.status === 'Available')))
-      .catch(err => {
-        setClothing([]);
-        setItemsError(err.message || 'Could not load your wardrobe.');
-      })
-      .finally(() => setItemsLoading(false));
-  }, [token]);
+  // Only Available items can be exported (BR23 keeps archived out). Re-fetch on
+  // focus so items exported from the checklist/detail flow don't linger here.
+  useFocusEffect(
+    useCallback(() => {
+      if (!token) return;
+      setItemsError(null);
+      getClothing(token)
+        .then(data => setClothing(data.filter(c => c.status === 'Available')))
+        .catch(err => {
+          setClothing([]);
+          setItemsError(err.message || 'Could not load your wardrobe.');
+        })
+        .finally(() => setItemsLoading(false));
+    }, [token]),
+  );
 
   // Partners are filtered by destination type; reset the pick when the tab flips.
   useEffect(() => {

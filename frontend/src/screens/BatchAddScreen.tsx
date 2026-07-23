@@ -13,7 +13,12 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
-import { launchImageLibrary, Asset } from 'react-native-image-picker';
+import {
+  launchCamera,
+  launchImageLibrary,
+  Asset,
+  ImagePickerResponse,
+} from 'react-native-image-picker';
 import { useAuth } from '../context/AuthContext';
 import {
   uploadClothingImage,
@@ -60,18 +65,38 @@ export default function BatchAddScreen({ navigation }: Props) {
     setDescription('');
   };
 
+  // Shared handler for both the camera and library pickers — same response shape.
+  const handlePickerResponse = (
+    response: ImagePickerResponse,
+    failMessage: string,
+  ) => {
+    if (response.assets && response.assets[0]?.uri) {
+      setPhoto(response.assets[0]);
+    } else if (response.didCancel) {
+      // cancelled — no action
+    } else {
+      Alert.alert('Error', failMessage);
+    }
+  };
+
+  // Capture a photo with the device camera.
+  const takePhoto = () => {
+    launchCamera(
+      {
+        mediaType: 'photo',
+        quality: 0.8,
+        includeBase64: false,
+        saveToPhotos: false,
+      },
+      response => handlePickerResponse(response, 'Failed to take photo'),
+    );
+  };
+
+  // Pick an existing image from the library.
   const selectPhoto = () => {
     launchImageLibrary(
       { mediaType: 'photo', quality: 0.8, includeBase64: false },
-      response => {
-        if (response.assets && response.assets[0]?.uri) {
-          setPhoto(response.assets[0]);
-        } else if (response.didCancel) {
-          // cancelled — no action
-        } else {
-          Alert.alert('Error', 'Failed to select photo');
-        }
-      },
+      response => handlePickerResponse(response, 'Failed to select photo'),
     );
   };
 
@@ -212,16 +237,23 @@ export default function BatchAddScreen({ navigation }: Props) {
         <View style={styles.divider} />
         <Text style={styles.sectionTitle}>Add an item</Text>
 
-        <TouchableOpacity
-          style={styles.selectPhotoButton}
-          onPress={selectPhoto}
-        >
-          <Icon name="image-outline" size={20} color={colors.primary} />
-          <Text style={styles.selectPhotoText}>
-            {photo ? 'Change Photo' : 'Select Photo'}
-          </Text>
-          <Text style={styles.requiredStar}>*</Text>
-        </TouchableOpacity>
+        <Text style={styles.label}>
+          Photo <Text style={styles.requiredStar}>*</Text>
+        </Text>
+        <View style={styles.photoButtonsRow}>
+          <TouchableOpacity style={styles.photoButton} onPress={takePhoto}>
+            <Icon name="camera-outline" size={20} color={colors.primary} />
+            <Text style={styles.selectPhotoText}>
+              {photo ? 'Retake' : 'Take Photo'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.photoButton} onPress={selectPhoto}>
+            <Icon name="image-outline" size={20} color={colors.primary} />
+            <Text style={styles.selectPhotoText}>
+              {photo ? 'Change' : 'Select'}
+            </Text>
+          </TouchableOpacity>
+        </View>
 
         {photo && (
           <View style={styles.photoPreview}>
@@ -464,12 +496,17 @@ const styles = StyleSheet.create({
     backgroundColor: colors.inputBorder,
     marginTop: 20,
   },
-  selectPhotoButton: {
+  photoButtonsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 12,
+  },
+  photoButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,
-    marginBottom: 12,
     borderWidth: 1,
     borderColor: colors.primary,
     borderRadius: 12,

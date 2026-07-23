@@ -13,7 +13,12 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
-import { launchImageLibrary, Asset } from 'react-native-image-picker';
+import {
+  launchCamera,
+  launchImageLibrary,
+  Asset,
+  ImagePickerResponse,
+} from 'react-native-image-picker';
 import { useAuth } from '../context/AuthContext';
 import { uploadClothingImage, createClothing } from '../services/api';
 import { CLOTHING_CATEGORIES, getSizeOptions } from '../constants/categories';
@@ -50,6 +55,34 @@ export default function AddClothScreen({ navigation, route }: Props) {
   // entered even when it isn't one of the suggestions.
   const sizes = getSizeOptions(category);
 
+  // Shared handler for both the camera and library pickers — same response shape.
+  const handlePickerResponse = (
+    response: ImagePickerResponse,
+    failMessage: string,
+  ) => {
+    if (response.assets && response.assets[0]?.uri) {
+      setPhoto(response.assets[0]);
+    } else if (response.didCancel) {
+      // user cancelled the picker — no action needed
+    } else {
+      Alert.alert('Error', failMessage);
+    }
+  };
+
+  // "Add New Cloth" — capture a photo with the device camera.
+  const takePhoto = () => {
+    launchCamera(
+      {
+        mediaType: 'photo',
+        quality: 0.8,
+        includeBase64: false,
+        saveToPhotos: false,
+      },
+      response => handlePickerResponse(response, 'Failed to take photo'),
+    );
+  };
+
+  // "Select Photo" — pick an existing image from the library.
   const selectPhoto = () => {
     launchImageLibrary(
       {
@@ -57,15 +90,7 @@ export default function AddClothScreen({ navigation, route }: Props) {
         quality: 0.8,
         includeBase64: false,
       },
-      response => {
-        if (response.assets && response.assets[0]?.uri) {
-          setPhoto(response.assets[0]);
-        } else if (response.didCancel) {
-          // user cancelled the picker — no action needed
-        } else {
-          Alert.alert('Error', 'Failed to select photo');
-        }
-      },
+      response => handlePickerResponse(response, 'Failed to select photo'),
     );
   };
 
@@ -152,8 +177,8 @@ export default function AddClothScreen({ navigation, route }: Props) {
       </View>
 
       <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
-        {/* Add New Cloth Button */}
-        <TouchableOpacity style={styles.addButton} onPress={selectPhoto}>
+        {/* Add New Cloth Button — opens the camera */}
+        <TouchableOpacity style={styles.addButton} onPress={takePhoto}>
           <Icon name="camera-outline" size={24} color={colors.white} />
           <Text style={styles.addButtonText}>Add New Cloth</Text>
         </TouchableOpacity>

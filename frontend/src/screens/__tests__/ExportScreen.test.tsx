@@ -7,6 +7,16 @@ import { getClothing, listPartners } from '../../services/api';
 // Mock vector icons
 jest.mock('react-native-vector-icons/Ionicons', () => 'Icon');
 
+// ExportScreen refetches its wardrobe on focus via useFocusEffect. Without a real
+// NavigationContainer the hook can't register focus listeners, so mock it to run
+// the callback once on mount — mirroring the mount-time fetch these tests assert.
+jest.mock('@react-navigation/native', () => ({
+  useFocusEffect: (cb: () => void) => {
+    const { useEffect } = require('react');
+    useEffect(() => cb(), [cb]);
+  },
+}));
+
 // Mock navigation
 const mockNavigation = {
   navigate: jest.fn(),

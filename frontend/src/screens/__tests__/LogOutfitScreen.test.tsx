@@ -6,6 +6,11 @@ import { getClothing } from '../../services/api';
 // Mock vector icons
 jest.mock('react-native-vector-icons/Ionicons', () => 'Icon');
 
+// Mock the calendar date picker — react-native-calendars ships untranspiled ESM
+// that Jest's RN preset won't transform, so importing it for real crashes the
+// suite at load time (same reason the ThoughtfulPurchasing test mocks it).
+jest.mock('../../components/CustomDatePicker', () => 'CustomDatePicker');
+
 // Mock Auth Context
 jest.mock('../../context/AuthContext', () => ({
   useAuth: () => ({

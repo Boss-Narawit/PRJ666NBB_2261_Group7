@@ -40,13 +40,15 @@ const FORGOTTEN_ITEM_DEFAULT_THRESHOLD_DAYS = 30; // default preference value
 const FORGOTTEN_ITEM_RENOTIFY_DAYS = 7; // BR13
 const UTILIZATION_WINDOW_DAYS = 90; // BR24
 const REPURPOSE_UNWORN_DAYS = 180; // idle-item threshold for the repurpose (resell/donate) nudge
-const ANNUAL_RECAP_MIN_LOGS = 1; // TEMP: lowered for demo — BR25 is 30, revert before submission
+const ANNUAL_RECAP_MIN_LOGS = 30; // BR25: annual recap requires >= 30 wear logs
 const DELETE_GRACE_PERIOD_DAYS = 30; // BR3
 const MAX_CLOTHING_BATCH = 50; // BR5
 const DASHBOARD_FORGOTTEN_PREVIEW_LIMIT = 5; // forgotten-items preview on main dashboard
 const NOTIFICATION_PAGE_SIZE = 20; // default + max page size for the notification list
 const WEARLOG_PAGE_SIZE = 20; // default + max page size for the wear-log history list
 const UPLOAD_MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // image upload cap — file buffers in memory before Cloudinary
+const AI_REQUEST_TIMEOUT_MS = 15000; // cap on AI-service embed + remote image-fetch calls
+const AI_IMAGE_MAX_BYTES = UPLOAD_MAX_FILE_SIZE_BYTES; // download cap for fetched images — mirror the upload cap
 const CRON_TIMEZONE = 'America/Toronto'; // node-cron defaults to the host TZ — pin BR11's "daily 08:00" to local time
 // Cost 10 in production; 4 under Jest — hashing dominates suite runtime otherwise
 // (~56ms/register at cost 10). Login/compare still verify: bcrypt embeds the cost
@@ -79,6 +81,8 @@ module.exports = {
   NOTIFICATION_PAGE_SIZE,
   WEARLOG_PAGE_SIZE,
   UPLOAD_MAX_FILE_SIZE_BYTES,
+  AI_REQUEST_TIMEOUT_MS,
+  AI_IMAGE_MAX_BYTES,
   CRON_TIMEZONE,
   BCRYPT_SALT_ROUNDS,
 };

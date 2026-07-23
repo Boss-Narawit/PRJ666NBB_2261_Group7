@@ -1,7 +1,14 @@
 import { Platform } from 'react-native';
 
+// iOS: on a physical device 127.0.0.1 is the *phone*, so point at the Mac's LAN
+// IP (phone + Mac must share Wi-Fi). This LAN IP also works from the simulator.
+// Update this when the Mac's IP changes (run `ipconfig getifaddr en0`).
+// Android emulator maps the host to 10.0.2.2.
+const HOST_LAN_IP = '10.88.111.16';
 const BASE_URL =
-  Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://127.0.0.1:3000';
+  Platform.OS === 'android'
+    ? 'http://10.0.2.2:3000'
+    : `http://${HOST_LAN_IP}:3000`;
 
 // Registered by AuthProvider. Called when an authenticated request comes back
 // 401 — the stored token is expired or invalid, so the app signs out and
@@ -293,7 +300,7 @@ export interface NewClothingInput {
   color: string; // comma-separated, e.g. 'Black, White'
   size: string;
   imageUrl: string; // hosted URL from uploadClothingImage
-  condition?: string; // defaults to 'Good'
+  condition?: string; // defaults to 'Excellent'
   notes?: string;
 }
 
@@ -324,7 +331,7 @@ function toClothingBody(input: NewClothingInput) {
       .filter(Boolean),
     size: input.size,
     imageUrl: input.imageUrl,
-    condition: input.condition ?? 'Good',
+    condition: input.condition ?? 'Excellent',
     notes: input.notes?.trim() || undefined,
   };
 }

@@ -4,7 +4,11 @@ const mongoose = require('mongoose');
 const Clothing = require('../models/Clothing');
 const SimilarityCheck = require('../models/SimilarityCheck');
 const Notification = require('../models/Notification');
-const { SIMILARITY_THRESHOLD } = require('../config/constants');
+const {
+  SIMILARITY_THRESHOLD,
+  AI_REQUEST_TIMEOUT_MS,
+  AI_IMAGE_MAX_BYTES,
+} = require('../config/constants');
 
 // Atlas $vectorSearch reports cosine similarity normalized to (1 + cos) / 2, so
 // score thresholds are in that [0,1] space — BR16's 0.70 *cosine* cutoff
@@ -19,12 +23,35 @@ const embedImageBuffer = async (buffer, filename = 'image.jpg') => {
   form.append('image_file', buffer, filename);
   const aiResponse = await axios.post(`${process.env.AI_SERVICE_URL}/api/ai/embed`, form, {
     headers: form.getHeaders(),
+    timeout: AI_REQUEST_TIMEOUT_MS,
   });
   return aiResponse.data.embedding;
 };
 
+// SSRF guard: only fetch remote images over HTTPS, and never follow redirects.
+// A client-supplied imageUrl could otherwise point at http://metadata or an
+// internal host. timeout stops a hanging host from tying up the worker;
+// maxContentLength caps the download size.
 const embedImageUrl = async (imageUrl) => {
-  const image = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+  let parsed;
+  try {
+    parsed = new URL(imageUrl);
+  } catch (err) {
+    const e = new Error('Invalid image URL');
+    e.status = 400;
+    throw e;
+  }
+  if (parsed.protocol !== 'https:') {
+    const e = new Error('Image URL must use HTTPS');
+    e.status = 400;
+    throw e;
+  }
+  const image = await axios.get(imageUrl, {
+    responseType: 'arraybuffer',
+    timeout: AI_REQUEST_TIMEOUT_MS,
+    maxContentLength: AI_IMAGE_MAX_BYTES,
+    maxRedirects: 0,
+  });
   return embedImageBuffer(Buffer.from(image.data));
 };
 
