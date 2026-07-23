@@ -50,7 +50,7 @@
   "jest": {
     "preset": "react-native",
     "transformIgnorePatterns": [
-      "node_modules/(?!((jest-)?react-native|@react-native(-community)?|@react-navigation|react-native-calendars)/)"
+      "node_modules/(?!((jest-)?react-native|@react-native(-community)?|@react-navigation|react-native-calendars|react-native-image-picker)/)"
     ]
   }
 }

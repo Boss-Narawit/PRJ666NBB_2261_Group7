@@ -2,7 +2,7 @@ const Clothing = require('../models/Clothing');
 const User = require('../models/User');
 const { forgottenFilter, MS_PER_DAY } = require('./dashboard.service');
 const { embedImageUrl } = require('./similarity.service');
-const { MAX_CLOTHING_BATCH } = require('../config/constants');
+const { MAX_CLOTHING_BATCH, MAX_CLOTHING_IMAGES } = require('../config/constants');
 
 // Only these fields are client-writable — userId, analytics (BR9), aiEmbedding,
 // and exportInfo are server-managed and must never come from the request body.
@@ -17,6 +17,7 @@ const EDITABLE_FIELDS = [
   'colors',
   'size',
   'imageUrl',
+  'images',
   'condition',
   'purchasePrice',
   'purchaseDate',
@@ -38,6 +39,33 @@ const httpError = (status, message) => {
   const e = new Error(message);
   e.status = status;
   return e;
+};
+
+// Keep the images[] gallery and the imageUrl cover in agreement before any
+// write: imageUrl is always images[0]. Older single-image clients send only
+// imageUrl; the multi-image UI sends images[]. Accepts either and derives the
+// other, enforcing the per-item photo cap. Runs on the already-whitelisted
+// fields so it never introduces non-editable keys.
+const reconcileImages = (fields) => {
+  const out = { ...fields };
+  if (out.images !== undefined) {
+    if (!Array.isArray(out.images)) {
+      throw httpError(422, 'images must be an array of image URLs');
+    }
+    const cleaned = out.images.filter((u) => typeof u === 'string' && u.trim());
+    // At least one image is required — imageUrl is a required cover (BR4).
+    if (cleaned.length === 0) throw httpError(422, 'At least one image is required');
+    if (cleaned.length > MAX_CLOTHING_IMAGES) {
+      throw httpError(422, `Cannot add more than ${MAX_CLOTHING_IMAGES} images per item`);
+    }
+    out.images = cleaned;
+    out.imageUrl = cleaned[0]; // cover = first image
+  } else if (out.imageUrl !== undefined) {
+    // Single-image client (or a prefilled hosted URL) — mirror the cover into
+    // the gallery so both fields are always populated.
+    out.images = [out.imageUrl];
+  }
+  return out;
 };
 
 // Fetches each item's image and stamps Clothing.aiEmbedding via the AI service
@@ -67,7 +95,7 @@ const scheduleEmbedding = (items) => {
 
 const createClothing = async (userId, body) => {
   const clothing = await Clothing.create({
-    ...pickEditableFields(body),
+    ...reconcileImages(pickEditableFields(body)),
     userId,
   });
   scheduleEmbedding([clothing]);
@@ -85,7 +113,7 @@ const bulkCreateClothing = async (userId, items) => {
   // Items always belong to the requester — never trust a client-sent userId.
   const created = await Clothing.insertMany(
     items.map((item) => ({
-      ...pickEditableFields(item),
+      ...reconcileImages(pickEditableFields(item)),
       userId,
     }))
   );
@@ -102,7 +130,7 @@ const getClothingItem = async (userId, id) => {
 };
 
 const updateClothingItem = async (userId, id, body) => {
-  const update = pickEditableFields(body);
+  const update = reconcileImages(pickEditableFields(body));
   const filter = { _id: id, userId };
 
   // status is a state-machine field, not a plain editable field: only the
@@ -123,10 +151,19 @@ const updateClothingItem = async (userId, id, body) => {
     filter.status = { $ne: 'Exported' };
   }
 
-  // A changed image invalidates the cached fashion-clip vector — clear it in
-  // the same write (never let similarity match against a replaced photo) and
-  // re-embed in the background below.
-  if (update.imageUrl !== undefined) update.aiEmbedding = [];
+  // A changed cover (images[0]) invalidates the cached fashion-clip vector —
+  // clear it in the same write (never let similarity match against a replaced
+  // photo) and re-embed in the background below. Adding/removing a *non-cover*
+  // photo leaves the cover unchanged, so it must NOT touch the embedding: doing
+  // so would drop the item out of similarity search (BR19) until the re-embed
+  // lands. Only read the current cover when an image field is actually in the
+  // update (rename-only PATCHes stay single-fetch).
+  let coverChanged = false;
+  if (update.imageUrl !== undefined) {
+    const current = await Clothing.findOne({ _id: id, userId }).select('imageUrl');
+    coverChanged = !current || current.imageUrl !== update.imageUrl;
+    if (coverChanged) update.aiEmbedding = [];
+  }
 
   const updated = await Clothing.findOneAndUpdate(filter, update, {
     new: true,
@@ -143,7 +180,7 @@ const updateClothingItem = async (userId, id, body) => {
     }
     throw httpError(404, 'Clothing item not found');
   }
-  if (update.imageUrl !== undefined) scheduleEmbedding([updated]);
+  if (coverChanged) scheduleEmbedding([updated]);
   return updated;
 };
 

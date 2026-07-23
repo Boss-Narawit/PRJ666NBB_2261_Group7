@@ -13,6 +13,11 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
+import {
+  launchCamera,
+  launchImageLibrary,
+  ImagePickerResponse,
+} from 'react-native-image-picker';
 import { colors } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useFocusedFetch } from '../hooks/useFocusedFetch';
@@ -20,6 +25,7 @@ import {
   getClothingById,
   updateClothing,
   createWearLog,
+  uploadClothingImage,
   ClothingUpdate,
   Clothing,
 } from '../services/api';
@@ -45,12 +51,15 @@ type DisplayItem = {
   size: string;
   description: string;
   condition: string;
-  image: string | null;
+  images: string[]; // full gallery; images[0] is the cover
   wearCount: number;
   lastWorn: string;
   status: string;
   exportInfo?: { partnerName?: string; type?: string; exportedAt?: string };
 };
+
+// Up to 5 photos per item (mirrors MAX_CLOTHING_IMAGES); first is the cover.
+const MAX_IMAGES = 5;
 
 // The model stores category lowercase (tops/bottoms/...); show it title-cased.
 const toTitle = (s: string) =>
@@ -66,7 +75,8 @@ function toDisplayItem(c: Clothing): DisplayItem {
     size: c.size,
     description: c.notes ?? '',
     condition: c.condition,
-    image: c.imageUrl || null,
+    // Legacy pre-gallery docs only have imageUrl — fall back to a 1-item gallery.
+    images: c.images?.length ? c.images : c.imageUrl ? [c.imageUrl] : [],
     wearCount: c.analytics?.wearCount ?? 0,
     lastWorn: c.analytics?.lastWornAt
       ? c.analytics.lastWornAt.slice(0, 10)
@@ -114,6 +124,7 @@ export default function ItemDetailScreen({ navigation, route }: Props) {
   const [showPickerModal, setShowPickerModal] = useState(false);
   const [pickerOptions, setPickerOptions] = useState<string[]>([]);
   const [pickerField, setPickerField] = useState<string>('');
+  const [photoBusy, setPhotoBusy] = useState(false); // uploading/removing a photo
 
   // The raw API document is the fetched state, kept so "Export/Donate" can
   // hand Export a real Clothing (Export preselects by _id — the display item
@@ -173,6 +184,96 @@ export default function ItemDetailScreen({ navigation, route }: Props) {
     } catch (err: any) {
       Alert.alert('Update failed', err.message || 'Could not save changes.');
     }
+  };
+
+  // ── Photo gallery: add (upload → PATCH images) / delete (PATCH images) ──
+  // Both write the server response back so the gallery + cover stay in sync.
+  const persistImages = async (images: string[]) => {
+    if (!item || !token) return;
+    try {
+      const updated = await updateClothing(token, item.id, { images });
+      setRawItem(updated);
+    } catch (err: any) {
+      Alert.alert('Update failed', err.message || 'Could not update photos.');
+    }
+  };
+
+  const handlePicked = async (response: ImagePickerResponse) => {
+    if (response.didCancel) return;
+    if (!item || !token) return;
+    const assets = (response.assets ?? []).filter(a => a.uri);
+    if (assets.length === 0) {
+      Alert.alert('Error', 'Could not add photo.');
+      return;
+    }
+    const room = MAX_IMAGES - item.images.length;
+    if (room <= 0) return;
+    setPhotoBusy(true);
+    try {
+      const uploaded = await Promise.all(
+        assets.slice(0, room).map(a => uploadClothingImage(token, a)),
+      );
+      await persistImages([...item.images, ...uploaded]);
+    } catch (err: any) {
+      Alert.alert('Upload failed', err.message || 'Could not upload photo.');
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
+
+  const handleAddPhoto = () => {
+    if (!item) return;
+    const room = MAX_IMAGES - item.images.length;
+    if (room <= 0) {
+      Alert.alert('Photo limit', `You can have up to ${MAX_IMAGES} photos.`);
+      return;
+    }
+    Alert.alert('Add Photo', undefined, [
+      {
+        text: 'Take Photo',
+        onPress: () =>
+          launchCamera(
+            {
+              mediaType: 'photo',
+              quality: 0.8,
+              includeBase64: false,
+              saveToPhotos: false,
+            },
+            handlePicked,
+          ),
+      },
+      {
+        text: 'Choose from Library',
+        onPress: () =>
+          launchImageLibrary(
+            {
+              mediaType: 'photo',
+              quality: 0.8,
+              includeBase64: false,
+              selectionLimit: room,
+            },
+            handlePicked,
+          ),
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
+  const handleDeletePhoto = (index: number) => {
+    if (!item) return;
+    // Keep at least one photo — imageUrl (the cover) is required (BR4).
+    if (item.images.length <= 1) {
+      Alert.alert('Cannot remove', 'An item must keep at least one photo.');
+      return;
+    }
+    Alert.alert('Remove Photo', 'Remove this photo from the item?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: () => persistImages(item.images.filter((_, i) => i !== index)),
+      },
+    ]);
   };
 
   const handlePickerSelect = (value: string) => {
@@ -385,11 +486,10 @@ export default function ItemDetailScreen({ navigation, route }: Props) {
       ) : (
         <>
           <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
-            {/* Item Image */}
-            <View style={styles.imageContainer}>
-              {item.image ? (
-                <Image source={{ uri: item.image }} style={styles.itemImage} />
-              ) : (
+            {/* Item photos — horizontal gallery; first is the cover. When
+                editable, each photo can be removed and photos added (max 5). */}
+            <View style={styles.galleryContainer}>
+              {item.images.length === 0 ? (
                 <View style={styles.imagePlaceholder}>
                   <Icon
                     name="shirt-outline"
@@ -397,6 +497,53 @@ export default function ItemDetailScreen({ navigation, route }: Props) {
                     color={colors.textSecondary}
                   />
                 </View>
+              ) : (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.galleryContent}
+                >
+                  {item.images.map((uri, index) => (
+                    <View key={`${uri}-${index}`} style={styles.galleryItem}>
+                      <Image source={{ uri }} style={styles.itemImage} />
+                      {index === 0 && (
+                        <View style={styles.coverBadge}>
+                          <Text style={styles.coverBadgeText}>Cover</Text>
+                        </View>
+                      )}
+                      {!isLocked && item.images.length > 1 && (
+                        <TouchableOpacity
+                          style={styles.galleryRemove}
+                          onPress={() => handleDeletePhoto(index)}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          disabled={photoBusy}
+                        >
+                          <Icon
+                            name="close-circle"
+                            size={24}
+                            color={colors.error}
+                          />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  ))}
+                  {!isLocked && item.images.length < MAX_IMAGES && (
+                    <TouchableOpacity
+                      style={styles.addPhotoTile}
+                      onPress={handleAddPhoto}
+                      disabled={photoBusy}
+                    >
+                      {photoBusy ? (
+                        <ActivityIndicator color={colors.primary} />
+                      ) : (
+                        <>
+                          <Icon name="add" size={28} color={colors.primary} />
+                          <Text style={styles.addPhotoText}>Add</Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                  )}
+                </ScrollView>
               )}
             </View>
 
@@ -760,14 +907,59 @@ const styles = StyleSheet.create({
   body: {
     flex: 1,
   },
-  imageContainer: {
-    alignItems: 'center',
+  galleryContainer: {
     marginBottom: 16,
+  },
+  galleryContent: {
+    paddingHorizontal: 16,
+    gap: 12,
+    alignItems: 'center',
+  },
+  galleryItem: {
+    position: 'relative',
   },
   itemImage: {
     width: 150,
     height: 150,
     borderRadius: 12,
+    backgroundColor: '#F0F0F0',
+  },
+  coverBadge: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    backgroundColor: colors.primary,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  coverBadgeText: {
+    color: colors.white,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  galleryRemove: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    backgroundColor: colors.white,
+    borderRadius: 12,
+  },
+  addPhotoTile: {
+    width: 150,
+    height: 150,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderStyle: 'dashed',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 4,
+  },
+  addPhotoText: {
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: '600',
   },
   imagePlaceholder: {
     width: 150,

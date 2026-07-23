@@ -170,7 +170,8 @@ export interface Clothing {
   category: string;
   colors: string[];
   size: string;
-  imageUrl: string;
+  imageUrl: string; // cover image = images[0]
+  images?: string[]; // full photo gallery (cover first)
   condition: string;
   status: string;
   notes?: string;
@@ -299,7 +300,8 @@ export interface NewClothingInput {
   category: string; // display label, e.g. 'Tops' / 'Other'
   color: string; // comma-separated, e.g. 'Black, White'
   size: string;
-  imageUrl: string; // hosted URL from uploadClothingImage
+  imageUrl: string; // cover / hosted URL from uploadClothingImage (= images[0])
+  images?: string[]; // full gallery of hosted URLs; defaults to [imageUrl]
   condition?: string; // defaults to 'Excellent'
   notes?: string;
 }
@@ -321,6 +323,9 @@ const CATEGORY_MAP: Record<string, string> = {
 // boundary (category→enum, comma color→colors[], condition default). Shared by
 // the single- and batch-create paths so both stay consistent.
 function toClothingBody(input: NewClothingInput) {
+  // Gallery defaults to the single cover; imageUrl always mirrors images[0]
+  // (the backend reconciles too, but keep the sent shape consistent).
+  const images = input.images?.length ? input.images : [input.imageUrl];
   return {
     name: input.name.trim(),
     brand: input.brand.trim(),
@@ -330,7 +335,8 @@ function toClothingBody(input: NewClothingInput) {
       .map(c => c.trim())
       .filter(Boolean),
     size: input.size,
-    imageUrl: input.imageUrl,
+    imageUrl: images[0],
+    images,
     condition: input.condition ?? 'Excellent',
     notes: input.notes?.trim() || undefined,
   };
@@ -371,6 +377,7 @@ export type ClothingUpdate = Partial<
     | 'condition'
     | 'notes'
     | 'status'
+    | 'images'
   >
 >;
 

@@ -33,6 +33,8 @@ type Props = {
 
 // BR5: the backend rejects a batch over 50; guard client-side for UX.
 const MAX_BATCH = 50;
+// Up to 5 photos per item (mirrors MAX_CLOTHING_IMAGES); first is the cover.
+const MAX_IMAGES = 5;
 
 // A staged item carries the API-ready input plus a local preview uri for the list.
 type StagedItem = { input: NewClothingInput; previewUri: string };
@@ -44,8 +46,8 @@ export default function BatchAddScreen({ navigation }: Props) {
   const [adding, setAdding] = useState(false); // uploading the current photo
   const [submitting, setSubmitting] = useState(false); // uploading the whole batch
 
-  // Current draft item
-  const [photo, setPhoto] = useState<Asset | null>(null);
+  // Current draft item — up to MAX_IMAGES photos, first is the cover.
+  const [photos, setPhotos] = useState<Asset[]>([]);
   const [name, setName] = useState('');
   const [brand, setBrand] = useState('');
   const [category, setCategory] = useState('');
@@ -56,7 +58,7 @@ export default function BatchAddScreen({ navigation }: Props) {
   const sizes = getSizeOptions(category);
 
   const resetForm = () => {
-    setPhoto(null);
+    setPhotos([]);
     setName('');
     setBrand('');
     setCategory('');
@@ -65,18 +67,40 @@ export default function BatchAddScreen({ navigation }: Props) {
     setDescription('');
   };
 
-  // Shared handler for both the camera and library pickers — same response shape.
+  // Shared handler for both pickers — appends photo(s) to the draft, capped at
+  // MAX_IMAGES (the library can return several at once).
   const handlePickerResponse = (
     response: ImagePickerResponse,
     failMessage: string,
   ) => {
-    if (response.assets && response.assets[0]?.uri) {
-      setPhoto(response.assets[0]);
+    if (response.assets && response.assets.length > 0) {
+      const picked = response.assets.filter(a => a.uri);
+      setPhotos(prev => {
+        const room = MAX_IMAGES - prev.length;
+        if (room <= 0) {
+          Alert.alert(
+            'Photo limit',
+            `You can add up to ${MAX_IMAGES} photos per item.`,
+          );
+          return prev;
+        }
+        if (picked.length > room) {
+          Alert.alert(
+            'Photo limit',
+            `Only ${room} more photo${room > 1 ? 's' : ''} added (max ${MAX_IMAGES}).`,
+          );
+        }
+        return [...prev, ...picked.slice(0, room)];
+      });
     } else if (response.didCancel) {
       // cancelled — no action
     } else {
       Alert.alert('Error', failMessage);
     }
+  };
+
+  const removePhoto = (index: number) => {
+    setPhotos(prev => prev.filter((_, i) => i !== index));
   };
 
   // Capture a photo with the device camera.
@@ -92,10 +116,15 @@ export default function BatchAddScreen({ navigation }: Props) {
     );
   };
 
-  // Pick an existing image from the library.
+  // Pick one or more existing images from the library.
   const selectPhoto = () => {
     launchImageLibrary(
-      { mediaType: 'photo', quality: 0.8, includeBase64: false },
+      {
+        mediaType: 'photo',
+        quality: 0.8,
+        includeBase64: false,
+        selectionLimit: MAX_IMAGES,
+      },
       response => handlePickerResponse(response, 'Failed to select photo'),
     );
   };
@@ -120,11 +149,9 @@ export default function BatchAddScreen({ navigation }: Props) {
       !category && 'Category',
       !hasColor && 'Color',
       !size && 'Size',
-      !photo?.uri && 'Photo',
+      photos.length === 0 && 'Photo',
     ].filter(Boolean);
-    // The photo check is part of `missing`; repeating it here narrows `photo`
-    // to non-null for the code below.
-    if (!photo?.uri || missing.length > 0) {
+    if (missing.length > 0) {
       Alert.alert(
         'Error',
         `Please fill the required field${
@@ -137,17 +164,21 @@ export default function BatchAddScreen({ navigation }: Props) {
 
     setAdding(true);
     try {
-      const imageUrl = await uploadClothingImage(token, photo);
+      // First photo is the cover (imageUrl = images[0]).
+      const images = await Promise.all(
+        photos.map(p => uploadClothingImage(token, p)),
+      );
       const input: NewClothingInput = {
         name,
         brand,
         category,
         color,
         size,
-        imageUrl,
+        imageUrl: images[0],
+        images,
         notes: description,
       };
-      setStaged(prev => [...prev, { input, previewUri: photo.uri! }]);
+      setStaged(prev => [...prev, { input, previewUri: photos[0].uri! }]);
       resetForm();
     } catch (err: any) {
       Alert.alert('Error', err?.message || 'Failed to add item to the batch');
@@ -220,6 +251,9 @@ export default function BatchAddScreen({ navigation }: Props) {
                 </Text>
                 <Text style={styles.stagedBrand} numberOfLines={1}>
                   {s.input.brand}
+                  {(s.input.images?.length ?? 1) > 1
+                    ? ` · ${s.input.images!.length} photos`
+                    : ''}
                 </Text>
               </View>
               <TouchableOpacity
@@ -238,33 +272,51 @@ export default function BatchAddScreen({ navigation }: Props) {
         <Text style={styles.sectionTitle}>Add an item</Text>
 
         <Text style={styles.label}>
-          Photo <Text style={styles.requiredStar}>*</Text>
+          Photos <Text style={styles.requiredStar}>*</Text>
         </Text>
         <View style={styles.photoButtonsRow}>
           <TouchableOpacity style={styles.photoButton} onPress={takePhoto}>
             <Icon name="camera-outline" size={20} color={colors.primary} />
-            <Text style={styles.selectPhotoText}>
-              {photo ? 'Retake' : 'Take Photo'}
-            </Text>
+            <Text style={styles.selectPhotoText}>Take Photo</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.photoButton} onPress={selectPhoto}>
             <Icon name="image-outline" size={20} color={colors.primary} />
             <Text style={styles.selectPhotoText}>
-              {photo ? 'Change' : 'Select'}
+              {photos.length > 0 ? 'Add More' : 'Select'}
             </Text>
           </TouchableOpacity>
         </View>
 
-        {photo && (
-          <View style={styles.photoPreview}>
-            <Image source={{ uri: photo.uri }} style={styles.previewImage} />
-            <TouchableOpacity
-              style={styles.removePhoto}
-              onPress={() => setPhoto(null)}
+        {photos.length > 0 && (
+          <>
+            <Text style={styles.galleryHint}>
+              {photos.length}/{MAX_IMAGES} photos · first is the cover
+            </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.gallery}
+              contentContainerStyle={styles.galleryContent}
             >
-              <Icon name="close-circle" size={24} color={colors.error} />
-            </TouchableOpacity>
-          </View>
+              {photos.map((p, index) => (
+                <View key={`${p.uri}-${index}`} style={styles.galleryItem}>
+                  <Image source={{ uri: p.uri }} style={styles.galleryImage} />
+                  {index === 0 && (
+                    <View style={styles.coverBadge}>
+                      <Text style={styles.coverBadgeText}>Cover</Text>
+                    </View>
+                  )}
+                  <TouchableOpacity
+                    style={styles.galleryRemove}
+                    onPress={() => removePhoto(index)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Icon name="close-circle" size={22} color={colors.error} />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </ScrollView>
+          </>
         )}
 
         <View style={styles.form}>
@@ -522,20 +574,45 @@ const styles = StyleSheet.create({
     color: colors.error,
     fontSize: 14,
   },
-  photoPreview: {
-    alignItems: 'center',
+  galleryHint: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginBottom: 8,
+  },
+  gallery: {
     marginBottom: 12,
+  },
+  galleryContent: {
+    gap: 12,
+    paddingRight: 8,
+  },
+  galleryItem: {
     position: 'relative',
   },
-  previewImage: {
-    width: 150,
-    height: 150,
+  galleryImage: {
+    width: 100,
+    height: 100,
     borderRadius: 12,
+    backgroundColor: '#F0F0F0',
   },
-  removePhoto: {
+  coverBadge: {
     position: 'absolute',
-    top: -8,
-    right: '35%',
+    bottom: 6,
+    left: 6,
+    backgroundColor: colors.primary,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  coverBadgeText: {
+    color: colors.white,
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  galleryRemove: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
     backgroundColor: colors.white,
     borderRadius: 12,
   },

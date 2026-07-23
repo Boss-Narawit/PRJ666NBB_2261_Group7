@@ -21,7 +21,12 @@ const clothingSchema = new mongoose.Schema(
       },
     },
     size: { type: String, required: true },
+    // Cover image (BR4). Kept in sync with images[0] by clothing.service.
     imageUrl: { type: String, required: true },
+    // Full photo gallery (up to MAX_CLOTHING_IMAGES). images[0] is the cover
+    // and always mirrors imageUrl — every thumbnail/embedding consumer reads
+    // imageUrl, so they stay unchanged. Empty only on legacy pre-gallery docs.
+    images: { type: [String], default: [] },
     condition: { type: String, required: true, enum: CLOTHING_CONDITIONS },
     status: { type: String, enum: CLOTHING_STATUSES, default: 'Available' },
     purchasePrice: { type: Number },

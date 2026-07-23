@@ -28,16 +28,27 @@ type Props = {
   route?: any;
 };
 
+// Up to 5 photos per item; the first is the cover (imageUrl = images[0]).
+// Mirrors MAX_CLOTHING_IMAGES on the backend.
+const MAX_IMAGES = 5;
+
+// A staged photo: a freshly picked Asset (uploaded on save) or an already-hosted
+// URL (a prefill — no upload needed).
+type PhotoEntry = { uri: string; asset?: Asset; hostedUrl?: string };
+
 export default function AddClothScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
   const { token } = useAuth();
   // Prefill carried over from an approved Thoughtful Purchase ("Buy it").
   const prefill = route?.params?.prefill;
   const [loading, setLoading] = useState(false);
-  const [photo, setPhoto] = useState<Asset | null>(null);
-  // A hosted image URL from the prefill — already on Cloudinary, so it skips the
-  // upload step in handleSave (the picker yields a local Asset instead).
-  const [prefillImageUrl] = useState<string | null>(prefill?.imageUrl ?? null);
+  // Photo gallery — first entry is the cover. A prefilled hosted URL seeds the
+  // gallery already-uploaded, so it skips the upload step in handleSave.
+  const [photos, setPhotos] = useState<PhotoEntry[]>(
+    prefill?.imageUrl
+      ? [{ uri: prefill.imageUrl, hostedUrl: prefill.imageUrl }]
+      : [],
+  );
 
   // Form fields
   const [name, setName] = useState(prefill?.name ?? '');
@@ -55,18 +66,43 @@ export default function AddClothScreen({ navigation, route }: Props) {
   // entered even when it isn't one of the suggestions.
   const sizes = getSizeOptions(category);
 
-  // Shared handler for both the camera and library pickers — same response shape.
+  // Shared handler for both the camera and library pickers — appends the picked
+  // photo(s) to the gallery, capped at MAX_IMAGES (library can return several).
   const handlePickerResponse = (
     response: ImagePickerResponse,
     failMessage: string,
   ) => {
-    if (response.assets && response.assets[0]?.uri) {
-      setPhoto(response.assets[0]);
+    if (response.assets && response.assets.length > 0) {
+      const picked = response.assets.filter(a => a.uri);
+      setPhotos(prev => {
+        const room = MAX_IMAGES - prev.length;
+        if (room <= 0) {
+          Alert.alert(
+            'Photo limit',
+            `You can add up to ${MAX_IMAGES} photos per item.`,
+          );
+          return prev;
+        }
+        if (picked.length > room) {
+          Alert.alert(
+            'Photo limit',
+            `Only ${room} more photo${room > 1 ? 's' : ''} added (max ${MAX_IMAGES}).`,
+          );
+        }
+        const toAdd = picked
+          .slice(0, room)
+          .map(a => ({ uri: a.uri!, asset: a }));
+        return [...prev, ...toAdd];
+      });
     } else if (response.didCancel) {
       // user cancelled the picker — no action needed
     } else {
       Alert.alert('Error', failMessage);
     }
+  };
+
+  const removePhoto = (index: number) => {
+    setPhotos(prev => prev.filter((_, i) => i !== index));
   };
 
   // "Add New Cloth" — capture a photo with the device camera.
@@ -82,13 +118,14 @@ export default function AddClothScreen({ navigation, route }: Props) {
     );
   };
 
-  // "Select Photo" — pick an existing image from the library.
+  // "Select Photo" — pick one or more existing images from the library.
   const selectPhoto = () => {
     launchImageLibrary(
       {
         mediaType: 'photo',
         quality: 0.8,
         includeBase64: false,
+        selectionLimit: MAX_IMAGES,
       },
       response => handlePickerResponse(response, 'Failed to select photo'),
     );
@@ -111,7 +148,7 @@ export default function AddClothScreen({ navigation, route }: Props) {
       !category && 'Category',
       !hasColor && 'Color',
       !size && 'Size',
-      !photo?.uri && !prefillImageUrl && 'Photo',
+      photos.length === 0 && 'Photo',
     ].filter(Boolean);
     if (missing.length > 0) {
       Alert.alert(
@@ -126,19 +163,21 @@ export default function AddClothScreen({ navigation, route }: Props) {
 
     setLoading(true);
     try {
-      // A newly picked photo is uploaded to Cloudinary; a prefilled image is
+      // Newly picked photos are uploaded to Cloudinary; a prefilled image is
       // already hosted, so reuse its URL. The wardrobe renders a blank frame for
-      // non-URL imageUrls, so both paths must yield an absolute URL.
-      const imageUrl = photo?.uri
-        ? await uploadClothingImage(token, photo)
-        : prefillImageUrl!;
+      // non-URL imageUrls, so every entry must resolve to an absolute URL.
+      // First entry is the cover (imageUrl = images[0]).
+      const images = await Promise.all(
+        photos.map(p => p.hostedUrl ?? uploadClothingImage(token, p.asset!)),
+      );
       await createClothing(token, {
         name,
         brand,
         category,
         color,
         size,
-        imageUrl,
+        imageUrl: images[0],
+        images,
         notes: description,
       });
 
@@ -183,22 +222,37 @@ export default function AddClothScreen({ navigation, route }: Props) {
           <Text style={styles.addButtonText}>Add New Cloth</Text>
         </TouchableOpacity>
 
-        {/* Photo Preview — picked photo takes precedence over a prefilled image */}
-        {(photo || prefillImageUrl) && (
-          <View style={styles.photoPreview}>
-            <Image
-              source={{ uri: photo?.uri ?? prefillImageUrl! }}
-              style={styles.previewImage}
-            />
-            {photo && (
-              <TouchableOpacity
-                style={styles.removePhoto}
-                onPress={() => setPhoto(null)}
-              >
-                <Icon name="close-circle" size={24} color={colors.error} />
-              </TouchableOpacity>
-            )}
-          </View>
+        {/* Photo gallery — first photo is the cover; up to MAX_IMAGES. */}
+        {photos.length > 0 && (
+          <>
+            <Text style={styles.galleryHint}>
+              {photos.length}/{MAX_IMAGES} photos · first is the cover
+            </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.gallery}
+              contentContainerStyle={styles.galleryContent}
+            >
+              {photos.map((p, index) => (
+                <View key={`${p.uri}-${index}`} style={styles.galleryItem}>
+                  <Image source={{ uri: p.uri }} style={styles.galleryImage} />
+                  {index === 0 && (
+                    <View style={styles.coverBadge}>
+                      <Text style={styles.coverBadgeText}>Cover</Text>
+                    </View>
+                  )}
+                  <TouchableOpacity
+                    style={styles.galleryRemove}
+                    onPress={() => removePhoto(index)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Icon name="close-circle" size={22} color={colors.error} />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </ScrollView>
+          </>
         )}
 
         {/* Select Photo Button */}
@@ -207,8 +261,10 @@ export default function AddClothScreen({ navigation, route }: Props) {
           onPress={selectPhoto}
         >
           <Icon name="image-outline" size={20} color={colors.primary} />
-          <Text style={styles.selectPhotoText}>Select Photo</Text>
-          <Text style={styles.requiredStar}>*</Text>
+          <Text style={styles.selectPhotoText}>
+            {photos.length > 0 ? 'Add More Photos' : 'Select Photos'}
+          </Text>
+          {photos.length === 0 && <Text style={styles.requiredStar}>*</Text>}
         </TouchableOpacity>
 
         {/* Form Fields */}
@@ -395,20 +451,46 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  photoPreview: {
-    alignItems: 'center',
+  galleryHint: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginHorizontal: 20,
+    marginBottom: 8,
+  },
+  gallery: {
     marginBottom: 12,
+  },
+  galleryContent: {
+    paddingHorizontal: 20,
+    gap: 12,
+  },
+  galleryItem: {
     position: 'relative',
   },
-  previewImage: {
-    width: 150,
-    height: 150,
+  galleryImage: {
+    width: 110,
+    height: 110,
     borderRadius: 12,
+    backgroundColor: '#F0F0F0',
   },
-  removePhoto: {
+  coverBadge: {
     position: 'absolute',
-    top: -8,
-    right: '35%',
+    bottom: 6,
+    left: 6,
+    backgroundColor: colors.primary,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  coverBadgeText: {
+    color: colors.white,
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  galleryRemove: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
     backgroundColor: colors.white,
     borderRadius: 12,
   },

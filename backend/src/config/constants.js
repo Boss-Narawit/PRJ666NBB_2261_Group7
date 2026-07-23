@@ -43,6 +43,7 @@ const REPURPOSE_UNWORN_DAYS = 180; // idle-item threshold for the repurpose (res
 const ANNUAL_RECAP_MIN_LOGS = 30; // BR25: annual recap requires >= 30 wear logs
 const DELETE_GRACE_PERIOD_DAYS = 30; // BR3
 const MAX_CLOTHING_BATCH = 50; // BR5
+const MAX_CLOTHING_IMAGES = 5; // max photos per clothing item (imageUrl = images[0] cover)
 const DASHBOARD_FORGOTTEN_PREVIEW_LIMIT = 5; // forgotten-items preview on main dashboard
 const NOTIFICATION_PAGE_SIZE = 20; // default + max page size for the notification list
 const WEARLOG_PAGE_SIZE = 20; // default + max page size for the wear-log history list
@@ -77,6 +78,7 @@ module.exports = {
   ANNUAL_RECAP_MIN_LOGS,
   DELETE_GRACE_PERIOD_DAYS,
   MAX_CLOTHING_BATCH,
+  MAX_CLOTHING_IMAGES,
   DASHBOARD_FORGOTTEN_PREVIEW_LIMIT,
   NOTIFICATION_PAGE_SIZE,
   WEARLOG_PAGE_SIZE,

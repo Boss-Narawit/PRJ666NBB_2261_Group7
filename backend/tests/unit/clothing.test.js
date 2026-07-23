@@ -2,7 +2,11 @@ const request = require('supertest');
 const mongoose = require('mongoose');
 const app = require('../../src/app');
 const Clothing = require('../../src/models/Clothing');
-const { MAX_CLOTHING_BATCH, UPLOAD_MAX_FILE_SIZE_BYTES } = require('../../src/config/constants');
+const {
+  MAX_CLOTHING_BATCH,
+  MAX_CLOTHING_IMAGES,
+  UPLOAD_MAX_FILE_SIZE_BYTES,
+} = require('../../src/config/constants');
 
 // Minimal valid payload — Clothing requires userId, name, brand, category,
 // colors, size, imageUrl, condition (BR4 / Mongoose schema).
@@ -59,6 +63,45 @@ describe('Clothing API (/api/clothing)', () => {
         .send({ ...validItem(userId), status: 'Exported' });
       expect(res.statusCode).toBe(201);
       expect(res.body.status).toBe('Available');
+    });
+
+    test('mirrors a single imageUrl into images[] (backward compat)', async () => {
+      const res = await request(app)
+        .post('/api/clothing/upload')
+        .set('Authorization', `Bearer ${token}`)
+        .send(validItem(userId));
+      expect(res.statusCode).toBe(201);
+      expect(res.body.images).toEqual(['https://example.com/tee.png']);
+    });
+
+    test('accepts an images[] gallery and sets imageUrl to the cover (images[0])', async () => {
+      const { imageUrl, ...rest } = validItem(userId);
+      const images = [
+        'https://example.com/a.png',
+        'https://example.com/b.png',
+        'https://example.com/c.png',
+      ];
+      const res = await request(app)
+        .post('/api/clothing/upload')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ ...rest, images });
+      expect(res.statusCode).toBe(201);
+      expect(res.body.images).toEqual(images);
+      expect(res.body.imageUrl).toBe(images[0]);
+    });
+
+    test(`rejects more than MAX_CLOTHING_IMAGES photos with 422`, async () => {
+      const { imageUrl, ...rest } = validItem(userId);
+      const images = Array.from(
+        { length: MAX_CLOTHING_IMAGES + 1 },
+        (_, i) => `https://example.com/${i}.png`
+      );
+      const res = await request(app)
+        .post('/api/clothing/upload')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ ...rest, images });
+      expect(res.statusCode).toBe(422);
+      expect(await Clothing.countDocuments({})).toBe(0);
     });
   });
 
@@ -188,6 +231,68 @@ describe('Clothing API (/api/clothing)', () => {
         .send({ name: 'Renamed Tee' });
       expect(res.statusCode).toBe(200);
       expect(res.body.name).toBe('Renamed Tee');
+    });
+
+    test('updating images[] re-syncs imageUrl to the new cover', async () => {
+      const created = await Clothing.create(validItem(userId));
+      const images = ['https://example.com/x.png', 'https://example.com/y.png'];
+      const res = await request(app)
+        .patch(`/api/clothing/${created._id}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ images });
+      expect(res.statusCode).toBe(200);
+      expect(res.body.images).toEqual(images);
+      expect(res.body.imageUrl).toBe(images[0]);
+    });
+
+    test('adding a non-cover photo preserves the cached aiEmbedding (no re-embed)', async () => {
+      // Only a cover (images[0]) change should invalidate the embedding —
+      // otherwise the item drops out of similarity search until it re-embeds.
+      const created = await Clothing.create({
+        ...validItem(userId),
+        aiEmbedding: [0.1, 0.2, 0.3],
+      });
+      const res = await request(app)
+        .patch(`/api/clothing/${created._id}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          images: [
+            'https://example.com/tee.png', // same cover as validItem's imageUrl
+            'https://example.com/second.png',
+          ],
+        });
+      expect(res.statusCode).toBe(200);
+      expect(res.body.imageUrl).toBe('https://example.com/tee.png');
+      const reloaded = await Clothing.findById(created._id);
+      expect(reloaded.aiEmbedding).toEqual([0.1, 0.2, 0.3]);
+    });
+
+    test('changing the cover clears the cached aiEmbedding (triggers re-embed)', async () => {
+      const created = await Clothing.create({
+        ...validItem(userId),
+        aiEmbedding: [0.1, 0.2, 0.3],
+      });
+      const res = await request(app)
+        .patch(`/api/clothing/${created._id}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          images: ['https://example.com/new-cover.png', 'https://example.com/tee.png'],
+        });
+      expect(res.statusCode).toBe(200);
+      expect(res.body.imageUrl).toBe('https://example.com/new-cover.png');
+      const reloaded = await Clothing.findById(created._id);
+      expect(reloaded.aiEmbedding).toEqual([]);
+    });
+
+    test('returns 422 when images is emptied (at least one image required)', async () => {
+      const created = await Clothing.create(validItem(userId));
+      const res = await request(app)
+        .patch(`/api/clothing/${created._id}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ images: [] });
+      expect(res.statusCode).toBe(422);
+      const reloaded = await Clothing.findById(created._id);
+      expect(reloaded.imageUrl).toBe('https://example.com/tee.png');
     });
 
     test('returns 422 when colors is emptied (BR4)', async () => {
