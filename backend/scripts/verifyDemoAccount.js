@@ -66,6 +66,16 @@ async function verify() {
     'a Damaged item is Available (BR21 resale-block demo)',
     items.some((i) => i.condition === 'Damaged' && i.status === 'Available')
   );
+  check(
+    'Camel Wool Coat has a multi-photo gallery (add/delete demo)',
+    items.some(
+      (i) =>
+        i.name === 'Camel Wool Coat' &&
+        Array.isArray(i.images) &&
+        i.images.length >= 2 &&
+        i.images[0] === i.imageUrl // cover invariant
+    )
+  );
 
   // Wear logs (deliverables: outfit logging, BR8 multi-outfit, BR9 derived analytics)
   const logs = await WearLog.find({ userId: uid });

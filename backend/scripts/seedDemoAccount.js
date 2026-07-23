@@ -160,6 +160,13 @@ async function seedDemo() {
       condition: 'Excellent',
       status: 'Available',
       imageUrl: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea',
+      // Multi-image gallery demo (up to 5 photos, first is the cover). imageUrl
+      // mirrors images[0] — the same invariant the service enforces (BR4).
+      images: [
+        'https://images.unsplash.com/photo-1591047139829-d91aecb6caea',
+        'https://images.unsplash.com/photo-1548624313-0396c75e4b1a',
+        'https://images.unsplash.com/photo-1516257984-b1b4d707412e',
+      ],
       purchasePrice: 245.0,
       tags: ['winter', 'wool'],
     },

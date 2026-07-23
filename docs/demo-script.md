@@ -18,7 +18,7 @@ Demo account: **demo@redrobe.app / Demo2026pitch**
    check picks from the photo library, not a camera. Drag a camel/beige coat photo
    onto the running simulator window (it lands in Photos automatically). Do this
    _before_ opening the app, not mid-demo.
-6. Fresh data: `node scripts/seedDemoAccount.js`, then verify: `node scripts/verifyDemoAccount.js` (expect 21 PASS)
+6. Fresh data: `node scripts/seedDemoAccount.js`, then verify: `node scripts/verifyDemoAccount.js` (expect 22 PASS)
 7. Log in as the demo account. Leave the app open on the **Dashboard** (home tab).
 8. Know your tab bar — icons only, no text labels, left to right:
    **home** (Dashboard/Wardrobe/Wear History/Export) · **compass** (new AI similarity
@@ -38,19 +38,32 @@ _(bridges from slide 4 — "one loop, four moves")_
 - Say: "Everything below comes from the same source of truth — outfit logs. Let's
   look at where it starts."
 
-## 2. Digital Wardrobe (~1.5 min)
+## 2. Digital Wardrobe + multi-photo items (~2 min)
 
 _(slide 5 — "Every item, one place")_
 
 1. Tap **"See All"** next to My Wardrobe → lands on **My Wardrobe** screen.
 2. Point out the grid — 11 active items. Archived and exported items are _not_ here
    by design (positive status filter — keeps the working closet clean).
-3. Tap **White Oxford Shirt** (or any item) → opens Item Detail.
-4. Edit a field inline (e.g. tap the size row, change it, confirm) — show it persists
+3. Tap **Camel Wool Coat** → opens Item Detail. At the top, **swipe the photo
+   gallery** — this item carries several photos, with a **"Cover"** badge on the
+   first (that cover is the thumbnail you see back in the grid). Say: "Every item
+   now holds up to five photos — front, back, the care label, a flaw — so you've got
+   the full picture when you decide to keep, wear, or resell it."
+4. **Add and delete a photo live:** tap the dashed **"+ Add"** tile at the end of
+   the gallery → **Choose from Library** → pick the photo you pre-loaded. It uploads
+   and appears as the last (rightmost) photo. Then tap the **✕** on that newly added
+   photo — the gallery returns to its seeded set. Say: "Add and delete are one tap
+   each, and the first photo is always the cover you see in the grid."
+5. Edit a field inline (e.g. tap the size row, change it, confirm) — show it persists
    after backing out and back in.
-5. Back out. Tap the **"⋮"** on an item card in the grid → Alert menu:
+6. Back out. Tap the **"⋮"** on an item card in the grid → Alert menu:
    **"View Details" / "Archive"**. Don't archive live (would disturb seeded data) —
    just show the menu exists, then Cancel.
+
+> The same multi-photo picker lives in **Add Item** and **Batch Add** — snap several
+> shots (or multi-select from the library) when you catalog a piece; the first
+> becomes the cover, up to five per item. You'll see the Add form again in step 4a.
 
 ## 3. Wear Analytics + Forgotten Items (~1.5 min)
 
@@ -84,8 +97,10 @@ _(slides 7 + 8 — 24h cooldown, then the AI similarity check — give this the 
    is now **"Buy it"** (enabled). Tap it live:
    - It confirms the purchase, then **navigates you into "Add Item"** prefilled
      with the name and photo — the loop closes back into the wardrobe catalog you
-     showed in step 2. Narrate this, then back out **without saving** (avoid
-     polluting the wardrobe grid mid-demo) — tap the back chevron.
+     showed in step 2. The prefilled photo is the cover; **"Add More Photos"** would
+     attach extra angles before saving (up to five — same picker as step 2). Narrate
+     this, then back out **without saving** (avoid polluting the wardrobe grid
+     mid-demo) — tap the back chevron.
 4. **White Canvas Sneakers** — already `approved`, just point at the status badge.
 
 **4b. The live AI similarity check (compass icon)**
@@ -145,7 +160,11 @@ talking-only — architecture, status, roadmap, thank you).
 ## Fallbacks
 
 - **AI service down:** skip the live check in step 4b — use the stored
-  `similarity_alert` in Notifications instead. Never fake a score.
+  `similarity_alert` in Notifications instead. Never fake a score. (The step-2 photo
+  gallery is unaffected — adding a non-cover photo doesn't touch AI embedding.)
+- **Live photo upload fails (Cloudinary) in step 2:** skip the "+ Add" — just swipe
+  the three seeded photos and tap **✕** on one to demo delete (that only hits the
+  backend, not Cloudinary), then re-seed afterward to restore the gallery.
 - **Backend/Metro crashes mid-demo:** switch to pre-captured screenshots of the
   five flows above (capture these during the final rehearsal, not the night before).
 - **State drifted from a rehearsal** (confirmed the Cashmere Scarf, archived an
